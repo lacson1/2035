@@ -14,6 +14,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Copy entrypoint script (needed for production stage)
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+
 # Generate Prisma Client
 RUN npm run prisma:generate
 
@@ -36,9 +39,7 @@ RUN npm install -g prisma@^5.7.1
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Copy entrypoint script
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+COPY --from=builder /app/docker-entrypoint.sh /app/docker-entrypoint.sh
 
 # Make entrypoint executable
 RUN chmod +x /app/docker-entrypoint.sh
