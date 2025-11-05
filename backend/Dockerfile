@@ -8,8 +8,11 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
+# Install dependencies (including dev dependencies needed for Prisma generation)
 RUN npm ci
+
+# Generate Prisma Client (needs to be done before copying source code to ensure types are available)
+RUN npx prisma generate
 
 # Copy source code
 COPY . .
@@ -17,10 +20,7 @@ COPY . .
 # Copy entrypoint script (needed for production stage)
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 
-# Generate Prisma Client
-RUN npm run prisma:generate
-
-# Build TypeScript
+# Build TypeScript (Prisma Client types are now available)
 RUN npm run build
 
 # Stage 2: Production
