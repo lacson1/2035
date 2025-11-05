@@ -1,0 +1,475 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide scrollbar for horizontal scrolling on mobile */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  /* Ensure full viewport height */
+  html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    @apply text-base font-normal antialiased;
+    @apply bg-gray-50;
+    @apply dark:bg-gray-900;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden; /* Prevent body scroll when workspace is full height */
+  }
+  
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Heading hierarchy with improved spacing and Inter font */
+  h1 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  h2 {
+    @apply text-xl md:text-2xl font-bold tracking-tight;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  h3 {
+    @apply text-lg md:text-xl font-semibold tracking-tight;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  h4 {
+    @apply text-base md:text-lg font-semibold tracking-tight;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  /* Form elements with Inter font for clarity */
+  input, textarea, select, button {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
+  /* Improve readability for form labels */
+  label {
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.01em;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
+  /* Consistent text rendering */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer components {
+  /* Card component - modern styling with subtle shadows */
+  .card {
+    @apply bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm;
+    @apply p-4 md:p-6 rounded-xl border border-gray-200/50 dark:border-gray-700/50;
+    @apply shadow-sm hover:shadow-md transition-shadow duration-300;
+    @apply ring-1 ring-gray-900/5 dark:ring-white/5;
+  }
+  
+  /* Card compact - for smaller cards */
+  .card-compact {
+    @apply bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm;
+    @apply p-3 md:p-4 rounded-xl border border-gray-200/50 dark:border-gray-700/50;
+    @apply shadow-sm hover:shadow-md transition-shadow duration-300;
+    @apply ring-1 ring-gray-900/5 dark:ring-white/5;
+  }
+  
+  /* Section spacing */
+  .section-spacing {
+    @apply space-y-4 md:space-y-6;
+  }
+  
+  /* Modern button styles with smooth transitions - consistent design */
+  .btn-primary {
+    @apply px-4 py-2.5 bg-blue-600 text-white;
+    @apply rounded-xl hover:bg-blue-700;
+    @apply transition-all duration-200 text-sm font-medium font-sans;
+    @apply min-h-[44px] min-w-[44px] shadow-sm hover:shadow-md;
+    @apply active:scale-95 transform;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100;
+    @apply rounded-xl border border-gray-200 dark:border-gray-600;
+    @apply hover:bg-gray-200 dark:hover:bg-gray-600;
+    @apply transition-all duration-200 text-sm font-medium font-sans;
+    @apply min-h-[44px] min-w-[44px];
+    @apply active:scale-95 transform;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  /* Input field consistency */
+  .input-base {
+    @apply w-full px-4 py-2.5 text-base border rounded-xl;
+    @apply dark:bg-gray-800 dark:border-gray-600;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+    @apply transition-colors font-sans;
+    @apply placeholder:text-gray-400 dark:placeholder:text-gray-500;
+  }
+  
+  /* Consistent text sizes */
+  .text-body {
+    @apply text-base font-normal font-sans;
+  }
+  
+  .text-body-sm {
+    @apply text-sm font-normal font-sans;
+  }
+  
+  .text-label {
+    @apply text-sm font-medium font-sans;
+  }
+
+  /* Mobile-friendly table container */
+  .table-container {
+    @apply overflow-x-auto -mx-4 md:mx-0;
+  }
+
+  /* Mobile-friendly table */
+  .table-mobile {
+    @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-white/70 dark:bg-gray-800/70 backdrop-blur-md;
+    @apply border border-white/20 dark:border-gray-700/30;
+    @apply shadow-lg;
+  }
+
+  /* Subtle gradient backgrounds */
+  .gradient-subtle {
+    @apply bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800;
+  }
+}
+
+/* Print Styles */
+@media print {
+  /* Reset page layout for printing */
+  @page {
+    margin: 0.75in;
+    size: letter;
+  }
+
+  /* Hide all interactive and navigation elements */
+  header,
+  nav,
+  aside,
+  button:not(.print-button),
+  .no-print,
+  [class*="sidebar"],
+  [class*="Sidebar"],
+  [class*="header"]:not([class*="content"]):not([class*="Content"]),
+  [class*="Header"]:not([class*="content"]):not([class*="Content"]),
+  [class*="navigation"],
+  [class*="Navigation"],
+  [aria-label*="Toggle"],
+  [aria-label*="toggle"],
+  [class*="Toggle"],
+  [class*="Shortcuts"] {
+    display: none !important;
+  }
+
+  /* Remove body constraints */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Remove backgrounds, shadows, and decorative elements */
+  body > * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Ensure readable text colors */
+  body,
+  main,
+  article,
+  section,
+  div:not([class*="print-content"]) {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Preserve existing print window styles */
+  body > iframe,
+  body > [data-print-window] {
+    display: none !important;
+  }
+
+  /* Ensure cards and containers print properly */
+  .card,
+  .card-compact,
+  [class*="card"] {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* Ensure images print */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+  }
+
+  /* Links */
+  a {
+    color: black !important;
+    text-decoration: underline;
+  }
+
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Typography adjustments */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+    color: black !important;
+  }
+
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Lists */
+  ul, ol {
+    page-break-inside: avoid;
+  }
+
+  /* Forms - hide interactive elements but show labels/values */
+  input,
+  textarea,
+  select,
+  button:not(.print-button) {
+    border: 1px solid #ccc !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Remove backdrop blur effects */
+  [class*="backdrop-blur"],
+  [class*="backdrop"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Remove gradients */
+  [class*="gradient"],
+  [class*="bg-gradient"] {
+    background: white !important;
+  }
+
+  /* Remove dark mode styles for print */
+  .dark,
+  [class*="dark:"] {
+    color: black !important;
+    background: white !important;
+  }
+
+  /* Ensure content is visible */
+  main,
+  [role="main"],
+  [class*="content"],
+  [class*="Content"]:not([class*="Sidebar"]):not([class*="Header"]) {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  /* Fix layout constraints */
+  [class*="overflow"],
+  [class*="max-h"],
+  [class*="h-screen"] {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* Preserve grid layouts but ensure they print properly */
+  .grid,
+  [class*="grid"] {
+    page-break-inside: avoid;
+  }
+
+  /* Preserve flex layouts but remove height constraints */
+  .flex,
+  [class*="flex"] {
+    height: auto !important;
+  }
+
+  /* Print-specific utility classes */
+  .print-only {
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Fix spacing for print */
+  .section-spacing {
+    margin-bottom: 1rem;
+  }
+
+  /* Ensure modals and overlays are hidden */
+  [class*="modal"],
+  [class*="Modal"],
+  [class*="overlay"],
+  [class*="Overlay"],
+  [class*="dialog"],
+  [class*="Dialog"] {
+    display: none !important;
+  }
+
+  /* Timeline and vertical layouts */
+  [class*="timeline"],
+  [class*="Timeline"] {
+    page-break-inside: avoid;
+  }
+
+  /* Charts and graphs - ensure they print */
+  canvas,
+  svg {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure proper spacing */
+  .space-y-2 > * + *,
+  .space-y-3 > * + *,
+  .space-y-4 > * + *,
+  .space-y-6 > * + * {
+    margin-top: 0.5rem;
+  }
+
+  /* Patient list and workspace layouts */
+  [class*="Workspace"],
+  [class*="workspace"],
+  [class*="PatientList"],
+  [class*="patient-list"] {
+    display: block !important;
+    height: auto !important;
+  }
+
+  /* Ensure tabs and tab content print */
+  [class*="Tab"],
+  [class*="tab"],
+  [role="tabpanel"] {
+    display: block !important;
+    page-break-inside: avoid;
+  }
+
+  /* Hide tab navigation */
+  [role="tablist"],
+  [class*="tablist"],
+  [class*="TabList"] {
+    display: none !important;
+  }
+
+  /* Print-friendly borders */
+  .border,
+  [class*="border"] {
+    border-color: #e5e7eb !important;
+  }
+
+  /* Ensure readable contrast */
+  [class*="text-gray"],
+  [class*="text-blue"],
+  [class*="text-purple"],
+  [class*="text-green"],
+  [class*="text-red"],
+  [class*="text-orange"],
+  [class*="text-yellow"] {
+    color: #1f2937 !important;
+  }
+
+  /* Important information should stand out */
+  [class*="font-bold"],
+  [class*="font-semibold"],
+  h1, h2, h3, h4, h5, h6 {
+    color: #111827 !important;
+    font-weight: 700 !important;
+  }
+}
+
