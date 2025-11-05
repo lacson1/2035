@@ -38,11 +38,16 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
 
   // Calculate recent vital trends from patient data
   const recentVitals = useMemo(() => {
-    const [systolic, diastolic] = selectedPatient.bp.split("/").map(Number);
+    // Safely parse blood pressure, defaulting to normal values if not available
+    const bpString = selectedPatient.bp || "120/80";
+    const bpParts = bpString.split("/").map(Number);
+    const systolic = bpParts[0] || 120;
+    const diastolic = bpParts[1] || 80;
+    
     // Generate realistic vitals based on patient data
-    const baseHR = 65 + Math.floor(selectedPatient.age / 2) + (selectedPatient.risk > 50 ? 10 : 0);
+    const baseHR = 65 + Math.floor((selectedPatient.age || 45) / 2) + ((selectedPatient.risk || 0) > 50 ? 10 : 0);
     return {
-      bp: selectedPatient.bp,
+      bp: bpString,
       systolic,
       diastolic,
       heartRate: Math.max(60, Math.min(100, baseHR)),
@@ -123,7 +128,7 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
         {/* Header */}
         <div className="p-2.5 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
           <h2 className="text-sm font-semibold flex items-center gap-1.5">
-            <Activity size={16} className="text-blue-600 dark:text-blue-400" />
+            <Activity size={16} className="text-teal-600 dark:text-teal-400" />
             Patient Info
           </h2>
           <button
@@ -236,7 +241,7 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
           {upcomingAppointments.length > 0 && (
             <div className="card-compact">
               <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-                <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
+                <Calendar size={14} className="text-teal-600 dark:text-teal-400" />
                 Upcoming
               </h3>
               <div className="space-y-1.5">
@@ -353,20 +358,20 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
                 {selectedPatient.phone && (
                   <a
                     href={`tel:${selectedPatient.phone.replace(/\s/g, '')}`}
-                    className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
+                    className="flex items-center gap-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors group"
                     title={`Call ${selectedPatient.phone}`}
                   >
-                    <Phone size={12} className="text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                    <Phone size={12} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400" />
                     <span className="text-gray-700 dark:text-gray-300 font-sans">{selectedPatient.phone}</span>
                   </a>
                 )}
                 {selectedPatient.email && (
                   <a
                     href={`mailto:${selectedPatient.email}`}
-                    className="flex items-center gap-2 truncate hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
+                    className="flex items-center gap-2 truncate hover:text-teal-600 dark:hover:text-teal-400 transition-colors group"
                     title={`Email ${selectedPatient.email}`}
                   >
-                    <Mail size={12} className="text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
+                    <Mail size={12} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 flex-shrink-0" />
                     <span className="text-gray-700 dark:text-gray-300 truncate font-sans">{selectedPatient.email}</span>
                   </a>
                 )}
@@ -375,10 +380,10 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
                     href={`https://maps.google.com/?q=${encodeURIComponent(selectedPatient.address || '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-start gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
+                    className="flex items-start gap-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors group"
                     title={`Open ${selectedPatient.address} in maps`}
                   >
-                    <MapPin size={12} className="text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <MapPin size={12} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 flex-shrink-0 mt-0.5" />
                     <span className="text-gray-700 dark:text-gray-300 font-sans">{selectedPatient.address}</span>
                   </a>
                 )}
@@ -388,12 +393,12 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
 
           {/* Emergency Contact */}
           {selectedPatient.emergencyContact && (
-            <div className="card-compact border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20">
-              <h3 className="text-xs font-semibold mb-2 text-blue-700 dark:text-blue-300">Emergency Contact</h3>
+            <div className="card-compact border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/20">
+              <h3 className="text-xs font-semibold mb-2 text-teal-700 dark:text-teal-300">Emergency Contact</h3>
               <div className="space-y-0.5 text-[10px]">
-                <div className="font-medium text-blue-900 dark:text-blue-200">{selectedPatient.emergencyContact.name}</div>
-                <div className="text-blue-700 dark:text-blue-300">{selectedPatient.emergencyContact.relationship}</div>
-                <div className="text-blue-600 dark:text-blue-400">{selectedPatient.emergencyContact.phone}</div>
+                <div className="font-medium text-teal-900 dark:text-teal-200">{selectedPatient.emergencyContact.name}</div>
+                <div className="text-teal-700 dark:text-teal-300">{selectedPatient.emergencyContact.relationship}</div>
+                <div className="text-teal-600 dark:text-teal-400">{selectedPatient.emergencyContact.phone}</div>
               </div>
             </div>
           )}

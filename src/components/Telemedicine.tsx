@@ -193,7 +193,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
           <div className="flex gap-2">
             <button
               onClick={() => setOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm"
             >
               <Calendar size={18} /> Schedule Session
             </button>
@@ -251,9 +251,9 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
             </div>
 
             {/* Provider Video */}
-            <div className="bg-gray-800 rounded-lg aspect-video flex items-center justify-center relative border-2 border-blue-500">
+            <div className="bg-gray-800 rounded-lg aspect-video flex items-center justify-center relative border-2 border-teal-500">
               <div className="text-center">
-                <User size={48} className="text-blue-400 mx-auto mb-2" />
+                <User size={48} className="text-teal-400 mx-auto mb-2" />
                 <p className="text-white font-medium">{activeSession?.provider || "Dr. Provider"}</p>
                 <p className="text-gray-400 text-sm">Provider</p>
               </div>
@@ -305,7 +305,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
             >
               <div className="flex items-center gap-4 flex-1">
                 {session.type === "video" ? (
-                  <Video size={20} className="text-blue-600 dark:text-blue-400" />
+                  <Video size={20} className="text-teal-600 dark:text-teal-400" />
                 ) : (
                   <Phone size={20} className="text-green-600 dark:text-green-400" />
                 )}
@@ -346,7 +346,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                 <span
                   className={`px-3 py-1 text-xs rounded-full ${
                     session.status === "scheduled"
-                      ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                      ? "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                   }`}
                 >
@@ -369,7 +369,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
             >
               <div className="flex items-center gap-4 flex-1">
                 {session.type === "video" ? (
-                  <Video size={20} className="text-blue-600 dark:text-blue-400" />
+                  <Video size={20} className="text-teal-600 dark:text-teal-400" />
                 ) : (
                   <Phone size={20} className="text-green-600 dark:text-green-400" />
                 )}
@@ -433,7 +433,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                     onClick={() => setFormData({ ...formData, type: "video" })}
                     className={`flex-1 p-3 border rounded-md flex items-center justify-center gap-2 ${
                       formData.type === "video"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900"
+                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900"
                         : "border-gray-300 dark:border-gray-700"
                     }`}
                   >
@@ -445,7 +445,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                     onClick={() => setFormData({ ...formData, type: "phone" })}
                     className={`flex-1 p-3 border rounded-md flex items-center justify-center gap-2 ${
                       formData.type === "phone"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900"
+                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900"
                         : "border-gray-300 dark:border-gray-700"
                     }`}
                   >
@@ -461,7 +461,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                   required
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div>
@@ -471,7 +471,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                   required
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div>
@@ -482,7 +482,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                   value={formData.provider}
                   onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
                   placeholder="Dr. Smith"
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div>
@@ -490,7 +490,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                 <select
                   value={formData.duration}
                   onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 >
                   <option value="15">15 minutes</option>
                   <option value="30">30 minutes</option>
@@ -505,7 +505,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Reason for visit, symptoms, etc..."
                   rows={4}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div className="flex justify-end gap-2 mt-4">
@@ -518,7 +518,7 @@ export default function Telemedicine({ patient, onSessionScheduled, onSessionUpd
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                  className="px-4 py-2 rounded-md bg-teal-500 text-white hover:bg-teal-600"
                 >
                   Schedule
                 </button>

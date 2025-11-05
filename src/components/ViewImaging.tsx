@@ -16,7 +16,7 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
   const getModalityColor = (modality: string) => {
     switch (modality) {
       case "CT":
-        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
+        return "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200";
       case "MRI":
         return "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200";
       case "X-Ray":
@@ -84,7 +84,7 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
               onClick={() => setCompareMode(!compareMode)}
               className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md ${
                 compareMode
-                  ? "bg-blue-600 text-white"
+                  ? "bg-teal-500 text-white"
                   : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
               }`}
             >
@@ -102,7 +102,7 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
-                    <Scan size={20} className="text-blue-600 dark:text-blue-400" />
+                    <Scan size={20} className="text-teal-600 dark:text-teal-400" />
                     <div>
                       <h4 className="font-semibold">{study.type}</h4>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{study.bodyPart}</p>
@@ -138,7 +138,7 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => handleViewImages(study)}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-teal-500 text-white rounded-md hover:bg-teal-600"
                     >
                       <Eye size={14} /> View Images
                     </button>
@@ -173,9 +173,9 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
 
       {/* Compare View */}
       {compareMode && compareStudy && (
-        <div className="p-4 border rounded-lg dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
+        <div className="p-4 border rounded-lg dark:border-gray-700 bg-teal-50 dark:bg-teal-900/20">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Columns size={20} className="text-blue-600 dark:text-blue-400" />
+            <Columns size={20} className="text-teal-600 dark:text-teal-400" />
             Comparison Mode
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">

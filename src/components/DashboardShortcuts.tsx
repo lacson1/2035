@@ -103,7 +103,7 @@ export default function DashboardShortcuts() {
             onClick={() => setIsEditing(!isEditing)}
             className={`p-1.5 rounded-lg transition-colors ${
               isEditing 
-                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" 
+                ? "bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400" 
                 : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
             title={isEditing ? "Done editing" : "Edit shortcuts"}
@@ -130,8 +130,8 @@ export default function DashboardShortcuts() {
                   p-2.5 rounded-lg
                   transition-all duration-200
                   ${isActive
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400"
+                    ? "bg-teal-500 text-white shadow-md"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-teal-300 dark:hover:border-teal-600 hover:text-teal-600 dark:hover:text-teal-400"
                   }
                   ${isEditing ? "cursor-default" : "cursor-pointer hover:scale-110 active:scale-95"}
                 `}
@@ -191,7 +191,7 @@ export default function DashboardShortcuts() {
                         className="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors group"
                         title={shortcut.label}
                       >
-                        <Icon size={18} className="text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                        <Icon size={18} className="text-gray-600 dark:text-gray-400 group-hover:text-teal-600 dark:group-hover:text-teal-400" />
                         <span className="text-xs font-medium">{shortcut.label}</span>
                       </button>
                     );

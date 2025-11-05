@@ -170,7 +170,7 @@ export default function Microbiome({}: MicrobiomeProps) {
       case "excellent":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "good":
-        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
+        return "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200";
       case "moderate":
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "poor":
@@ -183,7 +183,7 @@ export default function Microbiome({}: MicrobiomeProps) {
       case "optimal":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "normal":
-        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
+        return "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200";
       case "low":
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "high":
@@ -196,7 +196,7 @@ export default function Microbiome({}: MicrobiomeProps) {
   const getStatusColor = (status?: MicrobiomeTest["status"]) => {
     switch (status) {
       case "ordered":
-        return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+        return "bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800";
       case "sample-collected":
         return "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800";
       case "processing":
@@ -336,7 +336,7 @@ export default function Microbiome({}: MicrobiomeProps) {
             onClick={() => setWorkflowView("overview")}
             className={`px-4 py-2 rounded-xl text-sm font-medium font-sans transition-all ${
               workflowView === "overview"
-                ? "bg-blue-600 text-white shadow-md"
+                ? "bg-teal-500 text-white shadow-md"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
             }`}
           >
@@ -346,7 +346,7 @@ export default function Microbiome({}: MicrobiomeProps) {
             onClick={() => setWorkflowView("workflow")}
             className={`px-4 py-2 rounded-xl text-sm font-medium font-sans transition-all ${
               workflowView === "workflow"
-                ? "bg-blue-600 text-white shadow-md"
+                ? "bg-teal-500 text-white shadow-md"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
             }`}
           >
@@ -364,13 +364,13 @@ export default function Microbiome({}: MicrobiomeProps) {
 
       {/* Active Workflow Status */}
       {activeOrders.length > 0 && (
-        <div className="card mb-6 border-l-4 border-blue-500">
+        <div className="card mb-6 border-l-4 border-teal-500">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold flex items-center gap-2 font-sans">
-              <Activity size={20} className="text-blue-600 dark:text-blue-400" />
+              <Activity size={20} className="text-teal-600 dark:text-teal-400" />
               Active Test Orders
             </h3>
-            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium font-sans">
+            <span className="px-3 py-1 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-lg text-sm font-medium font-sans">
               {activeOrders.length} Active
             </span>
           </div>
@@ -428,18 +428,18 @@ export default function Microbiome({}: MicrobiomeProps) {
           {/* Workflow Steps */}
           <div className="card">
             <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 font-sans">
-              <ClipboardCheck size={20} className="text-blue-600 dark:text-blue-400" />
+              <ClipboardCheck size={20} className="text-teal-600 dark:text-teal-400" />
               Microbiome Test Workflow
             </h3>
             <div className="space-y-4">
               {/* Step 1: Order Test */}
-              <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold font-sans">
+              <div className="flex items-start gap-4 p-4 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-200 dark:border-teal-800">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-500 text-white flex items-center justify-center font-bold font-sans">
                   1
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 font-sans">Order Test</h4>
+                    <h4 className="font-semibold text-teal-900 dark:text-blue-100 font-sans">Order Test</h4>
                     <button
                       onClick={() => setOrderTestOpen(true)}
                       className="btn-secondary text-xs py-1.5 px-3"
@@ -583,7 +583,7 @@ export default function Microbiome({}: MicrobiomeProps) {
 
         <div className="card hover:shadow-lg transition-all duration-300">
           <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 font-sans">Beneficial Bacteria</p>
-          <p className="text-3xl font-bold text-blue-700 dark:text-blue-400 font-sans">
+          <p className="text-3xl font-bold text-teal-700 dark:text-teal-400 font-sans">
             {latestTest.beneficialBacteria}
             <span className="text-lg ml-1">%</span>
           </p>
@@ -644,7 +644,7 @@ export default function Microbiome({}: MicrobiomeProps) {
                 </p>
               )}
               {latestTest.overallHealth === "good" && (
-                <p className="text-sm text-blue-700 dark:text-blue-300 font-sans">
+                <p className="text-sm text-teal-700 dark:text-teal-300 font-sans">
                   ✓ Good microbiome health. Minor improvements possible with dietary adjustments.
                 </p>
               )}
@@ -749,7 +749,7 @@ export default function Microbiome({}: MicrobiomeProps) {
       <div className="card">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-semibold flex items-center gap-2 font-sans">
-            <Calendar size={20} className="text-blue-600 dark:text-blue-400" />
+            <Calendar size={20} className="text-teal-600 dark:text-teal-400" />
             Test History
           </h3>
           <div className="flex items-center gap-2">
@@ -886,11 +886,11 @@ export default function Microbiome({}: MicrobiomeProps) {
               Add more fiber-rich foods: garlic, onions, bananas, oats, and legumes.
             </p>
           </div>
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-            <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2 font-sans">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-200 dark:border-teal-800">
+            <p className="text-sm font-semibold text-teal-800 dark:text-teal-200 mb-2 font-sans">
               ✓ Probiotic Supplementation
             </p>
-            <p className="text-xs text-blue-700 dark:text-blue-300 font-sans">
+            <p className="text-xs text-teal-700 dark:text-teal-300 font-sans">
               Consider Lactobacillus and Bifidobacterium supplements to boost beneficial bacteria.
             </p>
           </div>

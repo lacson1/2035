@@ -121,7 +121,7 @@ export default function FormAutocomplete({
       )}
       
       {helpVisible && hint && (
-        <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-xs text-blue-800 dark:text-blue-200">
+        <div className="mb-2 p-2 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded text-xs text-teal-800 dark:text-teal-200">
           {hint}
         </div>
       )}
@@ -140,7 +140,7 @@ export default function FormAutocomplete({
           className={`w-full pl-10 pr-10 py-2 text-sm border rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 transition-all ${
             error
               ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
-              : "border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+              : "border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500"
           } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         />
         {value && !disabled && (
@@ -169,8 +169,8 @@ export default function FormAutocomplete({
               key={`${option.value}-${index}`}
               type="button"
               onClick={() => handleSelect(option)}
-              className={`w-full px-4 py-3 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0 ${
-                index === selectedIndex ? "bg-blue-50 dark:bg-blue-900/20" : ""
+              className={`w-full px-4 py-3 text-left hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0 ${
+                index === selectedIndex ? "bg-teal-50 dark:bg-teal-900/20" : ""
               }`}
             >
               <div className="flex items-center justify-between">
@@ -180,7 +180,7 @@ export default function FormAutocomplete({
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{option.description}</div>
                   )}
                   {option.category && (
-                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">{option.category}</div>
+                    <div className="text-xs text-teal-600 dark:text-teal-400 mt-1">{option.category}</div>
                   )}
                 </div>
                 {value === option.value && (

@@ -298,7 +298,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Syringe className="text-blue-600 dark:text-blue-400" size={24} />
+            <Syringe className="text-teal-600 dark:text-teal-400" size={24} />
             Vaccinations
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -307,7 +307,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors"
         >
           <Plus size={18} />
           Record Vaccination
@@ -323,7 +323,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
             placeholder="Search vaccinations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -364,7 +364,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                         </span>
                       )}
                       {vax.doseNumber && (
-                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400">
                           Dose {vax.doseNumber}{vax.totalDoses ? `/${vax.totalDoses}` : ""}
                         </span>
                       )}
@@ -400,7 +400,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                         setSelectedVaccination(vax);
                         setShowDetailsModal(true);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors text-sm font-medium"
                     >
                       <FileText size={16} />
                       View
@@ -457,7 +457,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.vaccineName}
                     onChange={(e) => setFormData({ ...formData, vaccineName: e.target.value })}
                     placeholder="e.g., Influenza (Flu), COVID-19"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -467,7 +467,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.vaccineCode}
                     onChange={(e) => setFormData({ ...formData, vaccineCode: e.target.value })}
                     placeholder="e.g., FLU2024, COVID-MRNA"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -481,7 +481,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     max={new Date().toISOString().split("T")[0]}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -491,7 +491,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     placeholder="e.g., Hospital 2035 - Main Clinic"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -513,7 +513,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     required
                     value={formData.route}
                     onChange={(e) => setFormData({ ...formData, route: e.target.value as Vaccination["route"] })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="intramuscular">Intramuscular</option>
                     <option value="subcutaneous">Subcutaneous</option>
@@ -529,7 +529,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.site}
                     onChange={(e) => setFormData({ ...formData, site: e.target.value })}
                     placeholder="e.g., Left Deltoid, Right Deltoid"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -542,7 +542,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.lotNumber}
                     onChange={(e) => setFormData({ ...formData, lotNumber: e.target.value })}
                     placeholder="Lot number..."
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -552,7 +552,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.manufacturer}
                     onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
                     placeholder="e.g., Pfizer, Moderna, Sanofi"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -566,7 +566,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.doseNumber}
                     onChange={(e) => setFormData({ ...formData, doseNumber: e.target.value })}
                     placeholder="1"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -577,7 +577,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     value={formData.totalDoses}
                     onChange={(e) => setFormData({ ...formData, totalDoses: e.target.value })}
                     placeholder="1"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -586,7 +586,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                     type="date"
                     value={formData.expirationDate}
                     onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -598,7 +598,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                   value={formData.nextDoseDate}
                   onChange={(e) => setFormData({ ...formData, nextDoseDate: e.target.value })}
                   min={new Date().toISOString().split("T")[0]}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -611,7 +611,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                       value={formData.currentReaction}
                       onChange={(e) => setFormData({ ...formData, currentReaction: e.target.value })}
                       placeholder="Enter adverse reaction..."
-                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       onKeyPress={(e) => {
                         if (e.key === "Enter" && formData.currentReaction.trim()) {
                           e.preventDefault();
@@ -634,7 +634,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
                     >
                       Add
                     </button>
@@ -673,7 +673,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -687,7 +687,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors flex items-center gap-2"
                 >
                   <Plus size={18} />
                   Record Vaccination
@@ -744,9 +744,9 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
 
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="text-blue-600 dark:text-blue-400" size={16} />
+                    <Calendar className="text-teal-600 dark:text-teal-400" size={16} />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Date</span>
                   </div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">

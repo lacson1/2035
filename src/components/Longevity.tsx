@@ -50,7 +50,7 @@ export default function Longevity({ patient }: LongevityProps) {
       case "optimal":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "good":
-        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
+        return "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200";
       case "needs_attention":
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       default:
@@ -74,7 +74,7 @@ export default function Longevity({ patient }: LongevityProps) {
       case "cellular":
         return <Dna size={18} className="text-purple-600 dark:text-purple-400" />;
       case "metabolic":
-        return <Activity size={18} className="text-blue-600 dark:text-blue-400" />;
+        return <Activity size={18} className="text-teal-600 dark:text-teal-400" />;
       case "inflammatory":
         return <AlertCircle size={18} className="text-orange-600 dark:text-orange-400" />;
       case "cardiovascular":
@@ -124,13 +124,13 @@ export default function Longevity({ patient }: LongevityProps) {
         {metrics.map((metric) => (
           <div
             key={metric.id}
-            className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800"
+            className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border border-teal-200 dark:border-teal-800"
           >
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{metric.name}</p>
               {getTrendIcon(metric.trend)}
             </div>
-            <p className="text-3xl font-bold text-blue-700 dark:text-blue-400">
+            <p className="text-3xl font-bold text-teal-700 dark:text-teal-400">
               {metric.value}
               {metric.unit && <span className="text-lg ml-1">{metric.unit}</span>}
             </p>
@@ -144,7 +144,7 @@ export default function Longevity({ patient }: LongevityProps) {
       {/* Age Gap Indicator */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border dark:border-gray-700">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Clock size={20} className="text-blue-600 dark:text-blue-400" />
+          <Clock size={20} className="text-teal-600 dark:text-teal-400" />
           Biological vs Chronological Age
         </h3>
         <div className="grid grid-cols-2 gap-6">
@@ -174,7 +174,7 @@ export default function Longevity({ patient }: LongevityProps) {
           </h3>
           <button
             onClick={() => setAddBiomarkerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm"
           >
             <Plus size={18} /> Add Biomarker
           </button>
@@ -226,7 +226,7 @@ export default function Longevity({ patient }: LongevityProps) {
                       biomarker.status === "optimal"
                         ? "bg-green-500"
                         : biomarker.status === "good"
-                        ? "bg-blue-500"
+                        ? "bg-teal-500"
                         : "bg-yellow-500"
                     }`}
                     style={{
@@ -255,11 +255,11 @@ export default function Longevity({ patient }: LongevityProps) {
               Continue current lifestyle. Consider intermittent fasting and regular exercise.
             </p>
           </div>
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+          <div className="p-3 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <p className="text-sm font-medium text-teal-800 dark:text-teal-200 mb-1">
               ℹ Metabolic Health
             </p>
-            <p className="text-xs text-blue-700 dark:text-blue-300">
+            <p className="text-xs text-teal-700 dark:text-teal-300">
               Maintain healthy insulin sensitivity through diet and exercise. Monitor glucose levels.
             </p>
           </div>
@@ -306,7 +306,7 @@ export default function Longevity({ patient }: LongevityProps) {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Telomere Length, CRP"
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -318,7 +318,7 @@ export default function Longevity({ patient }: LongevityProps) {
                     required
                     value={formData.value}
                     onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
                 <div>
@@ -329,7 +329,7 @@ export default function Longevity({ patient }: LongevityProps) {
                     value={formData.unit}
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                     placeholder="e.g., mg/L, kb"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -338,7 +338,7 @@ export default function Longevity({ patient }: LongevityProps) {
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as Biomarker["category"] })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 >
                   <option value="cellular">Cellular</option>
                   <option value="metabolic">Metabolic</option>
@@ -354,7 +354,7 @@ export default function Longevity({ patient }: LongevityProps) {
                   required
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div className="flex justify-end gap-2 mt-4">
@@ -367,7 +367,7 @@ export default function Longevity({ patient }: LongevityProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                  className="px-4 py-2 rounded-md bg-teal-500 text-white hover:bg-teal-600"
                 >
                   Add Biomarker
                 </button>

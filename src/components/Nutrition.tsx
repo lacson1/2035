@@ -15,6 +15,8 @@ import { useDashboard } from "../context/DashboardContext";
 import { Patient, NutritionEntry } from "../types";
 import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
+import PrintPreview from "./PrintPreview";
+import { openPrintWindow } from "../utils/popupHandler";
 
 interface NutritionProps {
   patient?: Patient;
@@ -28,6 +30,7 @@ export default function Nutrition({ patient }: NutritionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<NutritionEntry | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
 
   const { users } = useUsers();
   const [nutritionEntries, setNutritionEntries] = useState<NutritionEntry[]>(
@@ -76,7 +79,7 @@ export default function Nutrition({ patient }: NutritionProps) {
   const getTypeColor = (type: NutritionEntry["type"]) => {
     switch (type) {
       case "assessment":
-        return "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400";
+        return "bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400";
       case "plan":
         return "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400";
       case "consultation":
@@ -161,10 +164,12 @@ export default function Nutrition({ patient }: NutritionProps) {
     setShowAddForm(false);
   };
 
-  const handlePrint = (entry: NutritionEntry) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const handlePrintFromPreview = () => {
+    if (!printPreview) return;
+    openPrintWindow(printPreview.content, printPreview.title);
+  };
 
+  const handlePrint = (entry: NutritionEntry) => {
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -351,12 +356,11 @@ export default function Nutrition({ patient }: NutritionProps) {
       </html>
     `;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    // Show print preview instead of printing directly
+    setPrintPreview({
+      content: printContent,
+      title: `Nutrition ${entry.type.charAt(0).toUpperCase() + entry.type.slice(1)} - ${new Date(entry.date).toLocaleDateString()}`
+    });
   };
 
   if (!currentPatient) {
@@ -374,7 +378,7 @@ export default function Nutrition({ patient }: NutritionProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Apple className="text-blue-600 dark:text-blue-400" size={24} />
+            <Apple className="text-teal-600 dark:text-teal-400" size={24} />
             Nutrition
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -383,7 +387,7 @@ export default function Nutrition({ patient }: NutritionProps) {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors"
         >
           <Plus size={18} />
           New Entry
@@ -400,7 +404,7 @@ export default function Nutrition({ patient }: NutritionProps) {
               placeholder="Search nutrition entries..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -408,7 +412,7 @@ export default function Nutrition({ patient }: NutritionProps) {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as NutritionEntry["type"])}
-              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Types</option>
               <option value="assessment">Assessment</option>
@@ -486,7 +490,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                         setSelectedEntry(entry);
                         setShowDetailsModal(true);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors text-sm font-medium"
                     >
                       <FileText size={16} />
                       View
@@ -543,7 +547,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     max={new Date().toISOString().split("T")[0]}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -552,7 +556,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                     required
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as NutritionEntry["type"] })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="assessment">Assessment</option>
                     <option value="plan">Plan</option>
@@ -584,7 +588,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                       // BMI is calculated automatically in handleAddNutritionEntry
                     }}
                     placeholder="75.0"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -598,7 +602,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                       // BMI is calculated automatically in handleAddNutritionEntry
                     }}
                     placeholder="170"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -611,7 +615,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                     value={formData.caloricNeeds}
                     onChange={(e) => setFormData({ ...formData, caloricNeeds: e.target.value })}
                     placeholder="2000"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -621,7 +625,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                     value={formData.proteinNeeds}
                     onChange={(e) => setFormData({ ...formData, proteinNeeds: e.target.value })}
                     placeholder="120"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -631,7 +635,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                     value={formData.fluidNeeds}
                     onChange={(e) => setFormData({ ...formData, fluidNeeds: e.target.value })}
                     placeholder="2500"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -643,7 +647,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                   value={formData.currentDiet}
                   onChange={(e) => setFormData({ ...formData, currentDiet: e.target.value })}
                   placeholder="e.g., Standard American Diet"
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -654,7 +658,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                   value={formData.recommendedDiet}
                   onChange={(e) => setFormData({ ...formData, recommendedDiet: e.target.value })}
                   placeholder="e.g., Mediterranean Diet"
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -667,7 +671,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                       value={formData.currentRestriction}
                       onChange={(e) => setFormData({ ...formData, currentRestriction: e.target.value })}
                       placeholder="e.g., Gluten-free"
-                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       onKeyPress={(e) => {
                         if (e.key === "Enter" && formData.currentRestriction.trim()) {
                           e.preventDefault();
@@ -690,7 +694,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
                     >
                       Add
                     </button>
@@ -731,7 +735,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                       value={formData.currentAllergy}
                       onChange={(e) => setFormData({ ...formData, currentAllergy: e.target.value })}
                       placeholder="e.g., Peanuts"
-                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       onKeyPress={(e) => {
                         if (e.key === "Enter" && formData.currentAllergy.trim()) {
                           e.preventDefault();
@@ -754,7 +758,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
                     >
                       Add
                     </button>
@@ -795,7 +799,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                       value={formData.currentGoal}
                       onChange={(e) => setFormData({ ...formData, currentGoal: e.target.value })}
                       placeholder="e.g., Weight management"
-                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       onKeyPress={(e) => {
                         if (e.key === "Enter" && formData.currentGoal.trim()) {
                           e.preventDefault();
@@ -818,7 +822,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
                     >
                       Add
                     </button>
@@ -859,21 +863,21 @@ export default function Nutrition({ patient }: NutritionProps) {
                       value={formData.currentSupplement.name}
                       onChange={(e) => setFormData({ ...formData, currentSupplement: { ...formData.currentSupplement, name: e.target.value } })}
                       placeholder="Name"
-                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                     <input
                       type="text"
                       value={formData.currentSupplement.dosage}
                       onChange={(e) => setFormData({ ...formData, currentSupplement: { ...formData.currentSupplement, dosage: e.target.value } })}
                       placeholder="Dosage"
-                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                     <input
                       type="text"
                       value={formData.currentSupplement.frequency}
                       onChange={(e) => setFormData({ ...formData, currentSupplement: { ...formData.currentSupplement, frequency: e.target.value } })}
                       placeholder="Frequency"
-                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                     <button
                       type="button"
@@ -886,7 +890,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
                     >
                       Add
                     </button>
@@ -896,7 +900,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                       {formData.supplements.map((supplement, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg"
+                          className="flex items-center justify-between p-3 bg-teal-50 dark:bg-teal-900/20 rounded-lg"
                         >
                           <div className="flex-1">
                             <span className="font-medium">{supplement.name}</span>
@@ -937,21 +941,21 @@ export default function Nutrition({ patient }: NutritionProps) {
                       value={formData.currentMeal.meal}
                       onChange={(e) => setFormData({ ...formData, currentMeal: { ...formData.currentMeal, meal: e.target.value } })}
                       placeholder="Meal (e.g., Breakfast)"
-                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                     <input
                       type="text"
                       value={formData.currentMeal.description}
                       onChange={(e) => setFormData({ ...formData, currentMeal: { ...formData.currentMeal, description: e.target.value } })}
                       placeholder="Description"
-                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                     <input
                       type="number"
                       value={formData.currentMeal.calories}
                       onChange={(e) => setFormData({ ...formData, currentMeal: { ...formData.currentMeal, calories: e.target.value } })}
                       placeholder="Calories"
-                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                     <button
                       type="button"
@@ -973,7 +977,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
                     >
                       Add
                     </button>
@@ -1022,7 +1026,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -1033,7 +1037,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                   value={formData.followUpDate}
                   onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })}
                   min={new Date().toISOString().split("T")[0]}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -1047,7 +1051,7 @@ export default function Nutrition({ patient }: NutritionProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors flex items-center gap-2"
                 >
                   <Plus size={18} />
                   Create Entry
@@ -1102,18 +1106,18 @@ export default function Nutrition({ patient }: NutritionProps) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {selectedEntry.weight && selectedEntry.height && (
                   <>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                    <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-1">
-                        <Scale className="text-blue-600 dark:text-blue-400" size={16} />
+                        <Scale className="text-teal-600 dark:text-teal-400" size={16} />
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Weight</span>
                       </div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {selectedEntry.weight} kg
                       </p>
                     </div>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                    <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-1">
-                        <Scale className="text-blue-600 dark:text-blue-400" size={16} />
+                        <Scale className="text-teal-600 dark:text-teal-400" size={16} />
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Height</span>
                       </div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -1180,7 +1184,7 @@ export default function Nutrition({ patient }: NutritionProps) {
               )}
 
               {selectedEntry.supplements && selectedEntry.supplements.length > 0 && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
                   <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Supplements</h4>
                   <div className="space-y-2">
                     {selectedEntry.supplements.map((supplement, idx) => (
@@ -1216,6 +1220,16 @@ export default function Nutrition({ patient }: NutritionProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Print Preview Modal */}
+      {printPreview && (
+        <PrintPreview
+          content={printPreview.content}
+          title={printPreview.title}
+          onClose={() => setPrintPreview(null)}
+          onPrint={handlePrintFromPreview}
+        />
       )}
     </div>
   );

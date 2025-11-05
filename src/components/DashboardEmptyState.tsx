@@ -9,7 +9,7 @@ export default function DashboardEmptyState() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mb-4"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 dark:border-blue-400 mb-4"></div>
         <p className="text-gray-600 dark:text-gray-400">Loading patients...</p>
       </div>
     );
@@ -45,26 +45,26 @@ export default function DashboardEmptyState() {
           </h4>
           <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <li className="flex items-start gap-2">
-              <Server size={16} className="mt-0.5 text-blue-600 dark:text-blue-400" />
+              <Server size={16} className="mt-0.5 text-teal-600 dark:text-teal-400" />
               <span>Ensure the backend server is running: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">cd backend && npm run dev</code></span>
             </li>
             <li className="flex items-start gap-2">
-              <Database size={16} className="mt-0.5 text-blue-600 dark:text-blue-400" />
+              <Database size={16} className="mt-0.5 text-teal-600 dark:text-teal-400" />
               <span>Check if the database is running and seeded with data</span>
             </li>
             <li className="flex items-start gap-2">
-              <AlertCircle size={16} className="mt-0.5 text-blue-600 dark:text-blue-400" />
+              <AlertCircle size={16} className="mt-0.5 text-teal-600 dark:text-teal-400" />
               <span>Verify the API URL is correct: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">http://localhost:3000/api</code></span>
             </li>
             <li className="flex items-start gap-2">
-              <RefreshCw size={16} className="mt-0.5 text-blue-600 dark:text-blue-400" />
+              <RefreshCw size={16} className="mt-0.5 text-teal-600 dark:text-teal-400" />
               <span>Check the browser console for detailed error messages</span>
             </li>
           </ul>
         </div>
         <button
           onClick={() => refreshPatients()}
-          className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="mt-6 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors flex items-center gap-2"
         >
           <RefreshCw size={16} />
           Retry

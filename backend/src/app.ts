@@ -28,6 +28,9 @@ import settingsRoutes from './routes/settings.routes';
 import billingRoutes from './routes/billing.routes';
 import auditRoutes from './routes/audit.routes';
 import metricsRoutes from './routes/metrics.routes';
+import hubsRoutes from './routes/hubs.routes';
+import rolesRoutes from './routes/roles.routes';
+import permissionsRoutes from './routes/permissions.routes';
 
 const app = express();
 
@@ -102,6 +105,9 @@ app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/metrics', metricsRoutes);
+app.use('/api/v1/hubs', hubsRoutes);
+app.use('/api/v1/roles', rolesRoutes);
+app.use('/api/v1/permissions', permissionsRoutes);
 
 // API info
 app.use('/api/v1', (req, res) => {
@@ -119,6 +125,9 @@ app.use('/api/v1', (req, res) => {
       settings: '/api/v1/settings',
       billing: '/api/v1/billing',
       audit: '/api/v1/audit',
+      hubs: '/api/v1/hubs',
+      roles: '/api/v1/roles',
+      permissions: '/api/v1/permissions',
       health: '/health'
     }
   });

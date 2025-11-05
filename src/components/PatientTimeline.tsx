@@ -9,7 +9,7 @@ export default function PatientTimeline({ patient }: PatientTimelineProps) {
   const getIcon = (type: string) => {
     switch (type) {
       case "appointment":
-        return <Calendar size={18} className="text-blue-600 dark:text-blue-400" />;
+        return <Calendar size={18} className="text-teal-600 dark:text-teal-400" />;
       case "note":
         return <FileText size={18} className="text-purple-600 dark:text-purple-400" />;
       case "imaging":
@@ -26,7 +26,7 @@ export default function PatientTimeline({ patient }: PatientTimelineProps) {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "appointment":
-        return "border-blue-500 bg-blue-50 dark:bg-blue-900/20";
+        return "border-teal-500 bg-teal-50 dark:bg-teal-900/20";
       case "note":
         return "border-purple-500 bg-purple-50 dark:bg-purple-900/20";
       case "imaging":

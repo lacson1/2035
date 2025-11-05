@@ -83,19 +83,17 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   -d '{"email":"sarah.johnson@hospital2035.com","password":"password123"}'
 ```
 
-## Default Users (from seed)
+## User Registration
 
-- **Admin:**
-  - Email: `admin@hospital2035.com`
-  - Password: `admin123`
+**No default users are created.** Users must register through the sign-up form on the login page.
 
-- **Physician:**
-  - Email: `sarah.johnson@hospital2035.com`
-  - Password: `password123`
+To create your first account:
+1. Start the frontend: `npm run dev` (from project root)
+2. Navigate to the login page
+3. Click "Don't have an account? Sign up"
+4. Fill in your details and create an account
 
-- **Nurse:**
-  - Email: `patricia.williams@hospital2035.com`
-  - Password: `password123`
+The **first user** to register will automatically be assigned the `admin` role. All subsequent users will be assigned the `read_only` role by default. Administrators can change user roles through the User Management interface.
 
 ## Troubleshooting
 

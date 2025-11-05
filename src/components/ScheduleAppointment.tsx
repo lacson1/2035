@@ -126,7 +126,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
           </button>
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm hover:shadow-md transition-all duration-200 font-medium"
+            className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 shadow-sm hover:shadow-md transition-all duration-200 font-medium"
           >
             <Calendar size={18} /> Schedule Appointment
           </button>
@@ -142,7 +142,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
             >
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <Calendar size={16} className="text-blue-600 dark:text-blue-400" />
+                  <Calendar size={16} className="text-teal-600 dark:text-teal-400" />
                   <span className="font-medium">{apt.date}</span>
                   <Clock size={16} className="text-gray-600 dark:text-gray-400" />
                   <span className="text-sm">{apt.time}</span>
@@ -160,7 +160,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
               <span
                 className={`px-3 py-1 text-xs rounded-full ${
                   apt.status === "scheduled"
-                    ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                    ? "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200"
                     : apt.status === "completed"
                     ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
                     : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
@@ -207,7 +207,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                   required
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div>
@@ -217,7 +217,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                   required
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div>
@@ -233,7 +233,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                       consultationType: newType === "Consultation" ? "" : formData.consultationType,
                     });
                   }}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 >
                   <option value="">Select type</option>
                   <option value="Follow-up">Follow-up</option>
@@ -251,7 +251,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                     <select
                       value={formData.consultationType}
                       onChange={(e) => setFormData({ ...formData, consultationType: e.target.value as ConsultationType })}
-                      className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                      className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     >
                       <option value="">Select consultation type</option>
                       <option value="general">General Consultation</option>
@@ -265,7 +265,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                       <select
                         value={formData.specialty}
                         onChange={(e) => setFormData({ ...formData, specialty: e.target.value as SpecialtyType })}
-                        className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                        className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                       >
                         <option value="">Select specialty</option>
                         {getAllSpecialties().map((specialty) => {
@@ -287,7 +287,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                         <select
                           value={formData.duration}
                           onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                          className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                          className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                         >
                           <option value="15">15 minutes</option>
                           <option value="30">30 minutes</option>
@@ -300,7 +300,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                         <select
                           value={formData.location}
                           onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                          className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                          className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                         >
                           <option value="in-person">In-Person</option>
                           <option value="telemedicine">Telemedicine</option>
@@ -314,7 +314,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                           onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                           placeholder="Brief reason for consultation..."
                           rows={3}
-                          className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                          className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                         />
                       </div>
                     </>
@@ -329,7 +329,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                   value={formData.provider}
                   onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
                   placeholder="Dr. Smith"
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div>
@@ -339,7 +339,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes..."
                   rows={4}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div className="flex justify-end gap-2 mt-4">
@@ -352,7 +352,7 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                  className="px-4 py-2 rounded-md bg-teal-500 text-white hover:bg-teal-600"
                 >
                   Schedule
                 </button>

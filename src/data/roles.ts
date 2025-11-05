@@ -122,6 +122,9 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'appointments:read',
     'clinical_notes:read',
     'imaging:read',
+    'billing:read',
+    'users:read',
+    'settings:read',
   ],
 };
 
@@ -156,6 +159,8 @@ const permissionMapping: Record<string, Permission[]> = {
   "view_notes": ["clinical_notes:read"],
   "view_appointments": ["appointments:read"],
   "view_imaging": ["imaging:read"],
+  "view_consultations": ["patients:read", "clinical_notes:read"],
+  "view_telemedicine": ["patients:read"],
   "order_imaging": ["imaging:write"],
   "view_labs": ["patients:read"],
   "order_labs": ["patients:write"],

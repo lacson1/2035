@@ -95,7 +95,7 @@ export default function PatientListPagination({
                 onClick={() => onPageChange(page as number)}
                 className={`px-2 py-1 text-xs rounded ${
                   currentPage === page
-                    ? "bg-blue-600 text-white"
+                    ? "bg-teal-500 text-white"
                     : "hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >

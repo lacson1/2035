@@ -153,7 +153,7 @@ function Vitals({ patient }: VitalsProps) {
 
   const getHRStatus = (hr: number) => {
     if (hr > 100) return { text: "Elevated", color: "text-orange-600 dark:text-orange-400" };
-    if (hr < 60) return { text: "Low", color: "text-blue-600 dark:text-blue-400" };
+    if (hr < 60) return { text: "Low", color: "text-teal-600 dark:text-teal-400" };
     return { text: "Normal", color: "text-green-600 dark:text-green-400" };
   };
 
@@ -321,7 +321,7 @@ function Vitals({ patient }: VitalsProps) {
         <div className="card hover:scale-[1.02] transition-transform duration-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Gauge className="text-blue-600 dark:text-blue-400" size={24} />
+              <Gauge className="text-teal-600 dark:text-teal-400" size={24} />
               <span className="font-semibold">Blood Pressure</span>
             </div>
             {getTrendIcon(trends.bp)}
@@ -414,7 +414,7 @@ function Vitals({ patient }: VitalsProps) {
               onClick={() => setSelectedMetric(metric.key)}
               className={`px-4 py-2 rounded-lg text-sm transition ${
                 selectedMetric === metric.key
-                  ? "bg-blue-600 text-white"
+                  ? "bg-teal-500 text-white"
                   : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
@@ -562,7 +562,7 @@ function Vitals({ patient }: VitalsProps) {
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     max={new Date().toISOString().split("T")[0]}
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
                 <div>
@@ -572,15 +572,15 @@ function Vitals({ patient }: VitalsProps) {
                     required
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
 
               {/* Blood Pressure */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
                 <label className="block text-base font-semibold mb-3 text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <Gauge className="text-blue-600 dark:text-blue-400" size={20} />
+                  <Gauge className="text-teal-600 dark:text-teal-400" size={20} />
                   Blood Pressure <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-4">
@@ -594,7 +594,7 @@ function Vitals({ patient }: VitalsProps) {
                       value={formData.systolic}
                       onChange={(e) => setFormData({ ...formData, systolic: e.target.value })}
                       placeholder="e.g., 120"
-                      className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                      className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     />
                   </div>
                   <div>
@@ -607,7 +607,7 @@ function Vitals({ patient }: VitalsProps) {
                       value={formData.diastolic}
                       onChange={(e) => setFormData({ ...formData, diastolic: e.target.value })}
                       placeholder="e.g., 80"
-                      className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                      className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     />
                   </div>
                 </div>
@@ -627,7 +627,7 @@ function Vitals({ patient }: VitalsProps) {
                   value={formData.heartRate}
                   onChange={(e) => setFormData({ ...formData, heartRate: e.target.value })}
                   placeholder="e.g., 72"
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Beats per minute (bpm)</p>
               </div>
@@ -647,7 +647,7 @@ function Vitals({ patient }: VitalsProps) {
                   value={formData.temperature}
                   onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
                   placeholder={getTemperaturePlaceholder(measurementSystem)}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   {measurementSystem === "uk" ? "Celsius (°C)" : "Fahrenheit (°F)"}
@@ -668,7 +668,7 @@ function Vitals({ patient }: VitalsProps) {
                   value={formData.oxygen}
                   onChange={(e) => setFormData({ ...formData, oxygen: e.target.value })}
                   placeholder="e.g., 98"
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Percentage (%)</p>
               </div>
@@ -683,7 +683,7 @@ function Vitals({ patient }: VitalsProps) {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes about the vital signs (e.g., patient position, method of measurement)..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -710,7 +710,7 @@ function Vitals({ patient }: VitalsProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors flex items-center gap-2"
                 >
                   <Plus size={18} />
                   Record Vitals

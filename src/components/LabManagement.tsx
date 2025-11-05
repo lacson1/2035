@@ -21,8 +21,11 @@ import { useUser } from "../context/UserContext";
 import { Patient, LabResult, LabStatus } from "../types";
 import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
+import { getRoleName } from "../data/roles";
 import FormAutocomplete from "./FormAutocomplete";
 import { commonLabTests } from "../utils/formHelpers";
+import PrintPreview from "./PrintPreview";
+import { openPrintWindow } from "../utils/popupHandler";
 
 interface LabManagementProps {
   patient?: Patient;
@@ -37,6 +40,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [selectedLab, setSelectedLab] = useState<LabResult | null>(null);
+  const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
   const { users } = useUsers();
   const [labResults, setLabResults] = useState<LabResult[]>(
     currentPatient?.labResults || []
@@ -68,7 +72,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
       case "completed":
         return "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400";
       case "in_progress":
-        return "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400";
+        return "bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400";
       case "pending_review":
         return "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400";
       case "ordered":
@@ -145,10 +149,12 @@ export default function LabManagement({ patient }: LabManagementProps) {
     setShowResultsModal(true);
   };
 
-  const handlePrint = (lab: LabResult) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const handlePrintFromPreview = () => {
+    if (!printPreview) return;
+    openPrintWindow(printPreview.content, printPreview.title);
+  };
 
+  const handlePrint = (lab: LabResult) => {
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -374,12 +380,11 @@ export default function LabManagement({ patient }: LabManagementProps) {
       </html>
     `;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    // Show print preview instead of printing directly
+    setPrintPreview({
+      content: printContent,
+      title: `Lab Report - ${lab.testName}`
+    });
   };
 
   const handleDownload = (lab: LabResult) => {
@@ -520,7 +525,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <FlaskConical className="text-blue-600 dark:text-blue-400" size={24} />
+            <FlaskConical className="text-teal-600 dark:text-teal-400" size={24} />
             Lab Management
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -529,7 +534,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
         </div>
         <button
           onClick={() => setShowOrderForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors"
         >
           <Plus size={18} />
           Order Lab Test
@@ -546,7 +551,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
               placeholder="Search lab tests..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -558,7 +563,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
               onChange={(e) => setStatusFilter(e.target.value as LabStatus)}
               aria-label="Filter by status"
               title="Filter by status"
-              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="ordered">Ordered</option>
@@ -631,7 +636,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                   <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                     {/* Show assignment status */}
                     {lab.assignedForReview && (
-                      <div className="text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 bg-teal-50 dark:bg-teal-900/20 px-2 py-1 rounded">
                         Assigned for review
                       </div>
                     )}
@@ -639,7 +644,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                       <>
                         <button
                           onClick={() => handleViewResults(lab)}
-                          className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                          className="p-2 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors"
                           title="View Results"
                           aria-label="View Results"
                         >
@@ -743,7 +748,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                     }
                   }}
                   aria-label="Select a common test"
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 >
                   <option value="">Select a common test...</option>
                   {commonLabTests.map((test) => (
@@ -783,7 +788,8 @@ export default function LabManagement({ patient }: LabManagementProps) {
                     onChange={(e) => setOrderFormData({ ...orderFormData, testCode: e.target.value })}
                     placeholder="e.g., CBC"
                     aria-label="Test code"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    title="Test code"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -797,7 +803,8 @@ export default function LabManagement({ patient }: LabManagementProps) {
                     value={orderFormData.category}
                     onChange={(e) => setOrderFormData({ ...orderFormData, category: e.target.value })}
                     aria-label="Select lab category"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    title="Select lab category"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   >
                     <option value="Blood Work">Blood Work</option>
                     <option value="Urine">Urine</option>
@@ -817,7 +824,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                     onChange={(e) => setOrderFormData({ ...orderFormData, orderedDate: e.target.value })}
                     max={new Date().toISOString().split("T")[0]}
                     aria-label="Order date"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -830,7 +837,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                     value={orderFormData.labName}
                     onChange={(e) => setOrderFormData({ ...orderFormData, labName: e.target.value })}
                     placeholder="e.g., LabCorp"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
                 <div>
@@ -840,7 +847,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                     value={orderFormData.labLocation}
                     onChange={(e) => setOrderFormData({ ...orderFormData, labLocation: e.target.value })}
                     placeholder="Lab address or location"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -854,7 +861,8 @@ export default function LabManagement({ patient }: LabManagementProps) {
                   placeholder="Additional notes or instructions..."
                   rows={3}
                   aria-label="Notes"
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  title="Notes"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -878,7 +886,9 @@ export default function LabManagement({ patient }: LabManagementProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors flex items-center gap-2"
+                  aria-label="Submit lab order"
+                  title="Submit lab order"
                 >
                   <Plus size={18} />
                   Order Lab Test
@@ -941,9 +951,9 @@ export default function LabManagement({ patient }: LabManagementProps) {
             <div className="p-6 space-y-6">
               {/* Lab Information */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="text-blue-600 dark:text-blue-400" size={16} />
+                    <Calendar className="text-teal-600 dark:text-teal-400" size={16} />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Ordered</span>
                   </div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -1044,7 +1054,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
 
               {/* Interpretation */}
               {selectedLab.interpretation && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
                   <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Clinical Interpretation</h4>
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedLab.interpretation}</p>
                 </div>
@@ -1070,7 +1080,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                           const assignedUser = users.find((u) => u.id === selectedLab.assignedForReview);
                           return assignedUser ? (
                             <p className="text-xs text-gray-600 dark:text-gray-400">
-                              {assignedUser.firstName} {assignedUser.lastName} ({assignedUser.role.replace("_", " ")})
+                              {assignedUser.firstName} {assignedUser.lastName} ({getRoleName(assignedUser.role)})
                             </p>
                           ) : null;
                         })()}
@@ -1147,7 +1157,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
             </div>
 
             <div className="p-6 space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {labToAssign.testName}
                 </p>
@@ -1175,6 +1185,8 @@ export default function LabManagement({ patient }: LabManagementProps) {
                     setLabToAssign(null);
                   }}
                   className="px-5 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium text-gray-700 dark:text-gray-300 transition-colors"
+                  aria-label="Cancel assignment"
+                  title="Cancel"
                 >
                   Cancel
                 </button>
@@ -1182,6 +1194,16 @@ export default function LabManagement({ patient }: LabManagementProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Print Preview Modal */}
+      {printPreview && (
+        <PrintPreview
+          content={printPreview.content}
+          title={printPreview.title}
+          onClose={() => setPrintPreview(null)}
+          onPrint={handlePrintFromPreview}
+        />
       )}
     </div>
   );

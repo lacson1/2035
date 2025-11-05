@@ -259,7 +259,7 @@ function Overview({ patient }: OverviewProps) {
         <div className="card border-2 border-gray-300/40 dark:border-gray-600/40 shadow-md ring-1 ring-gray-200/30 dark:ring-gray-700/30">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-semibold flex items-center gap-2 font-sans">
-              <Activity size={20} className="text-blue-600 dark:text-blue-400" />
+              <Activity size={20} className="text-teal-600 dark:text-teal-400" />
               Patient Information
             </h3>
             {!isEditing && (
@@ -409,7 +409,7 @@ function Overview({ patient }: OverviewProps) {
                         emergencyContact: { ...editFormData.emergencyContact, relationship: e.target.value }
                       })}
                       placeholder="e.g., Spouse, Parent"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     />
                   </div>
                   <div>
@@ -424,7 +424,7 @@ function Overview({ patient }: OverviewProps) {
                         emergencyContact: { ...editFormData.emergencyContact, phone: e.target.value }
                       })}
                       placeholder="(123) 456-7890"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     />
                   </div>
                 </div>
@@ -446,7 +446,7 @@ function Overview({ patient }: OverviewProps) {
                         insurance: { ...editFormData.insurance, provider: e.target.value }
                       })}
                       placeholder="Insurance company name"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     />
                   </div>
                   <div>
@@ -461,7 +461,7 @@ function Overview({ patient }: OverviewProps) {
                         insurance: { ...editFormData.insurance, policyNumber: e.target.value }
                       })}
                       placeholder="Policy number"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     />
                   </div>
                   <div>
@@ -476,7 +476,7 @@ function Overview({ patient }: OverviewProps) {
                         insurance: { ...editFormData.insurance, groupNumber: e.target.value }
                       })}
                       placeholder="Group number (optional)"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     />
                   </div>
                 </div>
@@ -533,7 +533,7 @@ function Overview({ patient }: OverviewProps) {
                     </span>
                     <a
                       href={`tel:${patient.phone.replace(/\s/g, '')}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-500 text-white rounded-lg transition-colors text-sm font-medium"
                       title={`Call ${patient.phone}`}
                     >
                       <Phone size={14} />
@@ -580,7 +580,7 @@ function Overview({ patient }: OverviewProps) {
                     </span>
                     <a
                       href={`mailto:${patient.email}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium flex-shrink-0"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-500 text-white rounded-lg transition-colors text-sm font-medium flex-shrink-0"
                       title={`Email ${patient.email}`}
                     >
                       <Mail size={14} />
@@ -626,7 +626,7 @@ function Overview({ patient }: OverviewProps) {
                       href={`https://maps.google.com/?q=${encodeURIComponent(patient.address || '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-base font-semibold text-gray-900 dark:text-gray-100 font-sans text-right max-w-[60%] hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      className="text-base font-semibold text-gray-900 dark:text-gray-100 font-sans text-right max-w-[60%] hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                       title={`Open ${patient.address} in maps`}
                       onClick={() => {
                         navigator.clipboard.writeText(patient.address || '').then(() => {
@@ -662,7 +662,7 @@ function Overview({ patient }: OverviewProps) {
           {patient.emergencyContact && (
             <div className="card">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Users size={20} className="text-blue-600 dark:text-blue-400" />
+                <Users size={20} className="text-teal-600 dark:text-teal-400" />
                 Emergency Contact
               </h3>
               <div className="space-y-2">
@@ -671,7 +671,7 @@ function Overview({ patient }: OverviewProps) {
                 <div className="flex items-center gap-2 group">
                   <a
                     href={`tel:${patient.emergencyContact.phone.replace(/\s/g, '')}`}
-                    className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-sans"
+                    className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400 transition-colors font-sans"
                     title={`Call ${patient.emergencyContact.phone}`}
                   >
                     <Phone size={16} /> {patient.emergencyContact.phone}
@@ -785,7 +785,7 @@ function Overview({ patient }: OverviewProps) {
         {/* Upcoming Appointments */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Calendar size={20} className="text-blue-600 dark:text-blue-400" />
+            <Calendar size={20} className="text-teal-600 dark:text-teal-400" />
             Upcoming Appointments
           </h3>
           {upcomingAppointments.length > 0 ? (
@@ -802,7 +802,7 @@ function Overview({ patient }: OverviewProps) {
                         {apt.provider}
                       </p>
                     </div>
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                    <span className="text-xs bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 px-2 py-1 rounded">
                       {apt.status}
                     </span>
                   </div>
@@ -876,7 +876,7 @@ function Overview({ patient }: OverviewProps) {
                 const getEventIcon = () => {
                   switch (event.type) {
                     case "appointment":
-                      return <Calendar size={14} className="text-blue-600 dark:text-blue-400" />;
+                      return <Calendar size={14} className="text-teal-600 dark:text-teal-400" />;
                     case "note":
                       return <FileText size={14} className="text-purple-600 dark:text-purple-400" />;
                     case "imaging":
@@ -893,7 +893,7 @@ function Overview({ patient }: OverviewProps) {
                 const getEventColor = () => {
                   switch (event.type) {
                     case "appointment":
-                      return "bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800";
+                      return "bg-teal-100 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800";
                     case "note":
                       return "bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800";
                     case "imaging":

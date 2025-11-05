@@ -51,6 +51,7 @@ import Longevity from "../components/Longevity";
 import Microbiome from "../components/Microbiome";
 import CareTeam from "../components/CareTeam";
 import UserManagement from "../components/UserManagement";
+import RoleManagement from "../components/RoleManagement";
 import UserProfile from "../components/UserProfile";
 import Settings from "../components/Settings";
 import LabManagement from "../components/LabManagement";
@@ -313,13 +314,23 @@ export const dashboardTabs: DashboardTab[] = [
     order: 23,
   },
   {
+    id: "roles",
+    label: "Roles & Permissions",
+    icon: Shield,
+    component: RoleManagement,
+    requiresPatient: false,
+    permission: "roles:write",
+    workflowGroup: "administrative",
+    order: 24,
+  },
+  {
     id: "settings",
     label: "Settings",
     icon: SettingsIcon,
     component: Settings,
     requiresPatient: false,
     workflowGroup: "administrative",
-    order: 24,
+    order: 25,
   },
 ];
 

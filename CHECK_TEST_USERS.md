@@ -1,110 +1,114 @@
-# Checking Test Users in Database
+# User Registration Guide
 
-## Test Users Created by Seed Script
+## ⚠️ Demo Accounts Removed
 
-The seed script (`backend/prisma/seed.ts`) creates **3 test users**:
+**Test/demo accounts have been removed.** The application now requires all users to create real accounts through the registration process.
 
-### 1. Admin User
-- **Email:** `admin@hospital2035.com`
-- **Password:** `admin123`
-- **Role:** Admin
-- **Department:** IT
+## How to Create Accounts
 
-### 2. Physician User
-- **Email:** `sarah.johnson@hospital2035.com`
-- **Password:** `password123`
-- **Role:** Physician
-- **Specialty:** Internal Medicine
+### For New Users
 
-### 3. Nurse User
-- **Email:** `patricia.williams@hospital2035.com`
-- **Password:** `password123`
-- **Role:** Nurse
-- **Department:** Nursing
+1. Navigate to the login page
+2. Click "Don't have an account? Sign up"
+3. Fill in the registration form:
+   - First Name (required)
+   - Last Name (required)
+   - Email (required)
+   - Password (required, minimum 8 characters)
+   - Username (optional - will be generated from email if not provided)
+4. Click "Sign Up"
+5. You'll be automatically logged in after successful registration
 
-## How to Seed the Database
+### Default Role Assignment
 
-If the users don't exist yet, run the seed command:
+- **First user** (first person to register) is automatically assigned the `admin` role
+- **Subsequent users** are assigned the `read_only` role by default
 
+The `read_only` role has limited permissions:
+- Can view patient data
+- Can view medications, appointments, notes, etc.
+- Cannot create, edit, or delete data
+
+The `admin` role has full permissions:
+- Can manage users (create, edit, delete, change roles)
+- Can access all patient data
+- Can create, edit, and delete all records
+- Can manage system settings
+
+### Role Management
+
+Administrators can:
+- View all users in the User Management interface
+- Change user roles
+- Activate/deactivate user accounts
+- Update user permissions
+
+To become an administrator or change a user's role:
+1. Log in as an existing administrator
+2. Navigate to User Management
+3. Select the user
+4. Update their role and permissions
+
+## Database Seeding
+
+The seed script (`backend/prisma/seed.ts`) no longer creates test users. It only creates sample patient data if users already exist in the database.
+
+To seed the database:
 ```bash
 cd backend
 npm run prisma:seed
 ```
 
-Or if using the full migration:
+**Note:** If no users exist, the seed script will skip sample data creation. Users must register first.
 
-```bash
-cd backend
-npm run prisma:migrate reset  # WARNING: This deletes all data and recreates
-# OR
-npm run prisma:migrate dev    # Run migrations
-npm run prisma:seed           # Seed data
-```
+## First-Time Setup
 
-## Verify Users Exist in Database
+If this is a fresh installation:
 
-### Option 1: Using Prisma Studio (Visual)
+1. **Run migrations:**
+   ```bash
+   cd backend
+   npm run prisma:migrate dev
+   ```
+
+2. **Create your first account:**
+   - Start the frontend: `npm run dev` (from project root)
+   - Navigate to the login page
+   - Click "Sign up" and create an account
+
+3. **Optional - Seed sample data:**
+   ```bash
+   cd backend
+   npm run prisma:seed
+   ```
+   (This will create sample patient data if users exist)
+
+4. **Promote to Admin (if needed):**
+   - Use Prisma Studio or a database tool
+   - Update the user's role to `admin` in the `users` table
+   - Or use the User Management interface if you have admin access
+
+## Verification
+
+To verify users exist in the database:
+
+### Option 1: Using Prisma Studio
 ```bash
 cd backend
 npm run prisma:studio
 ```
-Then navigate to the `User` table to see all users.
+Navigate to the `User` table to see all registered users.
 
-### Option 2: Using psql (Command Line)
+### Option 2: Using psql
 ```bash
-# Connect to database
 psql $DATABASE_URL
-
-# Query users
-SELECT email, username, role, "isActive" FROM "User";
-
-# Should see:
-# admin@hospital2035.com | admin | admin | true
-# sarah.johnson@hospital2035.com | sarah.johnson | physician | true
-# patricia.williams@hospital2035.com | patricia.williams | nurse | true
+SELECT email, username, role, "isActive" FROM users;
 ```
 
-### Option 3: Test Login Endpoint
-```bash
-# Test Admin
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@hospital2035.com","password":"admin123"}'
+## Security Notes
 
-# Test Physician
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"sarah.johnson@hospital2035.com","password":"password123"}'
-
-# Test Nurse
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"patricia.williams@hospital2035.com","password":"password123"}'
-```
-
-## Seed Script Details
-
-The seed script uses `upsert` which means:
-- **If user exists:** It will NOT update (empty update object)
-- **If user doesn't exist:** It will create the user
-
-This is safe to run multiple times - it won't create duplicates.
-
-## Troubleshooting
-
-### Users Not Found After Seed
-1. Check database connection: `psql $DATABASE_URL -c "SELECT 1;"`
-2. Verify migrations ran: `npm run prisma:migrate status`
-3. Check seed script executed: Look for "✅ Created users" in console output
-4. Verify DATABASE_URL in `.env` is correct
-
-### Password Not Working
-- Passwords are hashed with bcrypt (12 rounds)
-- Seed script uses: `hashPassword('admin123')` and `hashPassword('password123')`
-- If you manually created users, ensure passwords are hashed correctly
-
-### User Exists But Login Fails
-- Check `isActive` field is `true`
-- Verify email matches exactly (case-sensitive)
-- Check backend logs for authentication errors
-
+- All passwords are hashed using bcrypt (12 salt rounds)
+- Email addresses must be unique
+- Usernames must be unique
+- All authentication events are logged in the audit log
+- Sessions are stored in the database for token revocation

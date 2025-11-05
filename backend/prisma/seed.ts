@@ -9,66 +9,334 @@ async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
+// Default permissions
+const DEFAULT_PERMISSIONS = [
+  // Patients
+  { code: 'patients:read', name: 'Read Patients', category: 'patients', description: 'View patient information' },
+  { code: 'patients:write', name: 'Write Patients', category: 'patients', description: 'Create and edit patient records' },
+  { code: 'patients:delete', name: 'Delete Patients', category: 'patients', description: 'Delete patient records' },
+  
+  // Medications
+  { code: 'medications:read', name: 'Read Medications', category: 'medications', description: 'View medication information' },
+  { code: 'medications:write', name: 'Write Medications', category: 'medications', description: 'Prescribe and manage medications' },
+  
+  // Appointments
+  { code: 'appointments:read', name: 'Read Appointments', category: 'appointments', description: 'View appointment schedules' },
+  { code: 'appointments:write', name: 'Write Appointments', category: 'appointments', description: 'Schedule and manage appointments' },
+  
+  // Clinical Notes
+  { code: 'clinical_notes:read', name: 'Read Clinical Notes', category: 'clinical_notes', description: 'View clinical notes' },
+  { code: 'clinical_notes:write', name: 'Write Clinical Notes', category: 'clinical_notes', description: 'Create and edit clinical notes' },
+  
+  // Imaging
+  { code: 'imaging:read', name: 'Read Imaging', category: 'imaging', description: 'View imaging studies' },
+  { code: 'imaging:write', name: 'Write Imaging', category: 'imaging', description: 'Order and manage imaging studies' },
+  
+  // Users
+  { code: 'users:read', name: 'Read Users', category: 'users', description: 'View user information' },
+  { code: 'users:write', name: 'Write Users', category: 'users', description: 'Create and edit users' },
+  { code: 'users:delete', name: 'Delete Users', category: 'users', description: 'Delete users' },
+  
+  // Settings
+  { code: 'settings:read', name: 'Read Settings', category: 'settings', description: 'View system settings' },
+  { code: 'settings:write', name: 'Write Settings', category: 'settings', description: 'Modify system settings' },
+  
+  // Billing
+  { code: 'billing:read', name: 'Read Billing', category: 'billing', description: 'View billing information' },
+  { code: 'billing:write', name: 'Write Billing', category: 'billing', description: 'Create and manage invoices' },
+  
+  // Roles & Permissions
+  { code: 'roles:read', name: 'Read Roles', category: 'roles', description: 'View roles and permissions' },
+  { code: 'roles:write', name: 'Write Roles', category: 'roles', description: 'Manage roles and permissions' },
+];
+
+// Default roles with their permissions
+const DEFAULT_ROLES = [
+  {
+    code: 'admin',
+    name: 'Administrator',
+    description: 'Full system access with all permissions',
+    color: 'red',
+    isSystem: true,
+    permissions: [
+      'patients:read', 'patients:write', 'patients:delete',
+      'medications:read', 'medications:write',
+      'appointments:read', 'appointments:write',
+      'clinical_notes:read', 'clinical_notes:write',
+      'imaging:read', 'imaging:write',
+      'users:read', 'users:write', 'users:delete',
+      'settings:read', 'settings:write',
+      'billing:read', 'billing:write',
+      'roles:read', 'roles:write',
+    ],
+  },
+  {
+    code: 'physician',
+    name: 'Physician',
+    description: 'Full clinical access',
+    color: 'blue',
+    isSystem: true,
+    permissions: [
+      'patients:read', 'patients:write',
+      'medications:read', 'medications:write',
+      'appointments:read', 'appointments:write',
+      'clinical_notes:read', 'clinical_notes:write',
+      'imaging:read', 'imaging:write',
+    ],
+  },
+  {
+    code: 'nurse',
+    name: 'Nurse',
+    description: 'Clinical support staff',
+    color: 'green',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'medications:read',
+      'appointments:read', 'appointments:write',
+      'clinical_notes:read', 'clinical_notes:write',
+    ],
+  },
+  {
+    code: 'nurse_practitioner',
+    name: 'Nurse Practitioner',
+    description: 'Advanced practice nurse',
+    color: 'purple',
+    isSystem: true,
+    permissions: [
+      'patients:read', 'patients:write',
+      'medications:read', 'medications:write',
+      'appointments:read', 'appointments:write',
+      'clinical_notes:read', 'clinical_notes:write',
+    ],
+  },
+  {
+    code: 'physician_assistant',
+    name: 'Physician Assistant',
+    description: 'Licensed medical provider',
+    color: 'indigo',
+    isSystem: true,
+    permissions: [
+      'patients:read', 'patients:write',
+      'medications:read', 'medications:write',
+      'appointments:read', 'appointments:write',
+      'clinical_notes:read', 'clinical_notes:write',
+    ],
+  },
+  {
+    code: 'medical_assistant',
+    name: 'Medical Assistant',
+    description: 'Clinical support',
+    color: 'teal',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'appointments:read', 'appointments:write',
+    ],
+  },
+  {
+    code: 'receptionist',
+    name: 'Receptionist',
+    description: 'Front desk staff',
+    color: 'yellow',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'appointments:read', 'appointments:write',
+    ],
+  },
+  {
+    code: 'billing',
+    name: 'Billing Specialist',
+    description: 'Billing and payment management',
+    color: 'orange',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'billing:read', 'billing:write',
+    ],
+  },
+  {
+    code: 'pharmacist',
+    name: 'Pharmacist',
+    description: 'Medication management',
+    color: 'cyan',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'medications:read', 'medications:write',
+    ],
+  },
+  {
+    code: 'lab_technician',
+    name: 'Lab Technician',
+    description: 'Laboratory staff',
+    color: 'violet',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+    ],
+  },
+  {
+    code: 'radiologist',
+    name: 'Radiologist',
+    description: 'Medical imaging specialist',
+    color: 'pink',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'imaging:read', 'imaging:write',
+    ],
+  },
+  {
+    code: 'therapist',
+    name: 'Therapist',
+    description: 'Therapy and counseling',
+    color: 'emerald',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'clinical_notes:read', 'clinical_notes:write',
+    ],
+  },
+  {
+    code: 'social_worker',
+    name: 'Social Worker',
+    description: 'Social services and support',
+    color: 'amber',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'clinical_notes:read', 'clinical_notes:write',
+    ],
+  },
+  {
+    code: 'care_coordinator',
+    name: 'Care Coordinator',
+    description: 'Care coordination and management',
+    color: 'sky',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'appointments:read',
+    ],
+  },
+  {
+    code: 'read_only',
+    name: 'Read Only',
+    description: 'View-only access',
+    color: 'gray',
+    isSystem: true,
+    permissions: [
+      'patients:read',
+      'medications:read',
+      'appointments:read',
+      'clinical_notes:read',
+      'imaging:read',
+      'billing:read',
+      'users:read',
+      'settings:read',
+    ],
+  },
+];
+
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create users
-  const adminPassword = await hashPassword('admin123');
-  const physicianPassword = await hashPassword('password123');
-  const nursePassword = await hashPassword('password123');
+  // Seed Permissions
+  console.log('📝 Seeding permissions...');
+  for (const perm of DEFAULT_PERMISSIONS) {
+    await prisma.permission.upsert({
+      where: { code: perm.code },
+      update: {
+        name: perm.name,
+        description: perm.description,
+        category: perm.category,
+      },
+      create: perm,
+    });
+  }
+  console.log(`✅ Created/updated ${DEFAULT_PERMISSIONS.length} permissions`);
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@hospital2035.com' },
-    update: {},
-    create: {
-      username: 'admin',
-      email: 'admin@hospital2035.com',
-      passwordHash: adminPassword,
-      firstName: 'System',
-      lastName: 'Administrator',
-      role: UserRole.admin,
-      department: 'IT',
-      phone: '(555) 000-0001',
-      isActive: true,
-    },
+  // Seed Roles
+  console.log('👥 Seeding roles...');
+  for (const roleData of DEFAULT_ROLES) {
+    const { permissions, ...roleInfo } = roleData;
+    
+    const role = await prisma.role.upsert({
+      where: { code: roleData.code },
+      update: {
+        name: roleInfo.name,
+        description: roleInfo.description,
+        color: roleInfo.color,
+        isSystem: roleInfo.isSystem,
+      },
+      create: {
+        ...roleInfo,
+        rolePermissions: {
+          create: permissions.map((permCode) => ({
+            permission: {
+              connect: { code: permCode },
+            },
+          })),
+        },
+      },
+    });
+
+    // If role exists, update permissions
+    if (role) {
+      // Delete existing permissions
+      await prisma.rolePermission.deleteMany({
+        where: { roleId: role.id },
+      });
+
+      // Create new permissions
+      const permissionIds = await Promise.all(
+        permissions.map(async (permCode) => {
+          const perm = await prisma.permission.findUnique({
+            where: { code: permCode },
+          });
+          return perm!.id;
+        })
+      );
+
+      await prisma.rolePermission.createMany({
+        data: permissionIds.map((permissionId) => ({
+          roleId: role.id,
+          permissionId,
+        })),
+      });
+    }
+  }
+  console.log(`✅ Created/updated ${DEFAULT_ROLES.length} roles`);
+
+  // Note: Users should be created through the registration API endpoint
+  // This seed script only creates sample data (patients, medications, etc.)
+  // No test users are created - users must register through the sign-up form
+  
+  console.log('ℹ️  Skipping user creation - users must register through the sign-up form');
+
+  // Check if any users exist - if not, skip sample data creation
+  // (Sample data requires users to be created by registered users)
+  const userCount = await prisma.user.count();
+  
+  if (userCount === 0) {
+    console.log('ℹ️  No users found. Sample data will be created once users register.');
+    console.log('🎉 Seeding completed (no data created - users must register first)');
+    return;
+  }
+
+  // Get the first user (or admin) to use as creator for sample data
+  const firstUser = await prisma.user.findFirst({
+    orderBy: { createdAt: 'asc' },
   });
 
-  const physician = await prisma.user.upsert({
-    where: { email: 'sarah.johnson@hospital2035.com' },
-    update: {},
-    create: {
-      username: 'sarah.johnson',
-      email: 'sarah.johnson@hospital2035.com',
-      passwordHash: physicianPassword,
-      firstName: 'Sarah',
-      lastName: 'Johnson',
-      role: UserRole.physician,
-      specialty: 'Internal Medicine',
-      department: 'Internal Medicine',
-      phone: '(555) 123-4567',
-      isActive: true,
-    },
-  });
+  if (!firstUser) {
+    console.log('ℹ️  No users found. Sample data will be created once users register.');
+    return;
+  }
 
-  const nurse = await prisma.user.upsert({
-    where: { email: 'patricia.williams@hospital2035.com' },
-    update: {},
-    create: {
-      username: 'patricia.williams',
-      email: 'patricia.williams@hospital2035.com',
-      passwordHash: nursePassword,
-      firstName: 'Patricia',
-      lastName: 'Williams',
-      role: UserRole.nurse,
-      department: 'Nursing',
-      phone: '(555) 345-6789',
-      isActive: true,
-    },
-  });
-
-  console.log('✅ Created users:', { admin, physician, nurse });
-
-  // Create sample patient
+  // Create sample patient (optional - only if users exist)
   const patient = await prisma.patient.upsert({
     where: { id: 'pt-001' },
     update: {},
@@ -99,7 +367,7 @@ async function main() {
         'Hypertension (father)',
         'Coronary artery disease (paternal grandfather)',
       ],
-      createdById: physician.id,
+      createdById: firstUser.id,
     },
   });
 
@@ -113,7 +381,7 @@ async function main() {
       status: 'Active',
       startedDate: new Date('2025-09-13'),
       instructions: 'Take with meals',
-      prescribedById: physician.id,
+      prescribedById: firstUser.id,
     },
   });
 

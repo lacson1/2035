@@ -10,6 +10,7 @@ import {
   formatTemperature,
 } from "../utils/measurements";
 import { openPrintWindow } from "../utils/popupHandler";
+import PrintPreview from "./PrintPreview";
 
 interface ClinicalNotesProps {
   patient: Patient;
@@ -19,6 +20,7 @@ interface ClinicalNotesProps {
 export default function ClinicalNotes({ patient, onNoteAdded }: ClinicalNotesProps) {
   const { addClinicalNote } = useDashboard();
   const [open, setOpen] = useState(false);
+  const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
   const [measurementSystem, setMeasurementSystem] = useState(() => getMeasurementSystem());
   const [formData, setFormData] = useState({
     title: "",
@@ -186,7 +188,7 @@ ${formData.plan || "Pending plan"}`;
   const getTypeColor = (type: string) => {
     switch (type) {
       case "visit":
-        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
+        return "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200";
       case "consultation":
         return "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200";
       case "procedure":
@@ -380,8 +382,16 @@ ${formData.plan || "Pending plan"}`;
       </html>
     `;
 
-    // Use the popup handler utility for better error handling
-    openPrintWindow(printContent, `Clinical Note - ${note.title}`);
+    // Show print preview instead of printing directly
+    setPrintPreview({
+      content: printContent,
+      title: `Clinical Note - ${note.title}`
+    });
+  };
+
+  const handlePrintFromPreview = () => {
+    if (!printPreview) return;
+    openPrintWindow(printPreview.content, printPreview.title);
   };
 
   return (
@@ -390,7 +400,7 @@ ${formData.plan || "Pending plan"}`;
         <h3 className="text-lg font-semibold">Clinical Notes</h3>
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600"
         >
           <Plus size={18} /> Add Note
         </button>
@@ -405,7 +415,7 @@ ${formData.plan || "Pending plan"}`;
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2">
-                  <FileText size={16} className="text-blue-600 dark:text-blue-400" />
+                  <FileText size={16} className="text-teal-600 dark:text-teal-400" />
                   <h4 className="font-semibold">{note.title}</h4>
                 </div>
                 <div className="flex items-center gap-2">
@@ -480,7 +490,7 @@ ${formData.plan || "Pending plan"}`;
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="e.g., Follow-up Visit - Diabetes Management"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
                 <div>
@@ -493,7 +503,7 @@ ${formData.plan || "Pending plan"}`;
                         type: e.target.value as "visit" | "consultation" | "procedure" | "follow-up" | "general_consultation" | "specialty_consultation",
                       })
                     }
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   >
                     <option value="visit">Visit</option>
                     <option value="consultation">Consultation</option>
@@ -508,7 +518,7 @@ ${formData.plan || "Pending plan"}`;
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 grid grid-cols-4 gap-2">
                     <div className="text-center">
-                      <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">S</div>
+                      <div className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wide mb-1">S</div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">Subjective</div>
                     </div>
                     <div className="text-center">
@@ -530,7 +540,7 @@ ${formData.plan || "Pending plan"}`;
                       const combined = combineSOAPSections();
                       setFormData(prev => ({ ...prev, content: combined }));
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors"
                   >
                     <Copy size={12} />
                     Combine SOAP
@@ -576,14 +586,14 @@ ${formData.plan || "Pending plan"}`;
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-medium text-blue-600 dark:text-blue-400">
+                    <label className="block text-xs font-medium text-teal-600 dark:text-teal-400">
                       History of Present Illness (HPI)
                     </label>
                     {patientData.allergies && (
                       <button
                         type="button"
                         onClick={quickFillAllergies}
-                        className="flex items-center gap-1 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                        className="flex items-center gap-1 px-2 py-0.5 text-xs bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300 rounded hover:bg-teal-200 dark:hover:bg-teal-800"
                         title="Add allergies"
                       >
                         <Zap size={10} />
@@ -596,7 +606,7 @@ ${formData.plan || "Pending plan"}`;
                     onChange={(e) => setFormData({ ...formData, hpi: e.target.value })}
                     placeholder="Detailed history, onset, duration, severity, associated symptoms..."
                     rows={3}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
 
@@ -677,7 +687,7 @@ ${formData.plan || "Pending plan"}`;
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   placeholder="Enter full clinical note details or combine SOAP sections above..."
                   rows={8}
-                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
                 />
               </div>
 
@@ -691,7 +701,7 @@ ${formData.plan || "Pending plan"}`;
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 text-sm rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition-colors"
                 >
                   Save Note
                 </button>
@@ -699,6 +709,16 @@ ${formData.plan || "Pending plan"}`;
             </form>
           </div>
         </div>
+      )}
+
+      {/* Print Preview Modal */}
+      {printPreview && (
+        <PrintPreview
+          content={printPreview.content}
+          title={printPreview.title}
+          onClose={() => setPrintPreview(null)}
+          onPrint={handlePrintFromPreview}
+        />
       )}
     </div>
   );

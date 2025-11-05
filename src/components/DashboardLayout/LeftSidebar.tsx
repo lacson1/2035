@@ -17,8 +17,8 @@ import {
 const workflowGroupConfig: Record<string, { icon: typeof ClipboardCheck; color: string; bgColor: string }> = {
   assessment: {
     icon: ClipboardCheck,
-    color: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800",
+    color: "text-teal-600 dark:text-teal-400",
+    bgColor: "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800",
   },
   "active-care": {
     icon: Heart,
@@ -191,12 +191,12 @@ export default function LeftSidebar({ isOpen, onToggle, onNavigateToPatients, on
         <div className="p-2.5 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
           {!isMinimized && (
             <h2 className="text-sm font-semibold flex items-center gap-1.5">
-              <LayoutDashboard size={16} className="text-blue-600 dark:text-blue-400" />
+              <LayoutDashboard size={16} className="text-teal-600 dark:text-teal-400" />
               Navigation
             </h2>
           )}
           {isMinimized && (
-            <LayoutDashboard size={16} className="text-blue-600 dark:text-blue-400 mx-auto" />
+            <LayoutDashboard size={16} className="text-teal-600 dark:text-teal-400 mx-auto" />
           )}
           <div className="flex items-center gap-1">
             <button
@@ -229,15 +229,15 @@ export default function LeftSidebar({ isOpen, onToggle, onNavigateToPatients, on
                 onNavigateToPatients();
                 onToggle();
               }}
-              className={`w-full flex items-center ${isMinimized ? 'justify-center' : 'gap-2'} px-2.5 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium transition-colors border border-blue-200 dark:border-blue-800 mb-2 group relative`}
+              className={`w-full flex items-center ${isMinimized ? 'justify-center' : 'gap-2'} px-2.5 py-2 rounded-lg bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-sm font-medium transition-colors border border-teal-200 dark:border-teal-800 mb-2 group relative`}
               title="All Patients"
             >
-              <Users size={16} className="text-blue-600 dark:text-blue-400" />
+              <Users size={16} className="text-teal-600 dark:text-teal-400" />
               {!isMinimized && (
                 <>
                   <span className="flex-1 text-left">All Patients</span>
                   {patients.length > 0 && (
-                    <span className="text-xs bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded-full font-semibold">
+                    <span className="text-xs bg-teal-200 dark:bg-teal-800 text-teal-800 dark:text-teal-200 px-1.5 py-0.5 rounded-full font-semibold">
                       {patients.length}
                     </span>
                   )}

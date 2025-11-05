@@ -110,10 +110,10 @@ export default function WorkspacePage({
               {/* Navigation to Patient List */}
               <button
                 onClick={onNavigateToPatients}
-                className="flex items-center gap-1 px-1.5 py-1 rounded-lg bg-blue-50/80 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-[10px] font-medium transition-all duration-200 hover:scale-[1.02] active:scale-95 border border-blue-200 dark:border-blue-800"
+                className="flex items-center gap-1 px-1.5 py-1 rounded-lg bg-teal-50/80 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/30 text-[10px] font-medium transition-all duration-200 hover:scale-[1.02] active:scale-95 border border-teal-200 dark:border-teal-800"
               >
-                <Users size={12} className="text-blue-600 dark:text-blue-400" />
-                <span className="hidden sm:inline text-blue-700 dark:text-blue-300">Patients</span>
+                <Users size={12} className="text-teal-600 dark:text-teal-400" />
+                <span className="hidden sm:inline text-teal-700 dark:text-teal-300">Patients</span>
               </button>
 
               {/* Dark Mode Toggle */}

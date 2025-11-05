@@ -11,6 +11,55 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  
+  /* Fade-in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Slow pulse animation for background orbs */
+  .animate-pulse-slow {
+    animation: pulseSlow 8s ease-in-out infinite;
+  }
+  
+  @keyframes pulseSlow {
+    0%, 100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.1);
+    }
+  }
+  
+  /* Floating animation for accent orbs */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) translateX(0px);
+    }
+    33% {
+      transform: translateY(-20px) translateX(10px);
+    }
+    66% {
+      transform: translateY(10px) translateX(-10px);
+    }
+  }
 }
 
 @layer base {
@@ -107,8 +156,8 @@
   
   /* Modern button styles with smooth transitions - consistent design */
   .btn-primary {
-    @apply px-4 py-2.5 bg-blue-600 text-white;
-    @apply rounded-xl hover:bg-blue-700;
+    @apply px-4 py-2.5 bg-teal-500 text-white;
+    @apply rounded-xl hover:bg-teal-600;
     @apply transition-all duration-200 text-sm font-medium font-sans;
     @apply min-h-[44px] min-w-[44px] shadow-sm hover:shadow-md;
     @apply active:scale-95 transform;
@@ -129,7 +178,7 @@
   .input-base {
     @apply w-full px-4 py-2.5 text-base border rounded-xl;
     @apply dark:bg-gray-800 dark:border-gray-600;
-    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+    @apply focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500;
     @apply transition-colors font-sans;
     @apply placeholder:text-gray-400 dark:placeholder:text-gray-500;
   }

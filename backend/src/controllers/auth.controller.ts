@@ -26,7 +26,7 @@ export class AuthController {
         throw new UnauthorizedError('Email and password are required');
       }
 
-      const result = await authService.login(email, password);
+      const result = await authService.login(email, password, ipAddress, userAgent);
 
       // Log successful login
       await auditService.logAuthEvent(
@@ -78,6 +78,38 @@ export class AuthController {
 
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
+      const userId = (req as any).user?.userId;
+      const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
+
+      // Delete session from database if refresh token is provided
+      if (refreshToken && userId) {
+        try {
+          await prisma.session.deleteMany({
+            where: {
+              refreshToken,
+              userId,
+            },
+          });
+        } catch (error) {
+          // Continue with logout even if session deletion fails
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to delete session:', error);
+          }
+        }
+      } else if (userId) {
+        // If no refresh token provided but user ID exists, delete all sessions for user
+        // (for logout from all devices)
+        try {
+          await prisma.session.deleteMany({
+            where: { userId },
+          });
+        } catch (error) {
+          // Continue with logout even if session deletion fails
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to delete user sessions:', error);
+          }
+        }
+      }
       // Log logout
       if (req.user) {
         await auditService.logAuthEvent(
@@ -94,6 +126,65 @@ export class AuthController {
         message: 'Logged out successfully',
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  async register(req: Request, res: Response, next: NextFunction) {
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] as string;
+    const userAgent = req.headers['user-agent'];
+    
+    try {
+      const { email, password, firstName, lastName, username } = req.body;
+
+      if (!email || !password || !firstName || !lastName) {
+        await auditService.logAuthEvent(
+          undefined,
+          email,
+          'REGISTER',
+          ipAddress,
+          userAgent,
+          false,
+          'Email, password, first name, and last name are required'
+        );
+        throw new UnauthorizedError('Email, password, first name, and last name are required');
+      }
+
+      const result = await authService.register(
+        email,
+        password,
+        firstName,
+        lastName,
+        username,
+        ipAddress,
+        userAgent
+      );
+
+      // Log successful registration
+      await auditService.logAuthEvent(
+        result.user.id,
+        result.user.email,
+        'REGISTER',
+        ipAddress,
+        userAgent,
+        true
+      );
+
+      res.status(201).json({
+        data: result,
+        message: 'Account created successfully',
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      await auditService.logAuthEvent(
+        undefined,
+        req.body?.email,
+        'REGISTER',
+        ipAddress,
+        userAgent,
+        false,
+        errorMessage
+      );
       next(error);
     }
   }

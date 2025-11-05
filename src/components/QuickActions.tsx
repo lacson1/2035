@@ -86,7 +86,7 @@ const workflowActions: Record<string, QuickAction[]> = {
       id: "vitals",
       label: "Record Vitals",
       icon: <Activity size={20} />,
-      color: "bg-blue-600 hover:bg-blue-700",
+      color: "bg-teal-500 hover:bg-teal-600",
       onClick: () => {},
       priority: "high",
       category: "Assessment",
@@ -202,7 +202,7 @@ const workflowActions: Record<string, QuickAction[]> = {
       id: "telemedicine",
       label: "Video Call",
       icon: <Video size={20} />,
-      color: "bg-blue-600 hover:bg-blue-700",
+      color: "bg-teal-500 hover:bg-teal-600",
       onClick: () => {},
       priority: "medium",
       category: "Advanced",
@@ -657,7 +657,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
               <ChevronUp size={16} className="text-gray-600 dark:text-gray-400" />
             )}
             <h3 className={`font-semibold flex items-center gap-2 ${isCollapsed ? 'text-sm' : 'text-base'}`}>
-              <span className="text-blue-600 dark:text-blue-400">⚡</span>
+              <span className="text-teal-600 dark:text-teal-400">⚡</span>
               <span>Quick Actions</span>
               {!isCollapsed && workflowGroup && (
                 <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
@@ -706,7 +706,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
               placeholder="Search actions... (⌘K)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-7 pr-7 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-7 pr-7 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
             {searchQuery && (
               <button

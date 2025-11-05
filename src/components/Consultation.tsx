@@ -668,7 +668,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
     if (!specialty) return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     const colors: Record<string, string> = {
       cardiology: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
-      endocrinology: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
+      endocrinology: "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200",
       neurology: "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200",
       oncology: "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
       orthopedics: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
@@ -892,7 +892,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Stethoscope size={20} className="text-blue-600 dark:text-blue-400" />
+            <Stethoscope size={20} className="text-teal-600 dark:text-teal-400" />
             Consultations
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -917,15 +917,15 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
       {/* Consultation Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Consultations</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+              <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 mt-1">
                 {consultations.length}
               </p>
             </div>
-            <Stethoscope size={32} className="text-blue-600 dark:text-blue-400 opacity-50" />
+            <Stethoscope size={32} className="text-teal-600 dark:text-teal-400 opacity-50" />
           </div>
         </div>
         <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -1009,7 +1009,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
       {/* Scheduled Consultations */}
       <div className="p-4 border rounded-lg dark:border-gray-700">
         <h4 className="font-semibold mb-4 flex items-center gap-2">
-          <Calendar size={18} className="text-blue-600 dark:text-blue-400" />
+          <Calendar size={18} className="text-teal-600 dark:text-teal-400" />
           Scheduled Consultations ({filteredConsultations.length})
         </h4>
         {filteredConsultations.length > 0 ? (
@@ -1022,7 +1022,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Stethoscope size={18} className="text-blue-600 dark:text-blue-400" />
+                      <Stethoscope size={18} className="text-teal-600 dark:text-teal-400" />
                       <h5 className="font-semibold">
                         {consultation.consultationType === "general"
                           ? "General Consultation"
@@ -1085,7 +1085,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     <span
                       className={`px-3 py-1 text-xs rounded-full ${
                         consultation.status === "scheduled"
-                          ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                          ? "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200"
                           : consultation.status === "completed"
                           ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
                           : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
@@ -1111,7 +1111,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                           });
                           setOpenSchedule(true);
                         }}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
                         title="Edit consultation"
                       >
                         Edit
@@ -1159,7 +1159,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     </button>
                     <button
                       onClick={() => handleEditNote(note)}
-                      className="p-1.5 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                      className="p-1.5 text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded transition-colors"
                       title="Edit note"
                     >
                       <Edit size={14} />
@@ -1228,7 +1228,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onClick={() => setFormData({ ...formData, consultationType: "specialty" })}
                     className={`flex-1 p-3 border-2 rounded-lg transition ${
                       formData.consultationType === "specialty"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
                         : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
                     }`}
                   >
@@ -1247,7 +1247,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onChange={(e) =>
                       setFormData({ ...formData, specialty: e.target.value as SpecialtyType })
                     }
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="">Select specialty</option>
                     {getAllSpecialties().map((specialty) => {
@@ -1271,7 +1271,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     min={new Date().toISOString().split('T')[0]}
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -1281,7 +1281,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     required
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -1310,7 +1310,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                   <select
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="15">15 min</option>
                     <option value="30">30 min</option>
@@ -1329,7 +1329,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onClick={() => setFormData({ ...formData, location: "in-person" })}
                     className={`p-2.5 border-2 rounded-lg transition text-sm ${
                       formData.location === "in-person"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
                         : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
                     }`}
                   >
@@ -1341,7 +1341,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onClick={() => setFormData({ ...formData, location: "telemedicine" })}
                     className={`p-2.5 border-2 rounded-lg transition text-sm ${
                       formData.location === "telemedicine"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
                         : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
                     }`}
                   >
@@ -1353,7 +1353,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onClick={() => setFormData({ ...formData, location: "hybrid" })}
                     className={`p-2.5 border-2 rounded-lg transition text-sm ${
                       formData.location === "hybrid"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
                         : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
                     }`}
                   >
@@ -1370,7 +1370,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                   placeholder="Primary reason for consultation..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -1383,7 +1383,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onChange={(e) =>
                       setFormData({ ...formData, referralRequired: e.target.checked })
                     }
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500 focus:ring-offset-0"
                   />
                   <label htmlFor="referral" className="text-base">
                     Referral Required
@@ -1395,7 +1395,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     id="autoCreateNote"
                     checked={autoCreateNote}
                     onChange={(e) => setAutoCreateNote(e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                    className="w-5 h-5 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500 focus:ring-offset-0"
                   />
                   <label htmlFor="autoCreateNote" className="text-base text-gray-600 dark:text-gray-400">
                     Auto-create note
@@ -1410,7 +1410,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Any additional notes or instructions..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -1424,7 +1424,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                 </button>
                 <button
                   type="submit"
-                    className="px-5 py-2.5 text-sm font-medium rounded-xl bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 shadow-sm hover:shadow-md transition-all duration-200"
+                    className="px-5 py-2.5 text-sm font-medium rounded-xl bg-teal-500 text-white hover:bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-600 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   Schedule Consultation
                 </button>
@@ -1496,7 +1496,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                       onClick={() => setNoteData({ ...noteData, consultationType: "general", specialty: "" })}
                       className={`flex-1 p-2.5 border-2 rounded-lg transition text-sm ${
                         noteData.consultationType === "general"
-                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-sm"
+                          ? "border-teal-600 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 shadow-sm"
                           : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-750"
                       }`}
                     >
@@ -1508,7 +1508,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                       onClick={() => setNoteData({ ...noteData, consultationType: "specialty" })}
                       className={`flex-1 p-2.5 border-2 rounded-lg transition text-sm ${
                         noteData.consultationType === "specialty"
-                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-sm"
+                          ? "border-teal-600 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 shadow-sm"
                           : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-750"
                       }`}
                     >
@@ -1527,7 +1527,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                       onChange={(e) =>
                         setNoteData({ ...noteData, specialty: e.target.value as SpecialtyType })
                       }
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     >
                       <option value="">Select specialty</option>
                       {getAllSpecialties().map((specialty) => {
@@ -1551,7 +1551,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                   value={noteData.title}
                   onChange={(e) => setNoteData({ ...noteData, title: e.target.value })}
                   placeholder="e.g., Cardiology Consultation - Follow-up"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -1559,7 +1559,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
               <div className="space-y-4 border-t pt-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="grid grid-cols-4 gap-2 flex-1">
-                    <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">S</span>
+                    <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wide">S</span>
                     <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wide">O</span>
                     <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">A</span>
                     <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">P</span>
@@ -1574,7 +1574,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                       const combined = combineNoteSections();
                       setNoteData(prev => ({ ...prev, content: combined }));
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors"
                   >
                     <Copy size={12} />
                     Combine All Sections
@@ -1593,7 +1593,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                       value={noteData.chiefComplaint}
                       onChange={(e) => setNoteData({ ...noteData, chiefComplaint: e.target.value })}
                       placeholder="Primary reason for visit"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                   <div>
@@ -1623,14 +1623,14 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-medium text-blue-600 dark:text-blue-400">
+                    <label className="block text-xs font-medium text-teal-600 dark:text-teal-400">
                       History of Present Illness (HPI)
                     </label>
                     {patientData.allergies && (
                       <button
                         type="button"
                         onClick={quickFillAllergies}
-                        className="flex items-center gap-1 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                        className="flex items-center gap-1 px-2 py-0.5 text-xs bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300 rounded hover:bg-teal-200 dark:hover:bg-teal-800"
                         title="Add allergies"
                       >
                         <Zap size={10} />
@@ -1643,7 +1643,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onChange={(e) => setNoteData({ ...noteData, hpi: e.target.value })}
                     placeholder="Detailed history of current complaint..."
                     rows={3}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
 
@@ -1656,7 +1656,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onChange={(e) => setNoteData({ ...noteData, reviewOfSystems: e.target.value })}
                     placeholder="Systematic review: Constitutional, HEENT, Cardiovascular, Respiratory, GI, GU, Musculoskeletal, Neurological, Psychiatric, etc."
                     rows={3}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
 
@@ -1846,7 +1846,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                   onChange={(e) => setNoteData({ ...noteData, content: e.target.value })}
                   placeholder="Enter full consultation notes or use SOAP format above..."
                   rows={8}
-                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
                 />
               </div>
 
@@ -1882,7 +1882,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                 </button>
                 <button
                   type="submit"
-                    className="px-5 py-2.5 text-sm font-medium rounded-xl bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 shadow-sm hover:shadow-md transition-all duration-200"
+                    className="px-5 py-2.5 text-sm font-medium rounded-xl bg-teal-500 text-white hover:bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-600 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   {editingNote ? "Update Note" : "Save Note"}
                 </button>
@@ -1989,8 +1989,8 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
+            <div className="mt-6 p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+              <p className="text-sm text-teal-800 dark:text-teal-200">
                 <strong>Note:</strong> Templates include structured sections for Chief Complaint, History of Present Illness, Review of Systems, Physical Examination, Assessment, Plan, and common diagnoses, tests, and medications. You can edit the generated template before saving.
               </p>
             </div>

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { UserRole } from "../types";
 import { useUsers } from "../hooks/useUsers";
+import { getRoleName } from "../data/roles";
 import { UserPlus, X, CheckCircle, User as UserIcon } from "lucide-react";
 
 interface UserAssignmentProps {
@@ -71,7 +72,7 @@ export default function UserAssignment({
   const getRoleBadgeColor = (role: UserRole) => {
     const colors: Record<string, string> = {
       admin: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
-      physician: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
+      physician: "bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200",
       nurse: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
       nurse_practitioner: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200",
       physician_assistant: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200",
@@ -88,16 +89,16 @@ export default function UserAssignment({
       
       {/* Current Assignment Display */}
       {showCurrentAssignment && assignedUser && (
-        <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between">
+        <div className="mb-3 p-3 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle className="text-blue-600 dark:text-blue-400" size={16} />
+            <CheckCircle className="text-teal-600 dark:text-teal-400" size={16} />
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {assignedUser.firstName} {assignedUser.lastName}
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className={`text-xs px-2 py-0.5 rounded ${getRoleBadgeColor(assignedUser.role)}`}>
-                  {assignedUser.role.replace("_", " ")}
+                  {getRoleName(assignedUser.role)}
                 </span>
                 {assignedUser.specialty && (
                   <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -125,7 +126,7 @@ export default function UserAssignment({
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors flex items-center justify-between"
+            className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors flex items-center justify-between"
           >
             <span className={assignedUser ? "text-gray-900 dark:text-gray-100" : "text-gray-500"}>
               {assignedUser
@@ -146,12 +147,16 @@ export default function UserAssignment({
               />
               <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-64 overflow-hidden">
                 <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                  <label htmlFor="user-search-input" className="sr-only">Search users</label>
                   <input
+                    id="user-search-input"
                     type="text"
                     placeholder="Search users..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    aria-label="Search users"
+                    title="Search users"
+                    className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     autoFocus
                   />
                 </div>
@@ -164,12 +169,12 @@ export default function UserAssignment({
                           type="button"
                           onClick={() => handleSelect(user.id)}
                           className={`w-full px-3 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between ${
-                            assignedTo === user.id ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                            assignedTo === user.id ? "bg-teal-50 dark:bg-teal-900/20" : ""
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                              <UserIcon size={16} className="text-blue-600 dark:text-blue-400" />
+                            <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
+                              <UserIcon size={16} className="text-teal-600 dark:text-teal-400" />
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -179,7 +184,7 @@ export default function UserAssignment({
                                 <span
                                   className={`text-xs px-1.5 py-0.5 rounded ${getRoleBadgeColor(user.role)}`}
                                 >
-                                  {user.role.replace("_", " ")}
+                                  {getRoleName(user.role)}
                                 </span>
                                 {user.specialty && (
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -190,7 +195,7 @@ export default function UserAssignment({
                             </div>
                           </div>
                           {assignedTo === user.id && (
-                            <CheckCircle size={16} className="text-blue-600 dark:text-blue-400" />
+                            <CheckCircle size={16} className="text-teal-600 dark:text-teal-400" />
                           )}
                         </button>
                       ))}

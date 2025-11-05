@@ -88,7 +88,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
       <div className="flex justify-end">
         <button
           onClick={() => setAddMemberOpen(true)}
-          className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+          className="flex items-center justify-center w-10 h-10 bg-teal-500 text-white rounded-full hover:bg-teal-600 transition-all duration-200 shadow-sm hover:shadow-md"
           title="Add Team Member"
           aria-label="Add Team Member"
         >
@@ -98,10 +98,10 @@ export default function CareTeam({ patient }: CareTeamProps) {
 
       {/* Primary Care Physician */}
       {primaryPhysician && (
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border border-teal-200 dark:border-teal-800">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Stethoscope size={20} className="text-blue-600 dark:text-blue-400" />
+              <Stethoscope size={20} className="text-teal-600 dark:text-teal-400" />
               Primary Care Physician
             </h3>
           </div>
@@ -126,14 +126,14 @@ export default function CareTeam({ patient }: CareTeamProps) {
             <div className="flex gap-4 mt-4 pt-4 border-t dark:border-gray-700">
               <a
                 href={`mailto:${primaryPhysician.email}`}
-                className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                className="flex items-center gap-2 text-sm text-teal-600 dark:text-teal-400 hover:underline"
               >
                 <Mail size={16} />
                 {primaryPhysician.email}
               </a>
               <a
                 href={`tel:${primaryPhysician.phone}`}
-                className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                className="flex items-center gap-2 text-sm text-teal-600 dark:text-teal-400 hover:underline"
               >
                 <Phone size={16} />
                 {primaryPhysician.phone}
@@ -153,7 +153,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                 onClick={() => setViewMode("list")}
                 className={`p-1.5 rounded transition-colors ${
                   viewMode === "list"
-                    ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                    ? "bg-white dark:bg-gray-600 text-teal-600 dark:text-teal-400 shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 }`}
                 title="List view"
@@ -165,7 +165,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 rounded transition-colors ${
                   viewMode === "grid"
-                    ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                    ? "bg-white dark:bg-gray-600 text-teal-600 dark:text-teal-400 shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 }`}
                 title="Grid view"
@@ -285,7 +285,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                 onClick={() => setViewMode("list")}
                 className={`p-1.5 rounded transition-colors ${
                   viewMode === "list"
-                    ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                    ? "bg-white dark:bg-gray-600 text-teal-600 dark:text-teal-400 shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 }`}
                 title="List view"
@@ -297,7 +297,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 rounded transition-colors ${
                   viewMode === "grid"
-                    ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                    ? "bg-white dark:bg-gray-600 text-teal-600 dark:text-teal-400 shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 }`}
                 title="Grid view"
@@ -429,7 +429,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Dr. John Smith"
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -439,7 +439,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                     required
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   >
                     <option value="">Select role</option>
                     <option value="Primary Care Physician">Primary Care Physician</option>
@@ -458,7 +458,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                     value={formData.specialty}
                     onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
                     placeholder="Cardiology, etc."
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -470,7 +470,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   placeholder="Cardiology, Internal Medicine, etc."
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -482,7 +482,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="email@hospital.com"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
                 <div>
@@ -493,7 +493,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(555) 123-4567"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -504,7 +504,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes about this team member..."
                   rows={4}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               </div>
               <div className="flex justify-end gap-2 mt-4">
@@ -517,7 +517,7 @@ export default function CareTeam({ patient }: CareTeamProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                  className="px-4 py-2 rounded-md bg-teal-500 text-white hover:bg-teal-600"
                 >
                   Add Member
                 </button>

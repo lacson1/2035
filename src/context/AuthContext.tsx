@@ -8,6 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, username?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
 }
@@ -48,6 +49,64 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     }
   }, [fetchCurrentUser]);
+
+  const register = async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    username?: string
+  ) => {
+    setIsLoading(true);
+
+    try {
+      const response = await apiClient.post<{
+        tokens: { accessToken: string; refreshToken: string };
+        user: User;
+      }>('/v1/auth/register', {
+        email,
+        password,
+        firstName,
+        lastName,
+        username,
+      });
+
+      const data = response.data;
+      const tokens = (data as any).data?.tokens || data.tokens;
+      const user = (data as any).data?.user || data.user;
+
+      if (!tokens || !user) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Store tokens
+      localStorage.setItem('authToken', tokens.accessToken);
+      localStorage.setItem('refreshToken', tokens.refreshToken);
+
+      // Set user
+      setUser(user);
+    } catch (err: any) {
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (err?.status === 0) {
+        errorMessage =
+          'Unable to connect to server. Please ensure the backend server is running.';
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.errors && typeof err.errors === 'object') {
+        const firstError = Object.values(err.errors)[0];
+        if (Array.isArray(firstError) && firstError.length > 0) {
+          errorMessage = firstError[0];
+        }
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -154,6 +213,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user,
         isLoading,
         login,
+        register,
         logout,
         refreshToken,
       }}

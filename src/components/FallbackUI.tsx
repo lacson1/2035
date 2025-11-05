@@ -25,7 +25,7 @@ export function FallbackUI({
       {resetError && (
         <button
           onClick={resetError}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium text-sm"
         >
           <RefreshCw size={16} />
           Try Again

@@ -1,46 +1,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-
-interface TestUser {
-  label: string;
-  email: string;
-  password: string;
-  role: string;
-}
-
-const TEST_USERS: TestUser[] = [
-  {
-    label: 'Admin',
-    email: 'admin@hospital2035.com',
-    password: 'admin123',
-    role: 'admin',
-  },
-  {
-    label: 'Physician',
-    email: 'sarah.johnson@hospital2035.com',
-    password: 'password123',
-    role: 'physician',
-  },
-  {
-    label: 'Nurse',
-    email: 'patricia.williams@hospital2035.com',
-    password: 'password123',
-    role: 'nurse',
-  },
-];
+import { LogIn, UserPlus, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function Login() {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
-
-  const loadTestUser = (testUser: TestUser) => {
-    setEmail(testUser.email);
-    setPassword(testUser.password);
-    setError(''); // Clear any previous errors
-  };
+  const { login, register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,14 +19,26 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      if (isSignUp) {
+        await register(email, password, firstName, lastName, username || undefined);
+        // Clear form on success
+        setEmail('');
+        setPassword('');
+        setFirstName('');
+        setLastName('');
+        setUsername('');
+      } else {
+        await login(email, password);
+        // Clear form on success
+        setEmail('');
+        setPassword('');
+      }
       // Navigation will happen automatically via AuthContext state change
-      // Clear form on success
-      setEmail('');
-      setPassword('');
     } catch (err: any) {
       // Extract error message - handle both Error objects and ApiError
-      let errorMessage = 'Login failed. Please check your credentials.';
+      let errorMessage = isSignUp 
+        ? 'Registration failed. Please try again.' 
+        : 'Login failed. Please check your credentials.';
       
       if (err?.status === 0) {
         // Network error - connection failed
@@ -78,77 +61,245 @@ export default function Login() {
     }
   };
 
+  const resetForm = () => {
+    setIsSignUp(!isSignUp);
+    setError('');
+    setEmail('');
+    setPassword('');
+    setFirstName('');
+    setLastName('');
+    setUsername('');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="bg-white/90 backdrop-blur-sm p-8 rounded-lg w-full max-w-md shadow-lg border border-blue-200/50">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900 text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Modern animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-teal-50 via-white to-emerald-50 dark:from-gray-900 dark:via-gray-800 dark:to-slate-900"></div>
+      
+      {/* Animated gradient orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Large animated orb - top right */}
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-teal-400/40 to-teal-600/20 dark:from-teal-500/20 dark:to-teal-700/10 rounded-full blur-3xl animate-pulse-slow"></div>
         
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
-            {error}
-          </div>
-        )}
+        {/* Large animated orb - bottom left */}
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-emerald-400/40 to-emerald-600/20 dark:from-emerald-500/20 dark:to-emerald-700/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+        
+        {/* Medium orb - center */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-teal-300/30 to-emerald-300/20 dark:from-teal-600/10 dark:to-emerald-600/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+        
+        {/* Small accent orbs */}
+        <div className="absolute top-20 left-20 w-32 h-32 bg-teal-200/30 dark:bg-teal-700/10 rounded-full blur-2xl animate-float"></div>
+        <div className="absolute bottom-32 right-32 w-40 h-40 bg-emerald-200/30 dark:bg-emerald-700/10 rounded-full blur-2xl animate-float" style={{ animationDelay: '1.5s' }}></div>
+        <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-teal-300/20 dark:bg-teal-600/8 rounded-full blur-xl animate-float" style={{ animationDelay: '0.5s' }}></div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-base font-medium text-gray-700 mb-2.5">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 text-base bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="sarah.johnson@hospital2035.com"
-              required
+      {/* Grid pattern overlay */}
+      <div 
+        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgb(0, 0, 0) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(0, 0, 0) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }}
+      ></div>
+
+      {/* Subtle geometric shapes */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-10 right-10 w-72 h-72 border border-teal-200/20 dark:border-teal-800/20 rounded-full blur-2xl rotate-45"></div>
+        <div className="absolute bottom-20 left-20 w-64 h-64 border border-emerald-200/20 dark:border-emerald-800/20 rounded-full blur-2xl -rotate-45"></div>
+      </div>
+
+      <div className="relative w-full max-w-md z-10">
+        {/* Main Card */}
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-8 md:p-10 rounded-2xl shadow-2xl border border-teal-100/50 dark:border-gray-700/50">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 mb-4 shadow-lg">
+              {isSignUp ? (
+                <UserPlus className="w-8 h-8 text-white" />
+              ) : (
+                <LogIn className="w-8 h-8 text-white" />
+              )}
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {isSignUp ? 'Create Account' : 'Welcome Back'}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              {isSignUp 
+                ? 'Sign up to access your healthcare dashboard' 
+                : 'Sign in to continue to your dashboard'}
+            </p>
+          </div>
+          
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl flex items-start gap-3 animate-fade-in">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <p className="text-sm flex-1">{error}</p>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {isSignUp && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      First Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                        placeholder="John"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Last Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                        placeholder="Doe"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Username <span className="text-gray-500 font-normal">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                      placeholder="johndoe"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                    If not provided, username will be generated from your email
+                  </p>
+                </div>
+              </>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                  placeholder="sarah.johnson@hospital2035.com"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                  placeholder={isSignUp ? "At least 8 characters" : "Enter your password"}
+                  required
+                  minLength={isSignUp ? 8 : undefined}
+                  disabled={isLoading}
+                />
+              </div>
+              {isSignUp && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                  Password must be at least 8 characters
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
               disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-base font-medium text-gray-700 mb-2.5">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 text-base bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="password123"
-              required
-              disabled={isLoading}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white font-medium py-3 text-base rounded-lg transition-colors"
-          >
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-600 text-center mb-3">Quick Login (Test Users):</p>
-          <div className="flex flex-col gap-2">
-            {TEST_USERS.map((testUser) => (
+              className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 disabled:from-teal-400 disabled:to-emerald-400 disabled:cursor-not-allowed text-white font-semibold py-3.5 text-sm rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{isSignUp ? 'Creating account...' : 'Logging in...'}</span>
+                </>
+              ) : (
+                <>
+                  {isSignUp ? (
+                    <>
+                      <UserPlus className="w-5 h-5" />
+                      <span>Create Account</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="w-5 h-5" />
+                      <span>Sign In</span>
+                    </>
+                  )}
+                </>
+              )}
+            </button>
+            
+            {/* Toggle Sign Up/Login */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
-                key={testUser.email}
                 type="button"
-                onClick={() => loadTestUser(testUser)}
-                disabled={isLoading}
-                className="w-full px-4 py-2 text-sm bg-blue-50 hover:bg-blue-100 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-700 rounded transition-colors flex items-center justify-between border border-blue-200"
+                onClick={resetForm}
+                className="w-full text-center text-sm text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium transition-colors"
               >
-                <span className="font-medium">{testUser.label}</span>
-                <span className="text-xs text-gray-500">{testUser.email}</span>
+                {isSignUp 
+                  ? 'Already have an account? Sign in' 
+                  : "Don't have an account? Sign up"}
               </button>
-            ))}
-          </div>
-          <p className="text-xs text-gray-500 text-center mt-3">
-            Click a button above to auto-fill credentials
-          </p>
+            </div>
+            
+            {isSignUp && (
+              <div className="pt-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center flex items-center justify-center gap-1.5">
+                  <span className="text-teal-600 dark:text-teal-400">💡</span>
+                  <span>The first user to register becomes an administrator</span>
+                </p>
+              </div>
+            )}
+          </form>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+          Physician Dashboard 2035
+        </p>
       </div>
     </div>
   );

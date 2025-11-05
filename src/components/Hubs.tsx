@@ -493,7 +493,7 @@ export default function Hubs() {
                 name={question.id}
                 checked={value === true}
                 onChange={() => setQuestionnaireAnswers({ ...questionnaireAnswers, [question.id]: true })}
-                className="w-4 h-4 text-blue-600"
+                className="w-4 h-4 text-teal-600"
               />
               <span className="text-sm">Yes</span>
             </label>
@@ -503,7 +503,7 @@ export default function Hubs() {
                 name={question.id}
                 checked={value === false}
                 onChange={() => setQuestionnaireAnswers({ ...questionnaireAnswers, [question.id]: false })}
-                className="w-4 h-4 text-blue-600"
+                className="w-4 h-4 text-teal-600"
               />
               <span className="text-sm">No</span>
             </label>
@@ -550,7 +550,7 @@ export default function Hubs() {
                     value={String(optionValue)}
                     checked={value === optionValue}
                     onChange={() => setQuestionnaireAnswers({ ...questionnaireAnswers, [question.id]: optionValue })}
-                    className="w-4 h-4 text-blue-600"
+                    className="w-4 h-4 text-teal-600"
                   />
                   <span className="text-sm">{optionLabel}</span>
                 </label>
@@ -579,7 +579,7 @@ export default function Hubs() {
                         : checkedValues.filter((v) => v !== optionValue);
                       setQuestionnaireAnswers({ ...questionnaireAnswers, [question.id]: newValues });
                     }}
-                    className="w-4 h-4 text-blue-600 rounded"
+                    className="w-4 h-4 text-teal-600 rounded"
                   />
                   <span className="text-sm">{optionLabel}</span>
                 </label>
@@ -705,7 +705,7 @@ export default function Hubs() {
         <div className={`rounded-lg border-2 p-6 ${getHubColorClass(selectedHub)}`}>
           <div className="flex items-start gap-4 mb-6">
             <div className="p-3 rounded-lg bg-white/50 dark:bg-gray-800/50">
-              <div className="w-8 h-8 rounded bg-blue-500" />
+              <div className="w-8 h-8 rounded bg-teal-500" />
             </div>
             <div className="flex-1">
               <h2 className="text-2xl font-bold mb-2">{currentHub.name}</h2>
@@ -730,7 +730,7 @@ export default function Hubs() {
                 onClick={() => setHubActiveTab(tab.id as any)}
                 className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
                   hubActiveTab === tab.id
-                    ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                    ? "border-teal-600 text-teal-600 dark:text-teal-400"
                     : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
               >
@@ -805,7 +805,7 @@ export default function Hubs() {
                           setActiveTab("overview");
                         }
                       }}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
                     >
                       View All
                     </button>
@@ -912,7 +912,7 @@ export default function Hubs() {
                       <button
                         onClick={editingFunction ? handleUpdateFunction : handleAddFunction}
                         disabled={!newFunction.name.trim()}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200"
                       >
                         <Save size={16} />
                         {editingFunction ? "Update" : "Add"} Function
@@ -955,7 +955,7 @@ export default function Hubs() {
                             className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                             title="Edit function"
                           >
-                            <Edit size={14} className="text-blue-600 dark:text-blue-400" />
+                            <Edit size={14} className="text-teal-600 dark:text-teal-400" />
                           </button>
                           <button
                             onClick={() => handleDeleteFunction(func.id)}
@@ -1011,7 +1011,7 @@ export default function Hubs() {
                     <button
                       onClick={handleSaveNote}
                       disabled={!noteContent.trim()}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                     >
                       <Save size={16} />
                       Save Note
@@ -1110,7 +1110,7 @@ export default function Hubs() {
                       <button
                         onClick={handleAddResource}
                         disabled={!newResource.title.trim()}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200"
                       >
                         <Save size={16} />
                         Add Resource
@@ -1149,7 +1149,7 @@ export default function Hubs() {
                               href={resource.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                              className="flex items-center gap-1 text-sm text-teal-600 dark:text-teal-400 hover:underline"
                             >
                               <Link2 size={14} />
                               {resource.url}
@@ -1237,7 +1237,7 @@ export default function Hubs() {
                         <button
                           onClick={handleSubmitQuestionnaire}
                           disabled={!isQuestionnaireValid(selectedQuestionnaire)}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                          className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200"
                         >
                           <CheckCircle2 size={16} />
                           Submit Questionnaire
@@ -1389,7 +1389,7 @@ export default function Hubs() {
                             </div>
                             <button
                               onClick={() => setSelectedQuestionnaire(questionnaire)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                              className="flex items-center gap-2 px-3 py-1.5 bg-teal-500 text-white rounded-lg hover:bg-teal-600 text-sm font-medium transition-colors"
                             >
                               <Play size={14} />
                               Start
@@ -1439,7 +1439,7 @@ export default function Hubs() {
                         commonMedications: [""],
                       });
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
                   >
                     <Plus size={18} />
                     Create Template
@@ -1527,7 +1527,7 @@ export default function Hubs() {
                       ))}
                       <button
                         onClick={() => handleAddArrayItem("reviewOfSystems", "")}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
                       >
                         + Add Item
                       </button>
@@ -1554,7 +1554,7 @@ export default function Hubs() {
                       ))}
                       <button
                         onClick={() => handleAddArrayItem("physicalExamination", "")}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
                       >
                         + Add Item
                       </button>
@@ -1592,7 +1592,7 @@ export default function Hubs() {
                       ))}
                       <button
                         onClick={() => handleAddArrayItem("plan", "")}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
                       >
                         + Add Item
                       </button>
@@ -1619,7 +1619,7 @@ export default function Hubs() {
                       ))}
                       <button
                         onClick={() => handleAddArrayItem("commonDiagnoses", "")}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
                       >
                         + Add Item
                       </button>
@@ -1646,7 +1646,7 @@ export default function Hubs() {
                       ))}
                       <button
                         onClick={() => handleAddArrayItem("commonTests", "")}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
                       >
                         + Add Item
                       </button>
@@ -1673,7 +1673,7 @@ export default function Hubs() {
                       ))}
                       <button
                         onClick={() => handleAddArrayItem("commonMedications", "")}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
                       >
                         + Add Item
                       </button>
@@ -1682,7 +1682,7 @@ export default function Hubs() {
                     <div className="flex gap-2 pt-4 border-t">
                       <button
                         onClick={handleSaveTemplate}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex-1 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
                       >
                         {editingTemplate ? "Update Template" : "Create Template"}
                       </button>
@@ -1722,7 +1722,7 @@ export default function Hubs() {
                             <div className="flex gap-2 mt-3">
                               <button
                                 onClick={() => handleEditTemplate(template)}
-                                className="flex-1 px-3 py-1.5 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                                className="flex-1 px-3 py-1.5 text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors"
                               >
                                 <Edit size={14} className="inline mr-1" />
                                 Edit
@@ -1762,7 +1762,7 @@ export default function Hubs() {
                             commonMedications: [""],
                           });
                         }}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
                       >
                         Create Your First Template
                       </button>
@@ -1849,7 +1849,7 @@ export default function Hubs() {
             >
               <div className="flex items-start gap-4 mb-4">
                 <div className="p-3 rounded-lg bg-white/50 dark:bg-gray-800/50">
-                  <div className="w-7 h-7 rounded bg-blue-500" />
+                  <div className="w-7 h-7 rounded bg-teal-500" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold mb-1">{hub.name}</h3>

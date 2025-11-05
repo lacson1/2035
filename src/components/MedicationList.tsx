@@ -4,6 +4,8 @@ import { Patient, Medication } from "../types";
 import { getActiveMedications } from "../utils/patientUtils";
 import UserAssignment from "./UserAssignment";
 import { getOrganizationHeader, getOrganizationFooter } from "../utils/organization";
+import { openPrintWindow } from "../utils/popupHandler";
+import PrintPreview from "./PrintPreview";
 import {
   searchMedications,
   checkDrugInteractions,
@@ -23,6 +25,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
   const [open, setOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState<string | null>(null);
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
+  const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     dose: "",
@@ -273,14 +276,15 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
     }
   };
 
+  const handlePrintFromPreview = () => {
+    if (!printPreview) return;
+    openPrintWindow(printPreview.content, printPreview.title);
+  };
+
   const handlePrintPrescription = () => {
     try {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        alert('Please allow pop-ups for this site to print prescriptions.');
-        return;
-      }
-
+      console.log('Print prescription clicked');
+      
       const orgHeader = getOrganizationHeader();
       const orgFooter = getOrganizationFooter();
       const orgHeaderLines = orgHeader.split('\n');
@@ -568,22 +572,14 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
 </body>
 </html>`;
 
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      
-      // Wait for content to load before printing
-      setTimeout(() => {
-        try {
-          printWindow.print();
-        } catch (error) {
-          console.error('Error printing prescription:', error);
-          alert('An error occurred while printing. Please try again.');
-        }
-      }, 500);
+      // Show print preview instead of printing directly
+      setPrintPreview({
+        content: printContent,
+        title: `Prescription - ${patientName}`
+      });
     } catch (error) {
       console.error('Error generating prescription print:', error);
-      alert('An error occurred while generating the prescription. Please try again.');
+      alert('An error occurred while generating the prescription. Please check the browser console for details.');
     }
   };
 
@@ -646,7 +642,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
             )}
             <button
               onClick={() => setOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 text-sm font-medium"
             >
               <Plus size={16} /> Add Medication
             </button>
@@ -686,7 +682,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                             </div>
                             {med.refillsRemaining !== undefined && (
                               <div className="flex items-center gap-1">
-                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs font-semibold">
+                                <span className="px-2 py-0.5 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 rounded text-xs font-semibold">
                                   Refills: {med.refillsRemaining} / {med.refillsAuthorized || 0}
                                 </span>
                               </div>
@@ -911,7 +907,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     onFocus={() => formData.name.length >= 2 && setShowSuggestions(true)}
                     placeholder="Start typing medication name (e.g., Metformin, Lisinopril)..."
-                    className="w-full pl-10 pr-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full pl-10 pr-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
                   />
                   {selectedDrug && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -928,7 +924,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                         key={idx}
                         type="button"
                         onClick={() => handleDrugSelect(drug)}
-                        className="w-full px-4 py-3 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                        className="w-full px-4 py-3 text-left hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -936,7 +932,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                             {drug.genericName && (
                               <div className="text-xs text-gray-500 dark:text-gray-400">{drug.genericName}</div>
                             )}
-                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">{drug.category}</div>
+                            <div className="text-xs text-teal-600 dark:text-teal-400 mt-1">{drug.category}</div>
                           </div>
                           <Pill className="text-blue-500 ml-2" size={18} />
                         </div>
@@ -948,15 +944,15 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
 
               {/* Drug Info Card */}
               {selectedDrug && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
                   <div className="flex items-start gap-2">
-                    <Info className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" size={18} />
+                    <Info className="text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" size={18} />
                     <div className="flex-1">
-                      <div className="font-semibold text-blue-900 dark:text-blue-100 mb-1">{selectedDrug.name}</div>
+                      <div className="font-semibold text-teal-900 dark:text-blue-100 mb-1">{selectedDrug.name}</div>
                       {selectedDrug.genericName && (
-                        <div className="text-sm text-blue-700 dark:text-blue-300 mb-2">Generic: {selectedDrug.genericName}</div>
+                        <div className="text-sm text-teal-700 dark:text-teal-300 mb-2">Generic: {selectedDrug.genericName}</div>
                       )}
-                      <div className="text-xs text-blue-600 dark:text-blue-400">{selectedDrug.category}</div>
+                      <div className="text-xs text-teal-600 dark:text-teal-400">{selectedDrug.category}</div>
                     </div>
                   </div>
                 </div>
@@ -1015,7 +1011,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                     value={formData.dose}
                     onChange={(e) => setFormData({ ...formData, dose: e.target.value })}
                     placeholder="e.g., 1000mg"
-                    className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
                   />
                   {doseSuggestions.length > 0 && (
                     <datalist id="dose-suggestions">
@@ -1031,7 +1027,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                           key={idx}
                           type="button"
                           onClick={() => setFormData({ ...formData, dose })}
-                          className="px-2.5 py-1 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors border border-blue-200 dark:border-blue-800"
+                          className="px-2.5 py-1 text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors border border-teal-200 dark:border-teal-800"
                         >
                           {dose}
                         </button>
@@ -1047,7 +1043,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                     required
                     value={formData.frequency}
                     onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-                    className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
                   >
                     <option value="">Select frequency...</option>
                     {frequencySuggestions.length > 0 ? (
@@ -1082,8 +1078,8 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                           onClick={() => setFormData({ ...formData, frequency: freq })}
                           className={`px-2.5 py-1 text-xs rounded-md transition-colors border ${
                             formData.frequency === freq
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                              ? "bg-teal-500 text-white border-teal-600"
+                              : "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/30"
                           }`}
                         >
                           {freq}
@@ -1105,7 +1101,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   max={new Date().toISOString().split("T")[0]}
-                  className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
                 />
               </div>
 
@@ -1189,7 +1185,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                   onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
                   placeholder="Special instructions for the patient (e.g., Take with meals, Avoid alcohol)..."
                   rows={3}
-                  className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+                  className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-none"
                 />
               </div>
 
@@ -1232,7 +1228,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                 <button
                   type="submit"
                   disabled={formInteractions.length > 0}
-                  className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Plus size={18} />
                   Add Medication
@@ -1339,6 +1335,16 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Print Preview Modal */}
+      {printPreview && (
+        <PrintPreview
+          content={printPreview.content}
+          title={printPreview.title}
+          onClose={() => setPrintPreview(null)}
+          onPrint={handlePrintFromPreview}
+        />
       )}
     </div>
   );

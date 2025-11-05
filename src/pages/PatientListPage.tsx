@@ -247,7 +247,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
               Bluequee2.0
             </h1>
           </div>
-          <span className="px-2.5 py-1 text-xs font-bold bg-blue-600 text-white rounded-lg shadow-sm w-fit">
+          <span className="px-2.5 py-1 text-xs font-bold bg-teal-500 text-white rounded-lg shadow-sm w-fit">
             Bluequee 2.0
           </span>
         </div>
@@ -256,7 +256,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
         {selectedPatient && (
           <button
             onClick={onSelectPatient}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 mb-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium transition-all duration-200 border border-blue-200 dark:border-blue-800 hover:shadow-sm group"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 mb-4 rounded-lg bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-sm font-medium transition-all duration-200 border border-teal-200 dark:border-teal-800 hover:shadow-sm group"
           >
             <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
             <span className="flex-1 text-left">Back to Workspace</span>
@@ -321,10 +321,10 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                     </div>
                   </div>
                   {stats.uniqueConditions > 0 && (
-                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-700 dark:text-gray-300">Conditions</span>
-                        <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">{stats.uniqueConditions}</span>
+                        <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">{stats.uniqueConditions}</span>
                       </div>
                     </div>
                   )}
@@ -346,7 +346,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
               setShowNewPatientModal(true);
               setSidebarOpen(false);
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
           >
             <Plus size={16} />
             <span>New Patient</span>
@@ -403,7 +403,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
               </button>
               <button
                 onClick={() => setShowNewPatientModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
+                className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
               >
                 <Plus size={18} />
                 <span>New Patient</span>
@@ -464,7 +464,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Patient name"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     />
                   </div>
@@ -475,7 +475,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       required
                       value={formData.dateOfBirth}
                       onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     />
                   </div>
@@ -485,7 +485,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       required
                       value={formData.gender}
                       onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     >
                       <option value="">Select gender</option>
@@ -500,7 +500,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                     <select
                       value={formData.preferredLanguage}
                       onChange={(e) => setFormData({ ...formData, preferredLanguage: e.target.value })}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     >
                       <option value="English">English</option>
@@ -525,7 +525,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     />
                   </div>
@@ -536,7 +536,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="patient@example.com"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     />
                   </div>
@@ -547,7 +547,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       placeholder="123 Main St, City, State ZIP"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     />
                   </div>
@@ -565,7 +565,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.bloodPressure}
                       onChange={(e) => setFormData({ ...formData, bloodPressure: e.target.value })}
                       placeholder="e.g., 120/80"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     />
                   </div>
@@ -576,7 +576,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.condition}
                       onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                       placeholder="e.g., Type 2 Diabetes"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     />
                   </div>
@@ -587,7 +587,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.allergies}
                       onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
                       placeholder="e.g., Penicillin, Latex (comma-separated)"
-                      className="w-full px-3 py-2 text-sm border rounded dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 text-sm border rounded dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       disabled={isCreating}
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Separate multiple allergies with commas</p>
@@ -674,7 +674,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isCreating}
                 >
                   {isCreating ? "Creating..." : "Create Patient"}

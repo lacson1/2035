@@ -114,15 +114,37 @@ export function showPopupBlockedMessage(onRetry?: () => void): (() => void) | nu
  * @returns boolean indicating success
  */
 export function openPrintWindow(content: string, title: string = 'Print'): boolean {
-  const result = openPopup('', '_blank', 'width=800,height=600');
+  // Try iframe method first (works even with pop-up blockers)
+  try {
+    // Check if we should use iframe (more reliable)
+    const useIframe = true; // Always prefer iframe for better reliability
+    
+    if (useIframe) {
+      printUsingIframe(content, title);
+      return true;
+    }
+  } catch (iframeError) {
+    console.warn('Iframe print failed, trying window.open:', iframeError);
+  }
+  
+  // Fallback to window.open method
+  const result = openPopup('', '_blank', 'width=800,height=600,scrollbars=yes');
   
   if (!result.success || !result.window) {
-    showPopupBlockedMessage(() => openPrintWindow(content, title));
-    return false;
+    // If window.open fails, try iframe as fallback
+    try {
+      printUsingIframe(content, title);
+      return true;
+    } catch {
+      showPopupBlockedMessage(() => openPrintWindow(content, title));
+      return false;
+    }
   }
 
   try {
     const printWindow = result.window;
+    
+    // Write content to the window
     printWindow.document.open();
     printWindow.document.write(content);
     printWindow.document.close();
@@ -131,20 +153,59 @@ export function openPrintWindow(content: string, title: string = 'Print'): boole
     // Focus the window
     printWindow.focus();
     
-    // Trigger print dialog after a short delay to ensure content is loaded
-    setTimeout(() => {
+    // Wait for the window to fully load before printing
+    // Use both onload and a fallback timeout
+    const triggerPrint = () => {
       try {
-        printWindow.print();
+        // Small delay to ensure rendering is complete
+        setTimeout(() => {
+          try {
+            printWindow.print();
+          } catch (printError) {
+            console.error('Error triggering print:', printError);
+            // Show user-friendly message
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'fixed top-4 right-4 z-50 max-w-md bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg shadow-lg p-4';
+            errorMsg.innerHTML = `
+              <div class="flex items-start gap-3">
+                <svg class="text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div class="flex-1">
+                  <h4 class="font-semibold text-rose-900 dark:text-rose-100 mb-1">Print Error</h4>
+                  <p class="text-sm text-rose-800 dark:text-rose-200 mb-2">
+                    Unable to trigger print dialog automatically. The print window is open - please use Ctrl+P (Cmd+P on Mac) to print.
+                  </p>
+                  <button onclick="this.parentElement.parentElement.parentElement.remove()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-medium">Dismiss</button>
+                </div>
+              </div>
+            `;
+            document.body.appendChild(errorMsg);
+            setTimeout(() => errorMsg.remove(), 8000);
+          }
+        }, 100);
       } catch (error) {
-        console.error('Error triggering print:', error);
-        alert('An error occurred while printing. Please try again or use your browser\'s print function (Ctrl+P / Cmd+P).');
+        console.error('Error in print trigger:', error);
       }
-    }, 250);
+    };
+
+    // Check if window is loaded
+    if (printWindow.document.readyState === 'complete') {
+      triggerPrint();
+    } else {
+      // Wait for load event
+      printWindow.addEventListener('load', triggerPrint, { once: true });
+      
+      // Fallback timeout in case load event doesn't fire
+      setTimeout(triggerPrint, 500);
+    }
 
     return true;
   } catch (error) {
     console.error('Error opening print window:', error);
-    alert('An error occurred while opening the print window. Please check your browser\'s pop-up settings.');
+    showPopupBlockedMessage(() => openPrintWindow(content, title));
     return false;
   }
 }
@@ -164,6 +225,140 @@ export function checkPopupSupport(): boolean {
     return false;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Alternative print method using iframe (works even when pop-ups are blocked)
+ * @param content - HTML content to print
+ * @param title - Document title
+ */
+export function printUsingIframe(content: string, title: string = 'Print'): void {
+  try {
+    console.log('[printUsingIframe] Starting print with title:', title);
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.opacity = '0';
+    iframe.style.visibility = 'hidden';
+    iframe.title = title;
+    iframe.src = 'about:blank'; // Set blank src to ensure iframe loads
+    
+    let hasPrinted = false; // Flag to prevent multiple print attempts
+    
+    // Function to write content and trigger print
+    const writeContentAndPrint = () => {
+      if (hasPrinted) return; // Prevent duplicate calls
+      hasPrinted = true;
+      console.log('[printUsingIframe] Writing content to iframe');
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!iframeDoc) {
+          throw new Error('Cannot access iframe document');
+        }
+        
+        console.log('[printUsingIframe] Iframe document accessible, writing content');
+        iframeDoc.open();
+        iframeDoc.write(content);
+        iframeDoc.close();
+        console.log('[printUsingIframe] Content written successfully');
+        
+        // Trigger print after content is written
+        const triggerPrint = () => {
+          console.log('[printUsingIframe] Triggering print');
+          try {
+            if (iframe.contentWindow) {
+              iframe.contentWindow.focus();
+              console.log('[printUsingIframe] Calling print()');
+              iframe.contentWindow.print();
+              console.log('[printUsingIframe] Print() called successfully');
+              
+              // Clean up after printing (give user time to interact with print dialog)
+              setTimeout(() => {
+                if (iframe.parentNode) {
+                  document.body.removeChild(iframe);
+                }
+              }, 2000);
+            }
+          } catch (printError) {
+            console.error('[printUsingIframe] Error triggering print:', printError);
+            if (iframe.parentNode) {
+              document.body.removeChild(iframe);
+            }
+            // Fallback: show content in a new window using blob URL
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const newWindow = window.open(url, '_blank');
+            if (newWindow) {
+              setTimeout(() => {
+                newWindow.print();
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+              }, 500);
+            } else {
+              URL.revokeObjectURL(url);
+              showPopupBlockedMessage();
+            }
+          }
+        };
+        
+        // Wait a moment for content to render, then trigger print
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+          setTimeout(triggerPrint, 300);
+        });
+      } catch (writeError) {
+        console.error('Error writing to iframe:', writeError);
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+        throw writeError;
+      }
+    };
+    
+    document.body.appendChild(iframe);
+    
+    // Wait for iframe to load, then write content
+    iframe.onload = () => {
+      writeContentAndPrint();
+    };
+    
+    // Fallback: try after a delay if onload doesn't fire
+    setTimeout(() => {
+      if (iframe.parentNode) {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc && iframeDoc.readyState === 'complete') {
+          writeContentAndPrint();
+        }
+      }
+    }, 200);
+  } catch (error) {
+    console.error('Error creating print iframe:', error);
+    // Final fallback: try window.open directly
+    const result = openPopup('', '_blank', 'width=800,height=600,scrollbars=yes');
+    if (result.success && result.window) {
+      try {
+        result.window.document.open();
+        result.window.document.write(content);
+        result.window.document.close();
+        result.window.focus();
+        setTimeout(() => {
+          try {
+            result.window?.print();
+          } catch {
+            showPopupBlockedMessage();
+          }
+        }, 500);
+      } catch {
+        showPopupBlockedMessage();
+      }
+    } else {
+      showPopupBlockedMessage();
+    }
   }
 }
 

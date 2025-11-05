@@ -16,6 +16,8 @@ import { billingService, Invoice, CreatePaymentData, Payment, CreateInvoiceData,
 import { formatCurrency } from "../utils/currency";
 import { ApiError } from "../services/api";
 import { useDashboard } from "../context/DashboardContext";
+import PrintPreview from "./PrintPreview";
+import { openPrintWindow } from "../utils/popupHandler";
 
 interface InvoiceListProps {
   onSelectInvoice: (invoice: Invoice) => void;
@@ -78,7 +80,7 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
       case "paid":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       case "sent":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+        return "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300";
       case "overdue":
         return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
       case "pending":
@@ -107,7 +109,7 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
   if (isLoading && invoices.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
       </div>
     );
   }
@@ -124,7 +126,7 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
         </div>
         <button
           onClick={onCreateInvoice}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium text-sm"
         >
           <Plus size={16} />
           New Invoice
@@ -146,7 +148,7 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
             placeholder="Search invoices..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
         </div>
         <select
@@ -155,7 +157,7 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
             setStatusFilter(e.target.value);
             setCurrentPage(1);
           }}
-          className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="all">All Status</option>
           <option value="draft">Draft</option>
@@ -232,7 +234,7 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => onSelectInvoice(invoice)}
-                          className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                           title="View Invoice"
                         >
                           <Eye size={16} />
@@ -289,6 +291,7 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<Payment["paymentMethod"]>("cash");
   const [paymentNotes, setPaymentNotes] = useState("");
+  const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
 
   const handlePayment = () => {
     const amount = parseFloat(paymentAmount);
@@ -307,9 +310,12 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
     }
   };
 
+  const handlePrintFromPreview = () => {
+    if (!printPreview) return;
+    openPrintWindow(printPreview.content, printPreview.title);
+  };
+
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
 
     const issueDate = new Date(invoice.issueDate).toLocaleDateString();
     const dueDate = invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A';
@@ -585,12 +591,11 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
       </html>
     `;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    // Show print preview instead of printing directly
+    setPrintPreview({
+      content: printContent,
+      title: `Invoice ${invoice.invoiceNumber}`
+    });
   };
 
   return (
@@ -754,7 +759,7 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
                     max={Number(invoice.balanceAmount)}
                     min="0"
                     step="0.01"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Balance: {formatCurrency(Number(invoice.balanceAmount), invoice.currency)}
@@ -765,7 +770,7 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as Payment["paymentMethod"])}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="cash">Cash</option>
                     <option value="card">Card</option>
@@ -782,7 +787,7 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
                     value={paymentNotes}
                     onChange={(e) => setPaymentNotes(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -840,6 +845,16 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
           </div>
         )}
       </div>
+
+      {/* Print Preview Modal */}
+      {printPreview && (
+        <PrintPreview
+          content={printPreview.content}
+          title={printPreview.title}
+          onClose={() => setPrintPreview(null)}
+          onPrint={handlePrintFromPreview}
+        />
+      )}
     </div>
   );
 }
@@ -992,7 +1007,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
             value={patientId}
             onChange={(e) => setPatientId(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             <option value="">Select a patient</option>
             {patients.map((patient) => (
@@ -1012,7 +1027,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
               <option value="USD">USD ($)</option>
               <option value="NGN">NGN (₦)</option>
@@ -1028,7 +1043,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
               type="date"
               value={issueDate}
               onChange={(e) => setIssueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
           <div>
@@ -1039,7 +1054,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
         </div>
@@ -1072,7 +1087,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
                       onChange={(e) => handleItemChange(index, "description", e.target.value)}
                       required
                       placeholder="Service or item description"
-                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                   <div className="col-span-6 md:col-span-2">
@@ -1083,7 +1098,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
                       onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value) || 1)}
                       min="1"
                       step="1"
-                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                   <div className="col-span-6 md:col-span-2">
@@ -1095,7 +1110,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
                       min="0"
                       step="0.01"
                       required
-                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                   <div className="col-span-6 md:col-span-2">
@@ -1107,7 +1122,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
                       min="0"
                       max="100"
                       step="0.01"
-                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                   <div className="col-span-6 md:col-span-2">
@@ -1118,7 +1133,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
                       onChange={(e) => handleItemChange(index, "discount", parseFloat(e.target.value) || 0)}
                       min="0"
                       step="0.01"
-                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                   <div className="col-span-12 md:col-span-2 flex items-end justify-between">
@@ -1153,7 +1168,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             placeholder="Additional notes for this invoice..."
           />
         </div>
@@ -1189,7 +1204,7 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Creating..." : "Create Invoice"}
           </button>

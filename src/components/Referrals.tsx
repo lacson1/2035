@@ -22,6 +22,8 @@ import { Patient, Referral, ReferralStatus, ReferralPriority, SpecialtyType } fr
 import { getAllSpecialties, getSpecialtyTemplate } from "../data/specialtyTemplates";
 import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
+import PrintPreview from "./PrintPreview";
+import { openPrintWindow } from "../utils/popupHandler";
 
 interface ReferralsProps {
   patient?: Patient;
@@ -36,6 +38,7 @@ export default function Referrals({ patient }: ReferralsProps) {
   const [priorityFilter, setPriorityFilter] = useState<"all" | ReferralPriority>("all");
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedReferral, setSelectedReferral] = useState<Referral | null>(null);
+  const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const { users } = useUsers();
@@ -79,7 +82,7 @@ export default function Referrals({ patient }: ReferralsProps) {
       case "accepted":
         return "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400";
       case "sent":
-        return "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400";
+        return "bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400";
       case "pending":
         return "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400";
       case "completed":
@@ -101,7 +104,7 @@ export default function Referrals({ patient }: ReferralsProps) {
       case "urgent":
         return "bg-yellow-500 text-white";
       case "routine":
-        return "bg-blue-500 text-white";
+        return "bg-teal-500 text-white";
       default:
         return "bg-gray-500 text-white";
     }
@@ -164,10 +167,12 @@ export default function Referrals({ patient }: ReferralsProps) {
     setShowAddForm(false);
   };
 
-  const handlePrint = (ref: Referral) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const handlePrintFromPreview = () => {
+    if (!printPreview) return;
+    openPrintWindow(printPreview.content, printPreview.title);
+  };
 
+  const handlePrint = (ref: Referral) => {
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -252,12 +257,11 @@ export default function Referrals({ patient }: ReferralsProps) {
       </html>
     `;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    // Show print preview instead of printing directly
+    setPrintPreview({
+      content: printContent,
+      title: `Referral - ${ref.specialty}`
+    });
   };
 
   if (!currentPatient) {
@@ -275,7 +279,7 @@ export default function Referrals({ patient }: ReferralsProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <ArrowRight className="text-blue-600 dark:text-blue-400" size={24} />
+            <ArrowRight className="text-teal-600 dark:text-teal-400" size={24} />
             Referrals
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -284,7 +288,7 @@ export default function Referrals({ patient }: ReferralsProps) {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors"
         >
           <Plus size={18} />
           New Referral
@@ -301,7 +305,7 @@ export default function Referrals({ patient }: ReferralsProps) {
               placeholder="Search referrals..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -309,7 +313,7 @@ export default function Referrals({ patient }: ReferralsProps) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as ReferralStatus)}
-              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -322,7 +326,7 @@ export default function Referrals({ patient }: ReferralsProps) {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value as ReferralPriority)}
-              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Priorities</option>
               <option value="routine">Routine</option>
@@ -399,7 +403,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                         setSelectedReferral(ref);
                         setShowDetailsModal(true);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors text-sm font-medium"
                     >
                       <FileText size={16} />
                       View
@@ -456,7 +460,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     max={new Date().toISOString().split("T")[0]}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -465,7 +469,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     required
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value as ReferralPriority })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="routine">Routine</option>
                     <option value="urgent">Urgent</option>
@@ -481,7 +485,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                   required
                   value={formData.specialty}
                   onChange={(e) => setFormData({ ...formData, specialty: e.target.value as SpecialtyType })}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="">Select specialty...</option>
                   {getAllSpecialties().map((specialty) => {
@@ -503,7 +507,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                   placeholder="Describe the reason for this referral..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -514,7 +518,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                   value={formData.diagnosis}
                   onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
                   placeholder="Primary diagnosis..."
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -542,7 +546,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     value={formData.referredToFacility}
                     onChange={(e) => setFormData({ ...formData, referredToFacility: e.target.value })}
                     placeholder="Facility name..."
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -555,7 +559,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     value={formData.referredToAddress}
                     onChange={(e) => setFormData({ ...formData, referredToAddress: e.target.value })}
                     placeholder="Facility address..."
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -565,7 +569,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     value={formData.referredToPhone}
                     onChange={(e) => setFormData({ ...formData, referredToPhone: e.target.value })}
                     placeholder="(555) 123-4567"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -578,7 +582,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     value={formData.appointmentDate}
                     onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
                     min={new Date().toISOString().split("T")[0]}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -587,7 +591,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     type="time"
                     value={formData.appointmentTime}
                     onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -613,7 +617,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     value={formData.preAuthNumber}
                     onChange={(e) => setFormData({ ...formData, preAuthNumber: e.target.value })}
                     placeholder="Pre-auth number..."
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               )}
@@ -639,7 +643,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                     value={formData.followUpDate}
                     onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })}
                     min={new Date().toISOString().split("T")[0]}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               )}
@@ -651,7 +655,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes or instructions..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -665,7 +669,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors flex items-center gap-2"
                 >
                   <Plus size={18} />
                   Create Referral
@@ -716,9 +720,9 @@ export default function Referrals({ patient }: ReferralsProps) {
 
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="text-blue-600 dark:text-blue-400" size={16} />
+                    <Calendar className="text-teal-600 dark:text-teal-400" size={16} />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Date</span>
                   </div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -808,7 +812,7 @@ export default function Referrals({ patient }: ReferralsProps) {
               </div>
 
               {selectedReferral.insurancePreAuth && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
                   <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Insurance Pre-Authorization</h4>
                   {selectedReferral.preAuthNumber ? (
                     <p className="text-sm text-gray-700 dark:text-gray-300">Number: {selectedReferral.preAuthNumber}</p>
@@ -827,6 +831,16 @@ export default function Referrals({ patient }: ReferralsProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Print Preview Modal */}
+      {printPreview && (
+        <PrintPreview
+          content={printPreview.content}
+          title={printPreview.title}
+          onClose={() => setPrintPreview(null)}
+          onPrint={handlePrintFromPreview}
+        />
       )}
     </div>
   );

@@ -25,6 +25,60 @@ enum UserRole {
   read_only
 }
 
+// Dynamic Role and Permission System
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique // e.g., "patients:read", "patients:write"
+  name        String   // Display name: "Read Patients"
+  description String?  @db.Text
+  category    String?  // e.g., "patients", "medications", "billing"
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@index([code])
+  @@index([category])
+  @@index([isActive])
+  @@map("permissions")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique // e.g., "admin", "physician" - matches UserRole enum for backward compatibility
+  name        String   // Display name: "Administrator"
+  description String?  @db.Text
+  color       String?  // Color code for UI (e.g., "red", "#EF4444")
+  isSystem    Boolean  @default(false) @map("is_system") // System roles cannot be deleted
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
 enum MedicationStatus {
   Active
   Discontinued
@@ -148,11 +202,31 @@ model User {
   createdInvoices       Invoice[]            @relation("InvoiceCreatedBy")
   processedPayments     Payment[]            @relation("PaymentProcessedBy")
   auditLogs             AuditLog[]
+  sessions              Session[]
+  hubTeamMembers        HubTeamMember[]
 
   @@index([email])
   @@index([role])
   @@index([isActive])
   @@map("users")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  refreshToken String   @unique @map("refresh_token")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 model Patient {
@@ -507,6 +581,7 @@ enum AuditActionType {
   DELETE
   LOGIN
   LOGOUT
+  REGISTER
   EXPORT
   VIEW
   PRINT
@@ -544,4 +619,103 @@ model AuditLog {
   @@index([timestamp])
   @@index([userEmail])
   @@map("audit_logs")
+}
+
+model Hub {
+  id          String   @id @default(uuid())
+  name        String
+  description String   @db.Text
+  color       String   // e.g., "red", "blue", "green", "purple", etc.
+  isActive    Boolean  @default(true) @map("is_active")
+  specialties String[] // Array of specialty names
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  hubFunctions  HubFunction[]  @relation("HubFunctions")
+  hubResources  HubResource[]  @relation("HubResources")
+  hubNotes      HubNote[]      @relation("HubNotes")
+  hubTemplates  HubTemplate[]  @relation("HubTemplates")
+  hubTeamMembers HubTeamMember[] @relation("HubTeamMembers")
+
+  @@index([isActive])
+  @@index([name])
+  @@map("hubs")
+}
+
+model HubFunction {
+  id          String   @id @default(uuid())
+  hubId       String   @map("hub_id")
+  name        String
+  description String?  @db.Text
+  category    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hub Hub @relation("HubFunctions", fields: [hubId], references: [id], onDelete: Cascade)
+
+  @@index([hubId])
+  @@map("hub_functions")
+}
+
+model HubResource {
+  id          String   @id @default(uuid())
+  hubId       String   @map("hub_id")
+  title       String
+  type        String   // "protocol", "guideline", "reference", "tool", "link"
+  url         String?  @db.Text
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hub Hub @relation("HubResources", fields: [hubId], references: [id], onDelete: Cascade)
+
+  @@index([hubId])
+  @@index([type])
+  @@map("hub_resources")
+}
+
+model HubNote {
+  id        String   @id @default(uuid())
+  hubId     String   @map("hub_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  hub Hub @relation("HubNotes", fields: [hubId], references: [id], onDelete: Cascade)
+
+  @@index([hubId])
+  @@map("hub_notes")
+}
+
+model HubTemplate {
+  id          String   @id @default(uuid())
+  hubId       String?  @map("hub_id")
+  name        String
+  description String?  @db.Text
+  template    Json     // Flexible JSON structure for consultation template
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hub Hub? @relation("HubTemplates", fields: [hubId], references: [id], onDelete: SetNull)
+
+  @@index([hubId])
+  @@map("hub_templates")
+}
+
+model HubTeamMember {
+  id        String   @id @default(uuid())
+  hubId     String   @map("hub_id")
+  userId    String   @map("user_id")
+  role      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  hub Hub @relation("HubTeamMembers", fields: [hubId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hubId, userId])
+  @@index([hubId])
+  @@index([userId])
+  @@map("hub_team_members")
 }

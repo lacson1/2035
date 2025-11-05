@@ -19,6 +19,8 @@ import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
 import FormAutocomplete from "./FormAutocomplete";
 import { commonProcedures, commonDiagnoses, commonSymptoms, anesthesiaTypes, operatingRooms, getPatientHistorySuggestions } from "../utils/formHelpers";
+import PrintPreview from "./PrintPreview";
+import { openPrintWindow } from "../utils/popupHandler";
 
 interface SurgicalNotesProps {
   patient?: Patient;
@@ -33,6 +35,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedNote, setSelectedNote] = useState<SurgicalNote | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
 
   const { users } = useUsers();
   const [surgicalNotes, setSurgicalNotes] = useState<SurgicalNote[]>(
@@ -81,7 +84,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
       case "completed":
         return "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400";
       case "in_progress":
-        return "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400";
+        return "bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400";
       case "scheduled":
         return "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400";
       case "cancelled":
@@ -100,7 +103,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
       case "urgent":
         return "bg-orange-500 text-white";
       case "elective":
-        return "bg-blue-500 text-white";
+        return "bg-teal-500 text-white";
       case "scheduled":
         return "bg-green-500 text-white";
       default:
@@ -180,10 +183,12 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
     setShowAddForm(false);
   };
 
-  const handlePrint = (note: SurgicalNote) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const handlePrintFromPreview = () => {
+    if (!printPreview) return;
+    openPrintWindow(printPreview.content, printPreview.title);
+  };
 
+  const handlePrint = (note: SurgicalNote) => {
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -323,12 +328,11 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
       </html>
     `;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    // Show print preview instead of printing directly
+    setPrintPreview({
+      content: printContent,
+      title: `Surgical Note - ${note.procedureName}`
+    });
   };
 
   if (!currentPatient) {
@@ -346,7 +350,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Activity className="text-blue-600 dark:text-blue-400" size={24} />
+            <Activity className="text-teal-600 dark:text-teal-400" size={24} />
             Surgical Notes
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -355,7 +359,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors"
         >
           <Plus size={18} />
           New Surgical Note
@@ -372,7 +376,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
               placeholder="Search surgical notes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -380,7 +384,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as SurgicalStatus)}
-              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="scheduled">Scheduled</option>
@@ -392,7 +396,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as SurgicalProcedureType)}
-              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Types</option>
               <option value="elective">Elective</option>
@@ -468,7 +472,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                         setSelectedNote(note);
                         setShowDetailsModal(true);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors text-sm font-medium"
                     >
                       <FileText size={16} />
                       View
@@ -525,7 +529,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -549,7 +553,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                     required
                     value={formData.procedureType}
                     onChange={(e) => setFormData({ ...formData, procedureType: e.target.value as SurgicalProcedureType })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="scheduled">Scheduled</option>
                     <option value="elective">Elective</option>
@@ -563,7 +567,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                     required
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as SurgicalStatus })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="scheduled">Scheduled</option>
                     <option value="in_progress">In Progress</option>
@@ -625,7 +629,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                     type="time"
                     value={formData.startTime}
                     onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -634,7 +638,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                     type="time"
                     value={formData.endTime}
                     onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -657,7 +661,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                   onChange={(e) => setFormData({ ...formData, indication: e.target.value })}
                   placeholder="Add detailed indication..."
                   rows={2}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -694,7 +698,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                   onChange={(e) => setFormData({ ...formData, procedureDescription: e.target.value })}
                   placeholder="Detailed description of the procedure performed..."
                   rows={5}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -705,7 +709,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                   onChange={(e) => setFormData({ ...formData, findings: e.target.value })}
                   placeholder="Intraoperative findings..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -717,7 +721,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                     value={formData.estimatedBloodLoss}
                     onChange={(e) => setFormData({ ...formData, estimatedBloodLoss: e.target.value })}
                     placeholder="e.g., Minimal (<50ml)"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
@@ -727,7 +731,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                     placeholder="45"
-                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -741,7 +745,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                       value={formData.currentSpecimen}
                       onChange={(e) => setFormData({ ...formData, currentSpecimen: e.target.value })}
                       placeholder="Enter specimen..."
-                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                       onKeyPress={(e) => {
                         if (e.key === "Enter" && formData.currentSpecimen.trim()) {
                           e.preventDefault();
@@ -764,7 +768,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
                     >
                       Add
                     </button>
@@ -774,7 +778,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                       {formData.specimens.map((specimen, idx) => (
                         <span
                           key={idx}
-                          className="flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-sm"
+                          className="flex items-center gap-1 px-3 py-1 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 rounded-lg text-sm"
                         >
                           {specimen}
                           <button
@@ -785,7 +789,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                                 specimens: formData.specimens.filter((_, i) => i !== idx),
                               });
                             }}
-                            className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                            className="text-teal-700 dark:text-teal-400 hover:text-teal-900 dark:hover:text-blue-300"
                           >
                             <X size={14} />
                           </button>
@@ -803,7 +807,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                   onChange={(e) => setFormData({ ...formData, complications: e.target.value })}
                   placeholder="Any complications encountered..."
                   rows={2}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -814,7 +818,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                   value={formData.drains}
                   onChange={(e) => setFormData({ ...formData, drains: e.target.value })}
                   placeholder="Type and location of drains..."
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -825,7 +829,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                   onChange={(e) => setFormData({ ...formData, postOpInstructions: e.target.value })}
                   placeholder="Instructions for post-operative care..."
                   rows={3}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -836,7 +840,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                   onChange={(e) => setFormData({ ...formData, recoveryNotes: e.target.value })}
                   placeholder="Recovery room notes..."
                   rows={2}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 />
               </div>
 
@@ -847,7 +851,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                   value={formData.followUpDate}
                   onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })}
                   min={new Date().toISOString().split("T")[0]}
-                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -861,7 +865,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors flex items-center gap-2"
                 >
                   <Plus size={18} />
                   Create Surgical Note
@@ -910,9 +914,9 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
 
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="text-blue-600 dark:text-blue-400" size={16} />
+                    <Calendar className="text-teal-600 dark:text-teal-400" size={16} />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Date</span>
                   </div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -973,7 +977,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
               </div>
 
               {selectedNote.findings && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
                   <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Findings</h4>
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedNote.findings}</p>
                 </div>
@@ -1018,7 +1022,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
               </div>
 
               {selectedNote.specimens && selectedNote.specimens.length > 0 && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
                   <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Specimens</h4>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{selectedNote.specimens.join(", ")}</p>
                 </div>
@@ -1040,6 +1044,16 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Print Preview Modal */}
+      {printPreview && (
+        <PrintPreview
+          content={printPreview.content}
+          title={printPreview.title}
+          onClose={() => setPrintPreview(null)}
+          onPrint={handlePrintFromPreview}
+        />
       )}
     </div>
   );

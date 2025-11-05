@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Print Function</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #14b8a6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    button:hover {
+      background: #0d9488;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Print Functionality</h1>
+  <p>This page tests the improved print functionality.</p>
+  
+  <button onclick="testPrint()">Test Print</button>
+  
+  <script>
+    function testPrint() {
+      const content = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Test Prescription</title>
+          <style>
+            @page { margin: 0.75in; }
+            body {
+              font-family: 'Inter', sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+            }
+            .patient-info {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+              margin: 25px 0;
+            }
+            .info-item {
+              padding: 10px;
+              background: #f9fafb;
+              border-radius: 4px;
+            }
+            .medication {
+              background: #f9fafb;
+              border-left: 4px solid #2563eb;
+              padding: 15px;
+              margin: 15px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>PRESCRIPTION</h1>
+            <h2>Test Medication List</h2>
+          </div>
+          
+          <div class="patient-info">
+            <div class="info-item">
+              <strong>Patient:</strong> Test Patient
+            </div>
+            <div class="info-item">
+              <strong>Date:</strong> ${new Date().toLocaleDateString()}
+            </div>
+          </div>
+          
+          <div class="medication">
+            <h3>℞ Test Medication</h3>
+            <p><strong>Instructions:</strong> Take as directed</p>
+          </div>
+          
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #6b7280;">
+            Generated: ${new Date().toLocaleString()}
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Test iframe method
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        iframe.style.opacity = '0';
+        iframe.style.visibility = 'hidden';
+        iframe.title = 'Test Print';
+        iframe.src = 'about:blank';
+        
+        let hasPrinted = false;
+        
+        const writeContentAndPrint = () => {
+          if (hasPrinted) return;
+          hasPrinted = true;
+          
+          try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (!iframeDoc) {
+              throw new Error('Cannot access iframe document');
+            }
+            
+            iframeDoc.open();
+            iframeDoc.write(content);
+            iframeDoc.close();
+            
+            const triggerPrint = () => {
+              try {
+                if (iframe.contentWindow) {
+                  iframe.contentWindow.focus();
+                  iframe.contentWindow.print();
+                  
+                  setTimeout(() => {
+                    if (iframe.parentNode) {
+                      document.body.removeChild(iframe);
+                    }
+                  }, 2000);
+                }
+              } catch (printError) {
+                console.error('Error triggering print:', printError);
+                alert('Print failed. Error: ' + printError.message);
+                if (iframe.parentNode) {
+                  document.body.removeChild(iframe);
+                }
+              }
+            };
+            
+            requestAnimationFrame(() => {
+              setTimeout(triggerPrint, 300);
+            });
+          } catch (writeError) {
+            console.error('Error writing to iframe:', writeError);
+            alert('Error: ' + writeError.message);
+            if (iframe.parentNode) {
+              document.body.removeChild(iframe);
+            }
+          }
+        };
+        
+        document.body.appendChild(iframe);
+        
+        iframe.onload = () => {
+          writeContentAndPrint();
+        };
+        
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (iframeDoc && iframeDoc.readyState === 'complete') {
+              writeContentAndPrint();
+            }
+          }
+        }, 200);
+      } catch (error) {
+        alert('Error: ' + error.message);
+        console.error('Print error:', error);
+      }
+    }
+  </script>
+</body>
+</html>
+

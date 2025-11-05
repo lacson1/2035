@@ -39,8 +39,8 @@ const PatientListItem = memo(({ patient, isSelected, onClick }: PatientListItemP
       }}
       className={`w-full text-left p-3 rounded-xl border transition-all duration-200 ${
         isSelected
-          ? "border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 shadow-md ring-2 ring-blue-200 dark:ring-blue-800"
-          : "border-gray-200/50 dark:border-gray-700/50 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 hover:shadow-sm"
+          ? "border-teal-500 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 shadow-md ring-2 ring-teal-200 dark:ring-teal-800"
+          : "border-gray-200/50 dark:border-gray-700/50 hover:border-teal-300 dark:hover:border-teal-700 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 hover:shadow-sm"
       }`}
     >
       <div className="flex justify-between items-start mb-2">
@@ -72,7 +72,7 @@ const PatientListItem = memo(({ patient, isSelected, onClick }: PatientListItemP
           <span className="text-xs text-gray-600 dark:text-gray-400">{patient.condition}</span>
           <div className="flex items-center gap-2">
             {upcomingApts > 0 && (
-              <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+              <span className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
                 <Calendar size={12} />
                 {upcomingApts}
               </span>

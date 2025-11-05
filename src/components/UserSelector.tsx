@@ -38,8 +38,8 @@ export default function UserSelector() {
           <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50">
             <div className="p-2.5 border-b dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                  <UserCircle size={16} className="text-blue-600 dark:text-blue-400" />
+                <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
+                  <UserCircle size={16} className="text-teal-600 dark:text-teal-400" />
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-xs text-gray-900 dark:text-gray-100">

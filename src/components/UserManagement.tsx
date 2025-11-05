@@ -153,7 +153,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const getRoleColor = (role: UserRole) => {
     const colorMap: Record<UserRole, string> = {
       admin: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700",
-      physician: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700",
+      physician: "bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 border-blue-300 dark:border-teal-700",
       nurse: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700",
       nurse_practitioner: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700",
       physician_assistant: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 border-indigo-300 dark:border-indigo-700",
@@ -193,7 +193,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Users size={20} className="text-blue-600 dark:text-blue-400" />
+            <Users size={20} className="text-teal-600 dark:text-teal-400" />
             User Management
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -205,7 +205,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             setEditingUser(null);
             setOpenAddEdit(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600"
         >
           <UserPlus size={18} /> Add User
         </button>
@@ -360,7 +360,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setShowPermissions(showPermissions === user.id ? null : user.id)}
-                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                          className="p-2 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded"
                           title="View Permissions"
                         >
                           <Shield size={16} />
@@ -483,7 +483,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     onChange={(e) =>
                       setFormState({ ...formState, firstName: e.target.value })
                     }
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
                 <div>
@@ -495,7 +495,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     onChange={(e) =>
                       setFormState({ ...formState, lastName: e.target.value })
                     }
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -510,7 +510,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     onChange={(e) =>
                       setFormState({ ...formState, username: e.target.value })
                     }
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                     disabled={!!editingUser}
                   />
                 </div>
@@ -523,7 +523,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     onChange={(e) =>
                       setFormState({ ...formState, email: e.target.value })
                     }
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -537,7 +537,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     onChange={(e) =>
                       setFormState({ ...formState, role: e.target.value as UserRole })
                     }
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   >
                     {getAllRoles().map((role) => (
                       <option key={role} value={role}>
@@ -554,7 +554,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     onChange={(e) =>
                       setFormState({ ...formState, department: e.target.value })
                     }
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -568,7 +568,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     onChange={(e) =>
                       setFormState({ ...formState, specialty: e.target.value })
                     }
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
                 <div>
@@ -579,7 +579,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     onChange={(e) =>
                       setFormState({ ...formState, phone: e.target.value })
                     }
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>
               </div>
@@ -612,7 +612,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+                  className="px-4 py-2 rounded-md bg-teal-500 text-white hover:bg-teal-600 flex items-center gap-2"
                 >
                   <Save size={16} />
                   {editingUser ? "Update User" : "Create User"}

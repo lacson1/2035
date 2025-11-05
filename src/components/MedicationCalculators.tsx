@@ -136,7 +136,7 @@ export default function MedicationCalculators() {
       <div className="card-compact">
         <div className="mb-6">
           <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
-            <Calculator className="text-blue-600" size={28} />
+            <Calculator className="text-teal-600" size={28} />
             Medication Calculators
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -155,12 +155,12 @@ export default function MedicationCalculators() {
                   key={key}
                   onClick={() => setActiveCalculator(key as CalculatorType)}
                   className={`p-4 rounded-lg border-2 transition-all text-left ${isActive
-                    ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-md"
+                    ? "border-teal-600 bg-teal-50 dark:bg-teal-900/20 shadow-md"
                     : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                     }`}
                 >
                   <Icon
-                    className={`mb-2 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"}`}
+                    className={`mb-2 ${isActive ? "text-teal-600 dark:text-teal-400" : "text-gray-500 dark:text-gray-400"}`}
                     size={24}
                   />
                   <div className="font-semibold text-sm mb-1">{info.name}</div>
@@ -218,8 +218,8 @@ function DosageCalculator() {
   return (
     <CalculatorCard title="Dosage Calculator" icon={Calculator}>
       <div className="space-y-5">
-        <div className="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
-          <p className="text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1.5">
+        <div className="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-lg border border-teal-200/50 dark:border-teal-800/50">
+          <p className="text-xs text-teal-700 dark:text-teal-300 font-medium flex items-center gap-1.5">
             <Info size={14} />
             Formula: Total Dose = Weight × Dose per kg
           </p>
@@ -239,7 +239,7 @@ function DosageCalculator() {
               className={`w-full px-4 py-3 border rounded-xl transition-all ${
                 isValid(weight)
                   ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
-                  : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
               } dark:bg-gray-800 focus:outline-none`}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Enter patient weight in kilograms</p>
@@ -259,7 +259,7 @@ function DosageCalculator() {
               className={`w-full px-4 py-3 border rounded-xl transition-all ${
                 isValid(dosePerKg)
                   ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
-                  : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
               } dark:bg-gray-800 focus:outline-none`}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Medication dose per kilogram body weight</p>
@@ -279,7 +279,7 @@ function DosageCalculator() {
               className={`w-full px-4 py-3 border rounded-xl transition-all ${
                 isValid(concentration)
                   ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
-                  : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
               } dark:bg-gray-800 focus:outline-none`}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Concentration of medication solution in mg/mL</p>
@@ -287,15 +287,15 @@ function DosageCalculator() {
         </div>
 
         {result && (
-          <div className="mt-6 p-5 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl border-2 border-blue-300 dark:border-blue-700 shadow-lg">
+          <div className="mt-6 p-5 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 rounded-xl border-2 border-blue-300 dark:border-teal-700 shadow-lg">
             <div className="flex items-center gap-2 mb-3">
-              <Calculator className="text-blue-600 dark:text-blue-400" size={20} />
-              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">Calculation Result</span>
+              <Calculator className="text-teal-600 dark:text-teal-400" size={20} />
+              <span className="text-sm font-semibold text-teal-700 dark:text-teal-300">Calculation Result</span>
             </div>
-            <div className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-2">
+            <div className="text-3xl font-bold text-teal-700 dark:text-teal-300 mb-2">
               {result.value.toFixed(2)} <span className="text-xl">{result.unit}</span>
             </div>
-            <div className="text-sm text-blue-800 dark:text-blue-200 mt-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+            <div className="text-sm text-teal-800 dark:text-teal-200 mt-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg">
               {result.explanation}
             </div>
           </div>
@@ -343,8 +343,8 @@ function DripRateCalculator() {
   return (
     <CalculatorCard title="IV Drip Rate Calculator" icon={Droplet}>
       <div className="space-y-5">
-        <div className="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
-          <p className="text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1.5">
+        <div className="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-lg border border-teal-200/50 dark:border-teal-800/50">
+          <p className="text-xs text-teal-700 dark:text-teal-300 font-medium flex items-center gap-1.5">
             <Info size={14} />
             Formula: Drops/min = (Volume × Drop Factor) ÷ (Time × 60)
           </p>
@@ -364,7 +364,7 @@ function DripRateCalculator() {
               className={`w-full px-4 py-3 border rounded-xl transition-all ${
                 isValid(volume)
                   ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
-                  : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
               } dark:bg-gray-800 focus:outline-none`}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Total volume to infuse in milliliters</p>
@@ -384,7 +384,7 @@ function DripRateCalculator() {
               className={`w-full px-4 py-3 border rounded-xl transition-all ${
                 isValid(time)
                   ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
-                  : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
               } dark:bg-gray-800 focus:outline-none`}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Time required for infusion in hours</p>
@@ -396,7 +396,7 @@ function DripRateCalculator() {
               value={dropFactor}
               onChange={(e) => setDropFactor(e.target.value)}
               aria-label="Drop Factor"
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 focus:outline-none transition-all"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 focus:outline-none transition-all"
             >
               <option value="10">10 gtt/mL (Macrodrip)</option>
               <option value="15">15 gtt/mL</option>
@@ -408,15 +408,15 @@ function DripRateCalculator() {
         </div>
 
         {result && (
-          <div className="mt-6 p-5 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl border-2 border-blue-300 dark:border-blue-700 shadow-lg">
+          <div className="mt-6 p-5 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 rounded-xl border-2 border-blue-300 dark:border-teal-700 shadow-lg">
             <div className="flex items-center gap-2 mb-3">
-              <Droplet className="text-blue-600 dark:text-blue-400" size={20} />
-              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">Infusion Rate</span>
+              <Droplet className="text-teal-600 dark:text-teal-400" size={20} />
+              <span className="text-sm font-semibold text-teal-700 dark:text-teal-300">Infusion Rate</span>
             </div>
-            <div className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-2">
+            <div className="text-3xl font-bold text-teal-700 dark:text-teal-300 mb-2">
               {result.value.toFixed(1)} <span className="text-xl">{result.unit}</span>
             </div>
-            <div className="text-sm text-blue-800 dark:text-blue-200 mt-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+            <div className="text-sm text-teal-800 dark:text-teal-200 mt-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg">
               {result.explanation}
             </div>
           </div>
@@ -499,8 +499,8 @@ function BSACalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(3)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -601,8 +601,8 @@ function CreatinineClearanceCalculator() {
           </select>
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -695,8 +695,8 @@ function PediatricDoseCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(2)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -775,8 +775,8 @@ function HalfLifeCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(2)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -852,8 +852,8 @@ function IVInfusionCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(2)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -915,8 +915,8 @@ function BodyWeightDoseCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(2)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -993,12 +993,12 @@ function AlligationCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">Mixing Ratio:</div>
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-lg font-semibold text-teal-600 dark:text-teal-400 mb-2">Mixing Ratio:</div>
             <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
               <div>High concentration: {result.high.toFixed(1)} parts</div>
               <div>Low concentration: {result.low.toFixed(1)} parts</div>
-              <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+              <div className="mt-2 pt-2 border-t border-teal-200 dark:border-teal-800">
                 Total: {result.total.toFixed(1)} parts
               </div>
             </div>
@@ -1071,19 +1071,19 @@ function CostCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-700 dark:text-gray-300">Per Dose:</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400">${result.perDose.toFixed(2)}</span>
+                <span className="font-bold text-teal-600 dark:text-teal-400">${result.perDose.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700 dark:text-gray-300">Per Day:</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400">${result.perDay.toFixed(2)}</span>
+                <span className="font-bold text-teal-600 dark:text-teal-400">${result.perDay.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-blue-200 dark:border-blue-800">
+              <div className="flex justify-between pt-2 border-t border-teal-200 dark:border-teal-800">
                 <span className="text-gray-700 dark:text-gray-300 font-semibold">Per Month (30 days):</span>
-                <span className="font-bold text-lg text-blue-600 dark:text-blue-400">${result.perMonth.toFixed(2)}</span>
+                <span className="font-bold text-lg text-teal-600 dark:text-teal-400">${result.perMonth.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -1154,12 +1154,12 @@ function DilutionCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">Dilution Required:</div>
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-lg font-semibold text-teal-600 dark:text-teal-400 mb-2">Dilution Required:</div>
             <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
               <div>Initial solution: {result.volume.toFixed(2)} mL</div>
               <div>Diluent: {result.diluent.toFixed(2)} mL</div>
-              <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+              <div className="mt-2 pt-2 border-t border-teal-200 dark:border-teal-800">
                 Total: {desiredVolume} mL
               </div>
             </div>
@@ -1212,8 +1212,8 @@ function SteadyStateCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">Time to Steady State:</div>
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-lg font-semibold text-teal-600 dark:text-teal-400 mb-2">Time to Steady State:</div>
             <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
               <div>90% steady state: {result.timeTo90.toFixed(1)} hours</div>
               <div>95% steady state: {result.timeTo95.toFixed(1)} hours</div>
@@ -1311,8 +1311,8 @@ function BMICalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -1413,8 +1413,8 @@ function IdealBodyWeightCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -1477,8 +1477,8 @@ function AdjustedBodyWeightCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -1585,8 +1585,8 @@ function EGFRCalculator() {
           </select>
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -1680,8 +1680,8 @@ function AnionGapCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -1785,8 +1785,8 @@ function QTcCalculator() {
           </select>
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(0)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -1868,8 +1868,8 @@ function MAPCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -1945,8 +1945,8 @@ function ParklandCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">Fluid Requirements:</div>
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-lg font-semibold text-teal-600 dark:text-teal-400 mb-2">Fluid Requirements:</div>
             <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
               <div>Total: {result.total.toFixed(0)} mL</div>
               <div>First 8 hours: {result.first8h.toFixed(0)} mL ({result.first8h.toFixed(0)} mL/hour)</div>
@@ -2107,8 +2107,8 @@ function RuleOfNinesCalculator() {
           </div>
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -2170,8 +2170,8 @@ function FreeWaterDeficitCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(2)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -2230,8 +2230,8 @@ function FluidMaintenanceCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">Maintenance Fluids:</div>
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-lg font-semibold text-teal-600 dark:text-teal-400 mb-2">Maintenance Fluids:</div>
             <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
               <div>Hourly: {result.hourly.toFixed(0)} mL/hour</div>
               <div>Daily: {result.daily.toFixed(0)} mL/day</div>
@@ -2341,8 +2341,8 @@ function AntipsychoticEquivalentCalculator() {
           </select>
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(1)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -2427,8 +2427,8 @@ function LithiumDoseCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(0)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -2521,8 +2521,8 @@ function BloodLossCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {result.value.toFixed(0)} {result.unit}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
@@ -2606,8 +2606,8 @@ function PostOpFluidsCalculator() {
           />
         </div>
         {result && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">Fluid Requirements:</div>
+          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="text-lg font-semibold text-teal-600 dark:text-teal-400 mb-2">Fluid Requirements:</div>
             <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
               <div>Total Daily: {result.total.toFixed(0)} mL/day</div>
               <div>Hourly Rate: {result.hourly.toFixed(0)} mL/hour</div>
@@ -2635,7 +2635,7 @@ function CalculatorCard({
   return (
     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-3 mb-6">
-        <Icon className="text-blue-600 dark:text-blue-400" size={24} />
+        <Icon className="text-teal-600 dark:text-teal-400" size={24} />
         <h3 className="text-xl font-bold">{title}</h3>
       </div>
       {children}

@@ -95,61 +95,62 @@ export const designTokens = {
 
 /**
  * Color system for consistent use across the app
+ * Calm, professional healthcare industry palette
  */
 export const colors = {
-  // Primary actions (main CTAs, primary buttons)
+  // Primary actions (main CTAs, primary buttons) - Soft teal/cyan
   primary: {
-    bg: 'bg-blue-600',
-    hover: 'hover:bg-blue-700',
-    text: 'text-blue-600 dark:text-blue-400',
-    border: 'border-blue-600',
-    light: 'bg-blue-50 dark:bg-blue-900/20',
-    borderLight: 'border-blue-200 dark:border-blue-800',
+    bg: 'bg-teal-500',
+    hover: 'hover:bg-teal-600',
+    text: 'text-teal-600 dark:text-teal-400',
+    border: 'border-teal-500',
+    light: 'bg-teal-50 dark:bg-teal-900/20',
+    borderLight: 'border-teal-200 dark:border-teal-800',
   },
-  // Success actions (add, save, confirm)
+  // Success actions (add, save, confirm) - Muted sage green
   success: {
-    bg: 'bg-green-600',
-    hover: 'hover:bg-green-700',
-    text: 'text-green-600 dark:text-green-400',
-    border: 'border-green-600',
-    light: 'bg-green-50 dark:bg-green-900/20',
-    borderLight: 'border-green-200 dark:border-green-800',
+    bg: 'bg-emerald-500',
+    hover: 'hover:bg-emerald-600',
+    text: 'text-emerald-600 dark:text-emerald-400',
+    border: 'border-emerald-500',
+    light: 'bg-emerald-50 dark:bg-emerald-900/20',
+    borderLight: 'border-emerald-200 dark:border-emerald-800',
   },
-  // Special features (premium, advanced, templates)
+  // Special features (premium, advanced, templates) - Soft lavender
   special: {
-    bg: 'bg-purple-600',
-    hover: 'hover:bg-purple-700',
-    text: 'text-purple-600 dark:text-purple-400',
-    border: 'border-purple-600',
-    light: 'bg-purple-50 dark:bg-purple-900/20',
-    borderLight: 'border-purple-200 dark:border-purple-800',
+    bg: 'bg-violet-500',
+    hover: 'hover:bg-violet-600',
+    text: 'text-violet-600 dark:text-violet-400',
+    border: 'border-violet-500',
+    light: 'bg-violet-50 dark:bg-violet-900/20',
+    borderLight: 'border-violet-200 dark:border-violet-800',
   },
-  // Advanced features (settings, tools)
+  // Advanced features (settings, tools) - Soft slate blue
   advanced: {
-    bg: 'bg-indigo-600',
-    hover: 'hover:bg-indigo-700',
-    text: 'text-indigo-600 dark:text-indigo-400',
-    border: 'border-indigo-600',
-    light: 'bg-indigo-50 dark:bg-indigo-900/20',
-    borderLight: 'border-indigo-200 dark:border-indigo-800',
+    bg: 'bg-slate-500',
+    hover: 'hover:bg-slate-600',
+    text: 'text-slate-600 dark:text-slate-400',
+    border: 'border-slate-500',
+    light: 'bg-slate-50 dark:bg-slate-900/20',
+    borderLight: 'border-slate-200 dark:border-slate-800',
   },
-  // Destructive actions (delete, remove, cancel)
+  // Destructive actions (delete, remove, cancel) - Muted coral/salmon
   destructive: {
-    bg: 'bg-red-600',
-    hover: 'hover:bg-red-700',
-    text: 'text-red-600 dark:text-red-400',
-    border: 'border-red-600',
-    light: 'bg-red-50 dark:bg-red-900/20',
-    borderLight: 'border-red-200 dark:border-red-800',
+    bg: 'bg-rose-500',
+    hover: 'hover:bg-rose-600',
+    text: 'text-rose-600 dark:text-rose-400',
+    border: 'border-rose-500',
+    light: 'bg-rose-50 dark:bg-rose-900/20',
+    borderLight: 'border-rose-200 dark:border-rose-800',
   },
-  // Warning actions
+  // Warning actions - Soft amber
   warning: {
-    bg: 'bg-yellow-600',
-    hover: 'hover:bg-yellow-700',
-    text: 'text-yellow-600 dark:text-yellow-400',
-    border: 'border-yellow-600',
-    light: 'bg-yellow-50 dark:bg-yellow-900/20',
-    borderLight: 'border-yellow-200 dark:border-yellow-800',
+    bg: 'bg-amber-500',
+    hover: 'hover:bg-amber-600',
+    text: 'text-amber-600 dark:text-amber-400',
+    border: 'border-amber-500',
+    light: 'bg-amber-50 dark:bg-amber-900/20',
+    borderLight: 'border-amber-200 dark:border-amber-800',
   },
 } as const;
 
@@ -180,7 +181,7 @@ export const componentClasses = {
 
   // Input Fields
   input: {
-    base: 'w-full px-4 py-2.5 text-base border rounded-xl dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-sans',
+    base: 'w-full px-4 py-2.5 text-base border rounded-xl dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors font-sans',
     error: 'border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500',
     disabled: 'opacity-50 cursor-not-allowed',
   },

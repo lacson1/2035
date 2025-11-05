@@ -146,21 +146,17 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
    - Email: `sarah.johnson@hospital2035.com`
    - Password: `password123`
 
-## 📋 Default Users
+## 📋 User Registration
 
-After seeding, these users are available:
+**No default users are created.** All users must register through the sign-up form.
 
-- **Admin**
-  - Email: `admin@hospital2035.com`
-  - Password: `admin123`
+To get started:
+1. Open the application in your browser
+2. Click "Don't have an account? Sign up"
+3. Create your account with email, password, first name, and last name
+4. You'll be automatically logged in after registration
 
-- **Physician**
-  - Email: `sarah.johnson@hospital2035.com`
-  - Password: `password123`
-
-- **Nurse**
-  - Email: `patricia.williams@hospital2035.com`
-  - Password: `password123`
+The **first user** to register will automatically be assigned the `admin` role, allowing them to manage other users and system settings. All subsequent users will be assigned the `read_only` role by default. Administrators can update user roles and permissions through the User Management interface.
 
 ## 🛠️ Development Workflow
 

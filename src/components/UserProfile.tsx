@@ -13,7 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
-import { getRolePermissions } from "../data/roles";
+import { getRolePermissions, getRoleName } from "../data/roles";
 
 export default function UserProfile() {
   const { currentUser, setCurrentUser } = useUser();
@@ -75,12 +75,12 @@ export default function UserProfile() {
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
                 {currentUser.firstName[0]}{currentUser.lastName[0]}
               </div>
               {isEditing && (
                 <button
-                  className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                  className="absolute bottom-0 right-0 p-2 bg-teal-500 text-white rounded-full hover:bg-teal-600 transition-colors"
                   title="Change avatar"
                 >
                   <Camera size={16} />
@@ -93,7 +93,7 @@ export default function UserProfile() {
               </h2>
               <div className="flex items-center gap-2 mt-1">
                 <Shield size={16} className="text-gray-500 dark:text-gray-400" />
-                <span className="text-gray-600 dark:text-gray-400">{currentUser.role.replace(/_/g, " ").toUpperCase()}</span>
+                <span className="text-gray-600 dark:text-gray-400">{getRoleName(currentUser.role)}</span>
               </div>
               <div className="flex items-center gap-2 mt-1 text-sm text-gray-500 dark:text-gray-400">
                 <Mail size={14} />
@@ -105,7 +105,7 @@ export default function UserProfile() {
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors"
               >
                 <Edit2 size={16} />
                 Edit Profile
@@ -122,7 +122,7 @@ export default function UserProfile() {
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save size={16} />
                   {isSaving ? "Saving..." : "Save Changes"}
@@ -184,7 +184,7 @@ export default function UserProfile() {
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   required
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               ) : (
                 <div className="px-4 py-3 text-base bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -203,7 +203,7 @@ export default function UserProfile() {
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   required
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               ) : (
                 <div className="px-4 py-3 text-base bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -223,7 +223,7 @@ export default function UserProfile() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                 />
               ) : (
                 <div className="px-4 py-3 text-base bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -242,7 +242,7 @@ export default function UserProfile() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   placeholder="(555) 123-4567"
                 />
               ) : (
@@ -262,7 +262,7 @@ export default function UserProfile() {
                   type="text"
                   value={formData.specialty}
                   onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   placeholder="e.g., Cardiology, Internal Medicine"
                 />
               ) : (
@@ -282,7 +282,7 @@ export default function UserProfile() {
                   type="text"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   placeholder="e.g., Cardiology, Emergency"
                 />
               ) : (
@@ -304,10 +304,10 @@ export default function UserProfile() {
         <div className="space-y-3">
           <div>
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {currentUser.role.replace(/_/g, " ").toUpperCase()}
+              {getRoleName(currentUser.role)}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Role permissions for {currentUser.role}
+              Role permissions for {getRoleName(currentUser.role)}
             </div>
           </div>
           <div>
@@ -318,7 +318,7 @@ export default function UserProfile() {
               {rolePermissions?.slice(0, 10).map((permission, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded"
+                  className="px-2 py-1 text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 rounded"
                 >
                   {permission.replace(/_/g, " ")}
                 </span>

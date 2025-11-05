@@ -111,7 +111,7 @@ export class AuditService {
   async logAuthEvent(
     userId: string | undefined,
     userEmail: string | undefined,
-    action: 'LOGIN' | 'LOGOUT',
+    action: 'LOGIN' | 'LOGOUT' | 'REGISTER',
     ipAddress?: string,
     userAgent?: string,
     success: boolean = true,

@@ -25,7 +25,7 @@ const workflowGroupIcons: Record<string, typeof ClipboardCheck> = {
 };
 
 const workflowGroupColors: Record<string, string> = {
-  assessment: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20",
+  assessment: "text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20",
   "active-care": "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20",
   planning: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20",
   diagnostics: "text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20",
@@ -162,10 +162,10 @@ export default function DashboardHeader() {
                   <div className="flex items-center gap-2 group">
                     <a
                       href={`tel:${selectedPatient.phone.replace(/\s/g, '')}`}
-                      className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                      className="flex items-center gap-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer"
                       title={`Call ${selectedPatient.phone}`}
                     >
-                      <Phone size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                      <Phone size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors" />
                       <span className="font-medium">{selectedPatient.phone}</span>
                     </a>
                     <button
@@ -195,10 +195,10 @@ export default function DashboardHeader() {
                   <div className="flex items-center gap-2 truncate group">
                     <a
                       href={`mailto:${selectedPatient.email}`}
-                      className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer min-w-0"
+                      className="flex items-center gap-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer min-w-0"
                       title={`Email ${selectedPatient.email}`}
                     >
-                      <Mail size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-shrink-0" />
+                      <Mail size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors flex-shrink-0" />
                       <span className="font-medium truncate">{selectedPatient.email}</span>
                     </a>
                     <button
@@ -230,10 +230,10 @@ export default function DashboardHeader() {
                       href={`https://maps.google.com/?q=${encodeURIComponent(selectedPatient.address)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer min-w-0"
+                      className="flex items-center gap-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer min-w-0"
                       title={`Open ${selectedPatient.address} in maps`}
                     >
-                      <MapPin size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-shrink-0" />
+                      <MapPin size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors flex-shrink-0" />
                       <span className="font-medium truncate">{selectedPatient.address}</span>
                     </a>
                     <button
