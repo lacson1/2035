@@ -1,0 +1,10 @@
+# Railway configuration for root-level service detection
+# This helps Railway identify that the backend service should be in the backend/ directory
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
+
+[deploy]
+startCommand = "node dist/app.js"
+
