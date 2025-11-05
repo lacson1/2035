@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronDown, LogOut, UserCircle, Shield, Settings } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { useDashboard } from "../context/DashboardContext";
-import { getRolePermissions } from "../data/roles";
+import { getRoleName } from "../data/roles";
 
 export default function UserSelector() {
   const { currentUser, logout } = useUser();
@@ -10,8 +10,6 @@ export default function UserSelector() {
   const [open, setOpen] = useState(false);
 
   if (!currentUser) return null;
-
-  const roleData = getRolePermissions(currentUser.role);
 
   return (
     <div className="relative">
@@ -25,7 +23,7 @@ export default function UserSelector() {
             {currentUser.firstName} {currentUser.lastName}
           </div>
           <div className="text-[10px] text-gray-600 dark:text-gray-400">
-            {roleData?.name || currentUser.role}
+            {getRoleName(currentUser.role)}
           </div>
         </div>
         <ChevronDown size={12} className="text-gray-600 dark:text-gray-400" />
@@ -53,7 +51,7 @@ export default function UserSelector() {
                   <div className="flex items-center gap-1 mt-0.5">
                     <Shield size={10} className="text-gray-500" />
                     <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                      {roleData?.name}
+                      {getRoleName(currentUser.role)}
                     </span>
                   </div>
                 </div>

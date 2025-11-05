@@ -551,9 +551,13 @@ export default function LabManagement({ patient }: LabManagementProps) {
           </div>
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-gray-400" />
+            <label htmlFor="status-filter" className="sr-only">Filter by status</label>
             <select
+              id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as LabStatus)}
+              aria-label="Filter by status"
+              title="Filter by status"
               className="px-4 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
@@ -637,6 +641,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                           onClick={() => handleViewResults(lab)}
                           className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                           title="View Results"
+                          aria-label="View Results"
                         >
                           <Eye size={18} />
                         </button>
@@ -644,6 +649,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                           onClick={() => handleAssignForReview(lab)}
                           className="p-2 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
                           title="Assign for Review"
+                          aria-label="Assign for Review"
                         >
                           <User size={18} />
                         </button>
@@ -651,6 +657,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                           onClick={() => handleDownload(lab)}
                           className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                           title="Download Results"
+                          aria-label="Download Results"
                         >
                           <Download size={18} />
                         </button>
@@ -658,6 +665,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                           onClick={() => handlePrint(lab)}
                           className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                           title="Print Results"
+                          aria-label="Print Results"
                         >
                           <Printer size={18} />
                         </button>
@@ -669,6 +677,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                           onClick={() => handleReview(lab)}
                           className="p-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors"
                           title="Review Results"
+                          aria-label="Review Results"
                         >
                           <AlertCircle size={18} />
                         </button>
@@ -677,6 +686,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                             onClick={() => handleAssignForReview(lab)}
                             className="p-2 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
                             title="Assign for Review"
+                            aria-label="Assign for Review"
                           >
                             <User size={18} />
                           </button>
@@ -713,6 +723,8 @@ export default function LabManagement({ patient }: LabManagementProps) {
               <button
                 onClick={() => setShowOrderForm(false)}
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                aria-label="Close order form"
+                title="Close"
               >
                 <X size={20} />
               </button>
@@ -721,14 +733,16 @@ export default function LabManagement({ patient }: LabManagementProps) {
             <form onSubmit={handleOrderLab} className="p-6 space-y-5">
               {/* Common Tests Quick Select */}
               <div>
-                <label className="block text-base font-medium mb-2.5">Quick Select Common Test</label>
+                <label className="block text-base font-medium mb-2.5" htmlFor="common-test-select">Quick Select Common Test</label>
                 <select
+                  id="common-test-select"
                   value={orderFormData.selectedCommonTest}
                   onChange={(e) => {
                     if (e.target.value) {
                       handleCommonTestSelect(e.target.value);
                     }
                   }}
+                  aria-label="Select a common test"
                   className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                 >
                   <option value="">Select a common test...</option>
@@ -761,12 +775,14 @@ export default function LabManagement({ patient }: LabManagementProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">Test Code (Optional)</label>
+                  <label className="block text-base font-medium mb-2.5" htmlFor="test-code-input">Test Code (Optional)</label>
                   <input
+                    id="test-code-input"
                     type="text"
                     value={orderFormData.testCode}
                     onChange={(e) => setOrderFormData({ ...orderFormData, testCode: e.target.value })}
                     placeholder="e.g., CBC"
+                    aria-label="Test code"
                     className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                   />
                 </div>
@@ -774,11 +790,13 @@ export default function LabManagement({ patient }: LabManagementProps) {
 
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-base font-medium mb-2.5">Category <span className="text-red-500">*</span></label>
+                  <label className="block text-base font-medium mb-2.5" htmlFor="category-select">Category <span className="text-red-500">*</span></label>
                   <select
+                    id="category-select"
                     required
                     value={orderFormData.category}
                     onChange={(e) => setOrderFormData({ ...orderFormData, category: e.target.value })}
+                    aria-label="Select lab category"
                     className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                   >
                     <option value="Blood Work">Blood Work</option>
@@ -790,13 +808,15 @@ export default function LabManagement({ patient }: LabManagementProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">Order Date <span className="text-red-500">*</span></label>
+                  <label className="block text-base font-medium mb-2.5" htmlFor="order-date-input">Order Date <span className="text-red-500">*</span></label>
                   <input
+                    id="order-date-input"
                     type="date"
                     required
                     value={orderFormData.orderedDate}
                     onChange={(e) => setOrderFormData({ ...orderFormData, orderedDate: e.target.value })}
                     max={new Date().toISOString().split("T")[0]}
+                    aria-label="Order date"
                     className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                   />
                 </div>
@@ -826,12 +846,14 @@ export default function LabManagement({ patient }: LabManagementProps) {
               </div>
 
               <div>
-                <label className="block text-base font-medium mb-2.5">Notes (Optional)</label>
+                <label className="block text-base font-medium mb-2.5" htmlFor="notes-textarea">Notes (Optional)</label>
                 <textarea
+                  id="notes-textarea"
                   value={orderFormData.notes}
                   onChange={(e) => setOrderFormData({ ...orderFormData, notes: e.target.value })}
                   placeholder="Additional notes or instructions..."
                   rows={3}
+                  aria-label="Notes"
                   className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
@@ -850,6 +872,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                   type="button"
                   onClick={() => setShowOrderForm(false)}
                   className="px-5 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium text-gray-700 dark:text-gray-300 transition-colors"
+                  aria-label="Cancel order form"
                 >
                   Cancel
                 </button>
@@ -892,6 +915,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                   onClick={() => handleDownload(selectedLab)}
                   className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                   title="Download"
+                  aria-label="Download Results"
                 >
                   <Download size={20} />
                 </button>
@@ -899,12 +923,15 @@ export default function LabManagement({ patient }: LabManagementProps) {
                   onClick={() => handlePrint(selectedLab)}
                   className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                   title="Print"
+                  aria-label="Print Results"
                 >
                   <Printer size={20} />
                 </button>
                 <button
                   onClick={() => setShowResultsModal(false)}
                   className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  aria-label="Close results modal"
+                  title="Close"
                 >
                   <X size={20} />
                 </button>
@@ -1055,6 +1082,8 @@ export default function LabManagement({ patient }: LabManagementProps) {
                         setLabResults(labResults.map(l => l.id === selectedLab.id ? updatedLab : l));
                         setSelectedLab(updatedLab);
                       }}
+                      title="Remove assignment"
+                      aria-label="Remove assignment"
                       className="text-xs px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/40 transition-colors"
                     >
                       Unassign
@@ -1110,6 +1139,8 @@ export default function LabManagement({ patient }: LabManagementProps) {
                   setLabToAssign(null);
                 }}
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                aria-label="Close assign modal"
+                title="Close"
               >
                 <X size={20} />
               </button>

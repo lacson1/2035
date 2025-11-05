@@ -125,15 +125,72 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   ],
 };
 
+// Role display names
+const roleNames: Record<UserRole, string> = {
+  admin: "Administrator",
+  physician: "Physician",
+  nurse: "Nurse",
+  nurse_practitioner: "Nurse Practitioner",
+  physician_assistant: "Physician Assistant",
+  medical_assistant: "Medical Assistant",
+  receptionist: "Receptionist",
+  billing: "Billing Specialist",
+  pharmacist: "Pharmacist",
+  lab_technician: "Lab Technician",
+  radiologist: "Radiologist",
+  therapist: "Therapist",
+  social_worker: "Social Worker",
+  care_coordinator: "Care Coordinator",
+  read_only: "Read Only",
+};
+
+// Permission mapping from types.ts format to roles.ts format
+const permissionMapping: Record<string, Permission[]> = {
+  "manage_users": ["users:write", "users:delete"],
+  "prescribe_medications": ["medications:write"],
+  "edit_patients": ["patients:write"],
+  "create_notes": ["clinical_notes:write"],
+  "schedule_appointments": ["appointments:write"],
+  "view_patients": ["patients:read"],
+  "view_medications": ["medications:read"],
+  "view_notes": ["clinical_notes:read"],
+  "view_appointments": ["appointments:read"],
+  "view_imaging": ["imaging:read"],
+  "order_imaging": ["imaging:write"],
+  "view_labs": ["patients:read"],
+  "order_labs": ["patients:write"],
+  "view_billing": ["billing:read"],
+  "edit_billing": ["billing:write"],
+  "manage_settings": ["settings:write"],
+};
+
 export function getAllRoles(): UserRole[] {
   return Object.keys(rolePermissions) as UserRole[];
+}
+
+export function getRoleName(role: UserRole): string {
+  return roleNames[role] || role;
 }
 
 export function getRolePermissions(role: UserRole): Permission[] {
   return rolePermissions[role] || [];
 }
 
-export function hasPermission(role: UserRole, permission: Permission): boolean {
-  return rolePermissions[role]?.includes(permission) || false;
+// Support both permission formats (types.ts format and roles.ts format)
+export function hasPermission(role: UserRole, permission: string | Permission): boolean {
+  const rolePerms = rolePermissions[role] || [];
+  
+  // Check direct match (roles.ts format)
+  if (rolePerms.includes(permission as Permission)) {
+    return true;
+  }
+  
+  // Check mapped permissions (types.ts format)
+  const mappedPerms = permissionMapping[permission];
+  if (mappedPerms) {
+    return mappedPerms.some(p => rolePerms.includes(p));
+  }
+  
+  return false;
 }
 

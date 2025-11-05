@@ -1,20 +1,19 @@
 import { useUser } from "../context/UserContext";
-import { Permission } from "../types";
 import { hasPermission } from "../data/roles";
 
 export const usePermissions = () => {
   const { currentUser } = useUser();
 
-  const checkPermission = (permission: Permission): boolean => {
+  const checkPermission = (permission: string): boolean => {
     if (!currentUser) return false;
     return hasPermission(currentUser.role, permission);
   };
 
-  const checkMultiplePermissions = (permissions: Permission[]): boolean => {
+  const checkMultiplePermissions = (permissions: string[]): boolean => {
     return permissions.some((permission) => checkPermission(permission));
   };
 
-  const requirePermission = (permission: Permission): boolean => {
+  const requirePermission = (permission: string): boolean => {
     if (!checkPermission(permission)) {
       if (import.meta.env.DEV) {
         console.warn(`Permission denied: ${permission} for user ${currentUser?.role}`);

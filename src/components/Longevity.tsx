@@ -38,11 +38,11 @@ export default function Longevity({ patient }: LongevityProps) {
 
   // Longevity data - loaded from patient data or API
   const [biomarkers, setBiomarkers] = useState<Biomarker[]>(
-    patient?.biomarkers || []
+    (patient as any)?.biomarkers || []
   );
 
-  const [metrics, setMetrics] = useState<LongevityMetric[]>(
-    patient?.longevityMetrics || []
+  const [metrics] = useState<LongevityMetric[]>(
+    (patient as any)?.longevityMetrics || []
   );
 
   const getStatusColor = (status: Biomarker["status"]) => {

@@ -108,15 +108,16 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
       {/* Sidebar */}
       <aside 
         className={`
-          fixed inset-y-0 right-0 z-50
+          fixed md:static inset-y-0 right-0 z-50
           w-64
           bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
           border-l border-gray-200/50 dark:border-gray-700/50
-          shadow-xl
-          transform transition-transform duration-300 ease-in-out
+          shadow-xl md:shadow-none
+          transform md:transform-none transition-transform duration-300 ease-in-out
           overflow-y-auto
           flex flex-col
-          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+          flex-shrink-0
+          ${isOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
         `}
       >
         {/* Header */}

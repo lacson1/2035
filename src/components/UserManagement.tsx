@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { User, UserRole } from "../types";
 import { useUsers } from "../hooks/useUsers";
-import { getAllRoles, getRolePermissions, hasPermission } from "../data/roles";
+import { getAllRoles, getRoleName, getRolePermissions, hasPermission } from "../data/roles";
 
 interface UserManagementProps {
   currentUser: User | null;
@@ -26,7 +26,7 @@ interface UserManagementProps {
 }
 
 export default function UserManagement({ currentUser }: UserManagementProps) {
-  const { users: loadedUsers, isLoading: usersLoading } = useUsers();
+  const { users: loadedUsers } = useUsers();
   const [users, setUsers] = useState<User[]>(loadedUsers);
   
   // Update users when loaded from API
@@ -151,25 +151,24 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   };
 
   const getRoleColor = (role: UserRole) => {
-    const roleData = getRolePermissions(role);
-    const colorMap: Record<string, string> = {
-      red: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700",
-      blue: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700",
-      purple: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700",
-      green: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700",
-      yellow: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700",
-      orange: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700",
-      pink: "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-200 border-pink-300 dark:border-pink-700",
-      cyan: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-200 border-cyan-300 dark:border-cyan-700",
-      violet: "bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200 border-violet-300 dark:border-violet-700",
-      emerald: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700",
-      amber: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700",
-      sky: "bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-200 border-sky-300 dark:border-sky-700",
-      indigo: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 border-indigo-300 dark:border-indigo-700",
-      gray: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600",
-      teal: "bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 border-teal-300 dark:border-teal-700",
+    const colorMap: Record<UserRole, string> = {
+      admin: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700",
+      physician: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700",
+      nurse: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700",
+      nurse_practitioner: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700",
+      physician_assistant: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 border-indigo-300 dark:border-indigo-700",
+      medical_assistant: "bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 border-teal-300 dark:border-teal-700",
+      receptionist: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700",
+      billing: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700",
+      pharmacist: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-200 border-cyan-300 dark:border-cyan-700",
+      lab_technician: "bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200 border-violet-300 dark:border-violet-700",
+      radiologist: "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-200 border-pink-300 dark:border-pink-700",
+      therapist: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700",
+      social_worker: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700",
+      care_coordinator: "bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-200 border-sky-300 dark:border-sky-700",
+      read_only: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600",
     };
-    return colorMap[roleData?.color || "gray"] || colorMap.gray;
+    return colorMap[role] || colorMap.read_only;
   };
 
   if (!canManageUsers) {
@@ -234,8 +233,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             >
               <option value="all">All Roles</option>
               {getAllRoles().map((role) => (
-                <option key={role.role} value={role.role}>
-                  {role.name}
+                <option key={role} value={role}>
+                  {getRoleName(role)}
                 </option>
               ))}
             </select>
@@ -287,7 +286,6 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredUsers.map((user) => {
-                const roleData = getRolePermissions(user.role);
                 return (
                   <tr
                     key={user.id}
@@ -310,7 +308,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                             user.role
                           )}`}
                         >
-                          {roleData?.name || user.role}
+                          {getRoleName(user.role)}
                         </span>
                         {user.specialty && (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -407,7 +405,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
           <div className="border-t dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900">
             {(() => {
               const user = users.find((u) => u.id === showPermissions);
-              const roleData = getRolePermissions(user?.role || "read_only");
+              const userRole = (user?.role || "read_only") as UserRole;
+              const permissions = getRolePermissions(userRole);
               return (
                 <div>
                   <div className="flex justify-between items-center mb-3">
@@ -422,10 +421,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     </button>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    {roleData?.description}
+                    Permissions for {getRoleName(userRole)} role
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                    {roleData?.permissions.map((permission) => (
+                    {permissions.map((permission) => (
                       <div
                         key={permission}
                         className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded border dark:border-gray-700"
@@ -541,8 +540,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                   >
                     {getAllRoles().map((role) => (
-                      <option key={role.role} value={role.role}>
-                        {role.name}
+                      <option key={role} value={role}>
+                        {getRoleName(role)}
                       </option>
                     ))}
                   </select>

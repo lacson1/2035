@@ -14,7 +14,7 @@ export function getCurrentUser(): any {
   return null;
 }
 
-export function setCurrentUser(userId: string): void {
+export function setCurrentUser(_userId: string): void {
   console.warn('setCurrentUser is deprecated, use AuthContext instead');
 }
 

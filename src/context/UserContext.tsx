@@ -17,7 +17,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout: authLogout } = useAuth();
 
-  const setUser = (user: User) => {
+  const setUser = (_user: User) => {
     // User is managed by AuthContext, this is just for compatibility
     // In practice, user should be set through AuthContext login
   };

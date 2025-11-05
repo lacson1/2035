@@ -20,8 +20,8 @@ export default function WorkspacePage({
   onNavigateToPatients 
 }: WorkspacePageProps) {
   const { selectedPatient } = useDashboard();
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true); // Always start open
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(true); // Always start open
   const [leftSidebarMinimized, setLeftSidebarMinimized] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('sidebarMinimized');
@@ -31,24 +31,36 @@ export default function WorkspacePage({
     }
   });
 
-  // Auto-open sidebars on desktop (optional - can be removed if you want them closed by default)
+  // Handle window resize - on desktop, sidebars should be visible
   useEffect(() => {
     const handleResize = () => {
       const isDesktop = window.innerWidth >= 768;
-      // Only auto-open if not manually toggled
-      // You can set to true if you want them open by default on desktop
       if (isDesktop) {
-        // Sidebars start closed, user can toggle them
+        // On desktop, ensure sidebars are open
+        setLeftSidebarOpen(true);
+        setRightSidebarOpen(true);
       }
     };
     
-    handleResize();
+    // Set initial state based on screen size
+    if (typeof window !== 'undefined') {
+      const isDesktop = window.innerWidth >= 768;
+      if (isDesktop) {
+        setLeftSidebarOpen(true);
+        setRightSidebarOpen(true);
+      } else {
+        // On mobile, start closed
+        setLeftSidebarOpen(false);
+        setRightSidebarOpen(false);
+      }
+    }
+    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex relative overflow-hidden">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-row relative overflow-hidden">
       {/* Left Sidebar - Navigation */}
       <LeftSidebar 
         isOpen={leftSidebarOpen}
@@ -58,13 +70,13 @@ export default function WorkspacePage({
       />
 
       {/* Main Content */}
-      <main className={`flex-1 w-full h-full flex flex-col transition-all duration-300 ${
+      <main className={`flex-1 w-full h-full flex flex-col transition-all duration-300 min-w-0 ${
         !leftSidebarOpen 
           ? 'ml-0' 
           : leftSidebarMinimized 
-            ? 'ml-16' 
-            : 'ml-56'
-      } ${rightSidebarOpen ? 'mr-64' : 'mr-0'}`}>
+            ? 'ml-16 md:ml-0' 
+            : 'ml-56 md:ml-0'
+      } ${rightSidebarOpen ? 'mr-0 md:mr-0' : 'mr-0'}`}>
         {/* Note: Left sidebar width is controlled internally based on minimized state */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
           <div className="p-2 md:p-3 space-y-2 md:space-y-2.5">

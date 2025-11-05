@@ -24,7 +24,6 @@ import {
   X,
 } from "lucide-react";
 import { getAllHubs, getHubById, HubId, getHubColorClass } from "../data/hubs";
-import { getSpecialtyTemplate } from "../data/specialtyTemplates";
 import { useDashboard } from "../context/DashboardContext";
 import { filterPatientsByHub, getHubStats, getHubQuickActions } from "../utils/hubIntegration";
 import { getQuestionnairesByHub, Questionnaire, Question } from "../data/questionnaires";
@@ -519,53 +518,70 @@ export default function Hubs() {
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
           >
             <option value="">Select an option...</option>
-            {question.options?.map((option) => (
-              <option key={option.id} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+            {question.options?.map((option, index) => {
+              if (typeof option === 'string') {
+                return (
+                  <option key={index} value={option}>
+                    {option}
+                  </option>
+                );
+              }
+              return (
+                <option key={option.id} value={String(option.value)}>
+                  {option.label}
+                </option>
+              );
+            })}
           </select>
         );
       
       case "radio":
         return (
           <div className="space-y-2">
-            {question.options?.map((option) => (
-              <label key={option.id} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name={question.id}
-                  value={option.value}
-                  checked={value === option.value}
-                  onChange={() => setQuestionnaireAnswers({ ...questionnaireAnswers, [question.id]: option.value })}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <span className="text-sm">{option.label}</span>
-              </label>
-            ))}
+            {question.options?.map((option, index) => {
+              const optionValue = typeof option === 'string' ? option : option.value;
+              const optionLabel = typeof option === 'string' ? option : option.label;
+              const optionId = typeof option === 'string' ? `${question.id}-${index}` : option.id;
+              return (
+                <label key={optionId} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={question.id}
+                    value={String(optionValue)}
+                    checked={value === optionValue}
+                    onChange={() => setQuestionnaireAnswers({ ...questionnaireAnswers, [question.id]: optionValue })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm">{optionLabel}</span>
+                </label>
+              );
+            })}
           </div>
         );
       
       case "checkbox":
         return (
           <div className="space-y-2">
-            {question.options?.map((option) => {
+            {question.options?.map((option, index) => {
+              const optionValue = typeof option === 'string' ? option : option.value;
+              const optionLabel = typeof option === 'string' ? option : option.label;
+              const optionId = typeof option === 'string' ? `${question.id}-${index}` : option.id;
               const checkedValues = Array.isArray(value) ? value : [];
-              const isChecked = checkedValues.includes(option.value);
+              const isChecked = checkedValues.includes(optionValue);
               return (
-                <label key={option.id} className="flex items-center gap-2 cursor-pointer">
+                <label key={optionId} className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={isChecked}
                     onChange={(e) => {
                       const newValues = e.target.checked
-                        ? [...checkedValues, option.value]
-                        : checkedValues.filter((v) => v !== option.value);
+                        ? [...checkedValues, optionValue]
+                        : checkedValues.filter((v) => v !== optionValue);
                       setQuestionnaireAnswers({ ...questionnaireAnswers, [question.id]: newValues });
                     }}
                     className="w-4 h-4 text-blue-600 rounded"
                   />
-                  <span className="text-sm">{option.label}</span>
+                  <span className="text-sm">{optionLabel}</span>
                 </label>
               );
             })}
@@ -618,7 +634,7 @@ export default function Hubs() {
 
     const completed = {
       questionnaireId: selectedQuestionnaire.id,
-      title: selectedQuestionnaire.title,
+      title: selectedQuestionnaire.title || selectedQuestionnaire.name || 'Questionnaire',
       answers: { ...questionnaireAnswers },
       completedAt: new Date().toISOString(),
     };
@@ -637,7 +653,7 @@ export default function Hubs() {
   const currentNotes = selectedHub ? hubNotes[selectedHub] || [] : [];
   const currentResources = selectedHub ? hubResources[selectedHub] || [] : [];
   const currentNote = currentNotes[0];
-  const hubQuestionnaires = selectedHub ? getQuestionnairesByHub(selectedHub) : [];
+  const hubQuestionnaires = selectedHub ? getQuestionnairesByHub(String(selectedHub)) : [];
   const hubCompletedQuestionnaires = selectedHub ? completedQuestionnaires[selectedHub] || [] : [];
 
   // Get real stats from patient data
@@ -686,10 +702,10 @@ export default function Hubs() {
           </button>
         </div>
 
-        <div className={`rounded-lg border-2 p-6 ${getHubColorClass(currentHub)}`}>
+        <div className={`rounded-lg border-2 p-6 ${getHubColorClass(selectedHub)}`}>
           <div className="flex items-start gap-4 mb-6">
             <div className="p-3 rounded-lg bg-white/50 dark:bg-gray-800/50">
-              <currentHub.icon size={32} className={getHubColorClass(currentHub).split(" ")[4]} />
+              <div className="w-8 h-8 rounded bg-blue-500" />
             </div>
             <div className="flex-1">
               <h2 className="text-2xl font-bold mb-2">{currentHub.name}</h2>
@@ -731,17 +747,9 @@ export default function Hubs() {
               <div>
                 <h3 className="text-lg font-semibold mb-3">Specialties</h3>
                 <div className="flex flex-wrap gap-2">
-                  {currentHub.specialties.map((specialty) => {
-                    const template = getSpecialtyTemplate(specialty);
-                    return (
-                      <span
-                        key={specialty}
-                        className="px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 text-sm font-medium"
-                      >
-                        {template.name}
-                      </span>
-                    );
-                  })}
+                  <span className="px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Specialty information will be loaded from API
+                  </span>
                 </div>
               </div>
 
@@ -831,14 +839,9 @@ export default function Hubs() {
               <div>
                 <h3 className="text-lg font-semibold mb-3">Common Conditions</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {currentHub.commonConditions.map((condition, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-2 rounded-lg bg-white/60 dark:bg-gray-800/60 text-sm"
-                    >
-                      {condition}
-                    </div>
-                  ))}
+                  <div className="px-3 py-2 rounded-lg bg-white/60 dark:bg-gray-800/60 text-sm text-gray-600 dark:text-gray-400">
+                    Condition information will be loaded from API
+                  </div>
                 </div>
               </div>
 
@@ -846,14 +849,9 @@ export default function Hubs() {
               <div>
                 <h3 className="text-lg font-semibold mb-3">Common Treatments</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {currentHub.commonTreatments.map((treatment, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-2 rounded-lg bg-white/60 dark:bg-gray-800/60 text-sm"
-                    >
-                      {treatment}
-                    </div>
-                  ))}
+                  <div className="px-3 py-2 rounded-lg bg-white/60 dark:bg-gray-800/60 text-sm text-gray-600 dark:text-gray-400">
+                    Treatment information will be loaded from API
+                  </div>
                 </div>
               </div>
             </div>
@@ -1216,7 +1214,7 @@ export default function Hubs() {
                       </p>
                       <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                         <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">
-                          {selectedQuestionnaire.category}
+                          General
                         </span>
                         {selectedQuestionnaire.estimatedTime && (
                           <span>⏱ {selectedQuestionnaire.estimatedTime} min</span>
@@ -1376,7 +1374,7 @@ export default function Hubs() {
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="font-semibold text-sm">{questionnaire.title}</h4>
                                 <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
-                                  {questionnaire.category}
+                                  General
                                 </span>
                               </div>
                               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -1841,7 +1839,7 @@ export default function Hubs() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredHubs.map((hub) => {
           const functions = hubFunctions[hub.id] || [];
-          const colorClass = getHubColorClass(hub);
+          const colorClass = getHubColorClass(hub.id);
           
           return (
             <div
@@ -1851,7 +1849,7 @@ export default function Hubs() {
             >
               <div className="flex items-start gap-4 mb-4">
                 <div className="p-3 rounded-lg bg-white/50 dark:bg-gray-800/50">
-                  <hub.icon size={28} className={colorClass.split(" ")[4]} />
+                  <div className="w-7 h-7 rounded bg-blue-500" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold mb-1">{hub.name}</h3>
@@ -1861,7 +1859,7 @@ export default function Hubs() {
 
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="opacity-70">{hub.specialties.length} specialties</span>
+                  <span className="opacity-70">Specialty hub</span>
                   {functions.length > 0 && (
                     <span className="px-2 py-0.5 bg-white/60 dark:bg-gray-800/60 rounded">
                       {functions.length} {functions.length === 1 ? "function" : "functions"}

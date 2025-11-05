@@ -5,19 +5,34 @@
  * For now, kept as minimal reference data.
  */
 
+export interface QuestionOption {
+  id: string;
+  label: string;
+  value: string | number;
+}
+
 export interface Question {
   id: string;
-  type: string;
-  label: string;
+  question: string;
+  label?: string;
+  type: "text" | "number" | "select" | "radio" | "checkbox" | "scale" | "date" | "boolean";
   required?: boolean;
-  options?: string[];
+  options?: QuestionOption[] | string[];
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  scaleLabels?: { min: string; max: string };
+  category?: string;
 }
 
 export interface Questionnaire {
   id: string;
-  name: string;
-  hubId: string;
+  title?: string;
+  name?: string;
+  description?: string;
+  hubId?: string;
   questions: Question[];
+  estimatedTime?: number;
 }
 
 // Minimal questionnaires - should be loaded from API in production

@@ -84,6 +84,21 @@ export default function LeftSidebar({ isOpen, onToggle, onNavigateToPatients, on
       return false;
     }
   });
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return false;
+  });
+
+  // Track window size for responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Notify parent of minimized state changes
   useEffect(() => {
@@ -158,16 +173,19 @@ export default function LeftSidebar({ isOpen, onToggle, onNavigateToPatients, on
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50
+          fixed md:static inset-y-0 left-0 z-50
           ${isMinimized ? 'w-16' : 'w-56'}
-          bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
-          border-r border-gray-200/50 dark:border-gray-700/50
-          shadow-xl
-          transform transition-all duration-300 ease-in-out
+          bg-white dark:bg-gray-900 backdrop-blur-md
+          border-r border-gray-200 dark:border-gray-700
+          shadow-xl md:shadow-none
+          transition-all duration-300 ease-in-out
           overflow-y-auto
           flex flex-col
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          flex-shrink-0
         `}
+        style={{
+          transform: isDesktop ? 'translateX(0)' : (isOpen ? 'translateX(0)' : 'translateX(-100%)')
+        }}
       >
         {/* Header */}
         <div className="p-2.5 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">

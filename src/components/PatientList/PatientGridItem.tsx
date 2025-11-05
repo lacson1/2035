@@ -17,17 +17,8 @@ interface PatientGridItemProps {
 }
 
 const PatientGridItem = memo(({ patient, isSelected, onClick }: PatientGridItemProps) => {
-  const getRecentActivity = (patient: Patient) => {
-    const recent = patient.timeline?.[0];
-    if (!recent) return null;
-    const daysAgo = Math.floor(
-      (Date.now() - new Date(recent.date).getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return daysAgo <= 7 ? daysAgo : null;
-  };
-
   const upcomingApts = getUpcomingAppointmentsCount(patient);
-  const recentDays = getRecentActivity(patient);
+  // const recentDays = getRecentActivity(patient); // Unused for now
 
   return (
     <button

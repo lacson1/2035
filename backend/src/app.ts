@@ -22,6 +22,7 @@ import medicationsRoutes from './routes/medications.routes';
 import appointmentsRoutes from './routes/appointments.routes';
 import clinicalNotesRoutes from './routes/clinical-notes.routes';
 import imagingStudiesRoutes from './routes/imaging-studies.routes';
+import labResultsRoutes from './routes/lab-results.routes';
 import careTeamRoutes from './routes/care-team.routes';
 import settingsRoutes from './routes/settings.routes';
 import billingRoutes from './routes/billing.routes';
@@ -95,6 +96,7 @@ app.use('/api/v1/patients/:patientId/medications', medicationsRoutes);
 app.use('/api/v1/patients/:patientId/appointments', appointmentsRoutes);
 app.use('/api/v1/patients/:patientId/notes', clinicalNotesRoutes);
 app.use('/api/v1/patients/:patientId/imaging', imagingStudiesRoutes);
+app.use('/api/v1/patients/:patientId/lab-results', labResultsRoutes);
 app.use('/api/v1/patients/:patientId/care-team', careTeamRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/billing', billingRoutes);
@@ -112,6 +114,7 @@ app.use('/api/v1', (req, res) => {
       appointments: '/api/v1/patients/:patientId/appointments',
       clinicalNotes: '/api/v1/patients/:patientId/notes',
       imaging: '/api/v1/patients/:patientId/imaging',
+      labResults: '/api/v1/patients/:patientId/lab-results',
       careTeam: '/api/v1/patients/:patientId/care-team',
       settings: '/api/v1/settings',
       billing: '/api/v1/billing',

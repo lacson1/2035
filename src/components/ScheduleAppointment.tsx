@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Calendar, Clock, User, X, Stethoscope } from "lucide-react";
 import { Patient, Appointment, ConsultationType, SpecialtyType } from "../types";
-import { getAllSpecialties } from "../data/specialtyTemplates";
+import { getAllSpecialties, getSpecialtyTemplate } from "../data/specialtyTemplates";
 
 interface ScheduleAppointmentProps {
   patient: Patient;
@@ -268,11 +268,14 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                         className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                       >
                         <option value="">Select specialty</option>
-                        {getAllSpecialties().map((specialty) => (
-                          <option key={specialty.specialty} value={specialty.specialty}>
-                            {specialty.name}
-                          </option>
-                        ))}
+                        {getAllSpecialties().map((specialty) => {
+                          const template = getSpecialtyTemplate(specialty);
+                          return (
+                            <option key={specialty} value={specialty}>
+                              {template?.name || specialty}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}
@@ -425,11 +428,14 @@ export default function ScheduleAppointment({ patient, onAppointmentAdded }: Sch
                     className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:border-green-400 transition-colors"
                   >
                     <option value="">Select specialty</option>
-                    {getAllSpecialties().map((specialty) => (
-                      <option key={specialty.specialty} value={specialty.specialty}>
-                        {specialty.name}
-                      </option>
-                    ))}
+                    {getAllSpecialties().map((specialty) => {
+                      const template = getSpecialtyTemplate(specialty);
+                      return (
+                        <option key={specialty} value={specialty}>
+                          {template?.name || specialty}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}

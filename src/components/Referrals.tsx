@@ -19,7 +19,7 @@ import {
 import { useDashboard } from "../context/DashboardContext";
 import { useUser } from "../context/UserContext";
 import { Patient, Referral, ReferralStatus, ReferralPriority, SpecialtyType } from "../types";
-import { getAllSpecialties } from "../data/specialtyTemplates";
+import { getAllSpecialties, getSpecialtyTemplate } from "../data/specialtyTemplates";
 import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
 
@@ -357,7 +357,7 @@ export default function Referrals({ patient }: ReferralsProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                        {getAllSpecialties().find(s => s.specialty === ref.specialty)?.name || ref.specialty}
+                        {ref.specialty}
                       </h3>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded ${getPriorityColor(ref.priority)}`}>
                         {ref.priority.toUpperCase()}
@@ -484,11 +484,14 @@ export default function Referrals({ patient }: ReferralsProps) {
                   className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select specialty...</option>
-                  {getAllSpecialties().map((specialty) => (
-                    <option key={specialty.specialty} value={specialty.specialty}>
-                      {specialty.name}
-                    </option>
-                  ))}
+                  {getAllSpecialties().map((specialty) => {
+                    const template = getSpecialtyTemplate(specialty);
+                    return (
+                      <option key={specialty} value={specialty}>
+                        {template?.name || specialty}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -691,7 +694,7 @@ export default function Referrals({ patient }: ReferralsProps) {
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Referral Details</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {getAllSpecialties().find(s => s.specialty === selectedReferral.specialty)?.name || selectedReferral.specialty}
+                  {getSpecialtyTemplate(selectedReferral.specialty)?.name || selectedReferral.specialty}
                 </p>
               </div>
               <div className="flex items-center gap-2">

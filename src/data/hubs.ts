@@ -25,7 +25,7 @@ export function getHubById(id: HubId): Hub | undefined {
   return hubs.find(h => h.id === id);
 }
 
-export function getHubBySpecialty(specialty: string): Hub | undefined {
+export function getHubBySpecialty(_specialty: string): Hub | undefined {
   // This should be implemented based on your hub-specialty mapping
   return undefined;
 }

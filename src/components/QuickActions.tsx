@@ -9,7 +9,6 @@ import {
   Stethoscope,
   Activity,
   Users,
-  ArrowRight,
   FlaskConical,
   Send,
   Shield,
@@ -433,6 +432,29 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
       .filter(Boolean) as QuickAction[];
   }, [recentActions, actions]);
 
+  // Initialize collapsed categories with all categories when component mounts or categories change
+  // Start with all categories collapsed by default (including "Recently Used")
+  useEffect(() => {
+    const categoryKeys = Object.keys(groupedActions);
+    const allKeys = [...categoryKeys];
+    // Also add "Recently Used" if we have recent actions
+    if (recentActionsList.length > 0 && activeTab === "overview") {
+      allKeys.push("Recently Used");
+    }
+    if (allKeys.length > 0) {
+      setCollapsedCategories(prev => {
+        // Only update if we haven't initialized yet or if new categories were added
+        const currentKeys = Array.from(prev);
+        const newKeys = allKeys.filter(k => !currentKeys.includes(k));
+        if (prev.size === 0 || newKeys.length > 0) {
+          // Add all categories as collapsed (including new ones)
+          return new Set([...currentKeys, ...newKeys]);
+        }
+        return prev;
+      });
+    }
+  }, [groupedActions, recentActionsList.length, activeTab]);
+
   // Handle action click with recent tracking
   const handleActionClick = (action: QuickAction) => {
     saveRecentAction(action.id);
@@ -622,22 +644,23 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
 
   return (
     <>
-      <div className={`border rounded-lg dark:border-gray-700 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 transition-all duration-200 ${isCollapsed ? 'p-1' : 'p-2'}`}>
-        <div className="flex items-center justify-between flex-wrap gap-1">
+      <div className={`border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-200 ${isCollapsed ? 'p-1.5' : 'p-3'}`}>
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity flex-shrink-0"
+            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 transition-colors flex-shrink-0"
             title={isCollapsed ? "Expand Quick Actions" : "Collapse Quick Actions"}
           >
             {isCollapsed ? (
-              <ChevronDown size={14} className="text-gray-600 dark:text-gray-400" />
+              <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" />
             ) : (
-              <ChevronUp size={14} className="text-gray-600 dark:text-gray-400" />
+              <ChevronUp size={16} className="text-gray-600 dark:text-gray-400" />
             )}
-            <h3 className={`font-semibold flex items-center gap-1.5 ${isCollapsed ? 'text-xs' : 'text-sm'}`}>
-              <span>⚡ Quick Actions</span>
+            <h3 className={`font-semibold flex items-center gap-2 ${isCollapsed ? 'text-sm' : 'text-base'}`}>
+              <span className="text-blue-600 dark:text-blue-400">⚡</span>
+              <span>Quick Actions</span>
               {!isCollapsed && workflowGroup && (
-                <span className="text-[10px] font-normal text-gray-600 dark:text-gray-400">
+                <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
                   ({currentTabLabel})
                 </span>
               )}
@@ -698,49 +721,64 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
 
         {/* Recent Actions Section */}
         {!isCollapsed && recentActionsList.length > 0 && !searchQuery && activeTab === "overview" && (
-          <div className="mb-2 mt-2">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <History size={11} className="text-gray-500 dark:text-gray-400" />
-              <span className="text-[9px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                Recently Used
-              </span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1">
-              {recentActionsList.slice(0, 6).map((action) => {
-                const actionWithHandler = actionsWithHandlers.find(a => a.id === action.id);
-                if (!actionWithHandler) return null;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={actionWithHandler.onClick}
-                    className={`${action.color} text-white p-1.5 rounded-md flex flex-col items-center justify-center gap-0.5 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md relative group`}
-                    title={action.description || action.label}
-                  >
-                    {React.isValidElement(action.icon) ? React.cloneElement(action.icon, { size: 14 }) : action.icon}
-                    <span className="text-[8px] font-medium text-center leading-tight">{action.label}</span>
-                    {action.badge && action.badge > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                        {action.badge > 9 ? "9+" : action.badge}
-                      </span>
-                    )}
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                      <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-xs shadow-xl">
-                        <div className="font-semibold mb-1">{action.label}</div>
-                        {action.description && (
-                          <div className="text-gray-300">{action.description}</div>
-                        )}
-                        {action.shortcut && (
-                          <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400">
-                            Shortcut: <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">{action.shortcut}</kbd>
-                          </div>
-                        )}
+          <div className="mb-3 mt-3 border-b border-gray-200 dark:border-gray-700 pb-3">
+            <button
+              onClick={() => {
+                const recentCategory = "Recently Used";
+                toggleCategory(recentCategory);
+              }}
+              className="w-full flex items-center justify-between px-2 py-1.5 mb-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-md transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <History size={12} className="text-gray-500 dark:text-gray-400" />
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                  Recently Used
+                </span>
+              </div>
+              {collapsedCategories.has("Recently Used") ? (
+                <ChevronDown size={14} className="text-gray-500 dark:text-gray-400" />
+              ) : (
+                <ChevronUp size={14} className="text-gray-500 dark:text-gray-400" />
+              )}
+            </button>
+            {!collapsedCategories.has("Recently Used") && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 pl-1">
+                {recentActionsList.slice(0, 6).map((action) => {
+                  const actionWithHandler = actionsWithHandlers.find(a => a.id === action.id);
+                  if (!actionWithHandler) return null;
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={actionWithHandler.onClick}
+                      className={`${action.color} text-white p-1.5 rounded-md flex flex-col items-center justify-center gap-0.5 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md relative group`}
+                      title={action.description || action.label}
+                    >
+                      {React.isValidElement(action.icon) ? React.cloneElement(action.icon, { size: 14 }) : action.icon}
+                      <span className="text-[8px] font-medium text-center leading-tight">{action.label}</span>
+                      {action.badge && action.badge > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                          {action.badge > 9 ? "9+" : action.badge}
+                        </span>
+                      )}
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                        <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-xs shadow-xl">
+                          <div className="font-semibold mb-1">{action.label}</div>
+                          {action.description && (
+                            <div className="text-gray-300">{action.description}</div>
+                          )}
+                          {action.shortcut && (
+                            <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400">
+                              Shortcut: <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">{action.shortcut}</kbd>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -748,22 +786,29 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
         {!isCollapsed && (
           showCategories ? (
             // Grouped by category
-            <div className="space-y-2 mt-2">
+            <div className="space-y-2 mt-3">
               {Object.entries(groupedActions).map(([category, categoryActions]) => {
                 const isCategoryCollapsed = collapsedCategories.has(category);
                 return (
                   <div key={category} className="space-y-1.5">
                     <button
                       onClick={() => toggleCategory(category)}
-                      className="w-full flex items-center justify-between px-1.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors border border-gray-200 dark:border-gray-700"
                     >
-                      <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                         {category}
                       </span>
-                      {isCategoryCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {categoryActions.length}
+                      </span>
+                      {isCategoryCollapsed ? (
+                        <ChevronDown size={14} className="text-gray-500 dark:text-gray-400" />
+                      ) : (
+                        <ChevronUp size={14} className="text-gray-500 dark:text-gray-400" />
+                      )}
                     </button>
                     {!isCategoryCollapsed && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 pl-1">
                         {categoryActions.map((action) => (
                           <button
                             key={action.id}
@@ -802,7 +847,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
             </div>
           ) : (
             // Regular grid
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1 mt-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 mt-3">
               {displayActions.map((action) => {
                 const badge = 'badge' in action ? action.badge : undefined;
                 return (

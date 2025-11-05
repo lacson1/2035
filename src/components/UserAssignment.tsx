@@ -24,7 +24,7 @@ export default function UserAssignment({
 }: UserAssignmentProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const { users, isLoading } = useUsers();
+  const { users } = useUsers();
 
   // Filter users by allowed roles and active status
   const availableUsers = useMemo(() => {
