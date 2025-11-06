@@ -23,6 +23,7 @@ import {
 import { Patient } from "../types";
 import QuickActions from "./QuickActions";
 import OverviewSummaryCards from "./OverviewSummaryCards";
+import RiskScoreGauge from "./RiskScoreGauge";
 import { useDashboard } from "../context/DashboardContext";
 import { getActiveMedications, getUpcomingAppointments, sortByDateDesc } from "../utils/patientUtils";
 import { patientService } from "../services/patients";
@@ -178,6 +179,21 @@ function Overview({ patient }: OverviewProps) {
     return appointments.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [patient]);
 
+  const ageDisplay = useMemo(() => {
+    if (typeof patient.age === "number" && !Number.isNaN(patient.age)) {
+      return `${patient.age} years`;
+    }
+    if (patient.dob) {
+      const dobDate = new Date(patient.dob);
+      if (!Number.isNaN(dobDate.getTime())) {
+        const diffMs = Date.now() - dobDate.getTime();
+        const years = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25));
+        return `${years} years`;
+      }
+    }
+    return null;
+  }, [patient.age, patient.dob]);
+
   const recentNotes = useMemo(() =>
     sortByDateDesc(patient.clinicalNotes || []).slice(0, 3),
     [patient.clinicalNotes]
@@ -203,6 +219,33 @@ function Overview({ patient }: OverviewProps) {
 
   return (
     <div className="section-spacing">
+      {/* Patient Summary Header */}
+      <div className="card mb-6">
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 flex-1">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 font-sans">{patient.name}</h2>
+              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400 font-sans">
+                {ageDisplay && <span>{ageDisplay}</span>}
+                <span>
+                  {patient.condition ? `Condition: ${patient.condition}` : 'Condition not recorded'}
+                </span>
+              </div>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 font-sans space-y-1 text-left md:text-right">
+              {patient.email && <p>{patient.email}</p>}
+              {patient.phone && <p>{patient.phone}</p>}
+            </div>
+          </div>
+          <div className="w-full md:w-auto flex flex-col items-start md:items-end gap-2">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 font-sans">Risk Score</p>
+            <div className="w-full max-w-[220px]">
+              <RiskScoreGauge risk={typeof patient.risk === 'number' ? patient.risk : 0} />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Key Metrics - Improved Spacing and Typography */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6">
         <div className="card hover:shadow-lg transition-all duration-300">
@@ -225,16 +268,16 @@ function Overview({ patient }: OverviewProps) {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400 font-sans mb-1">Upcoming Appointments</p>
               <p className="text-3xl font-bold text-purple-700 dark:text-purple-400 font-sans">
-                {upcomingAppointments.length}
+                {upcomingAppointments.length > 0 ? upcomingAppointments.length : "None"}
               </p>
             </div>
             <Calendar className="text-purple-600 dark:text-purple-400" size={24} />
           </div>
-          {upcomingAppointments.length > 0 && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-3 font-sans">
-              Next: {new Date(upcomingAppointments[0].date).toLocaleDateString()}
-            </p>
-          )}
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-3 font-sans">
+            {upcomingAppointments.length > 0
+              ? `Next: ${new Date(upcomingAppointments[0].date).toLocaleDateString()}`
+              : "No upcoming appointments"}
+          </p>
         </div>
 
         <div className="card hover:shadow-lg transition-all duration-300">
@@ -278,10 +321,11 @@ function Overview({ patient }: OverviewProps) {
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-base font-medium mb-2.5">
+                  <label htmlFor="overview-name" className="block text-base font-medium mb-2.5">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="overview-name"
                     type="text"
                     required
                     value={editFormData.name}
@@ -290,10 +334,11 @@ function Overview({ patient }: OverviewProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">
+                  <label htmlFor="overview-dob" className="block text-base font-medium mb-2.5">
                     Date of Birth
                   </label>
                   <input
+                    id="overview-dob"
                     type="date"
                     value={editFormData.dob}
                     onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
@@ -301,10 +346,11 @@ function Overview({ patient }: OverviewProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">
+                  <label htmlFor="overview-gender" className="block text-base font-medium mb-2.5">
                     Gender <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="overview-gender"
                     required
                     value={editFormData.gender}
                     onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
@@ -318,10 +364,11 @@ function Overview({ patient }: OverviewProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">
+                  <label htmlFor="overview-bp" className="block text-base font-medium mb-2.5">
                     Blood Pressure
                   </label>
                   <input
+                    id="overview-bp"
                     type="text"
                     placeholder="e.g., 120/80"
                     value={editFormData.bp}
@@ -330,10 +377,11 @@ function Overview({ patient }: OverviewProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">
+                  <label htmlFor="overview-condition" className="block text-base font-medium mb-2.5">
                     Primary Condition
                   </label>
                   <input
+                    id="overview-condition"
                     type="text"
                     value={editFormData.condition}
                     onChange={(e) => setEditFormData({ ...editFormData, condition: e.target.value })}
@@ -342,10 +390,11 @@ function Overview({ patient }: OverviewProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">
+                  <label htmlFor="overview-phone" className="block text-base font-medium mb-2.5">
                     Phone
                   </label>
                   <input
+                    id="overview-phone"
                     type="tel"
                     value={editFormData.phone}
                     onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
@@ -354,10 +403,11 @@ function Overview({ patient }: OverviewProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">
+                  <label htmlFor="overview-email" className="block text-base font-medium mb-2.5">
                     Email
                   </label>
                   <input
+                    id="overview-email"
                     type="email"
                     value={editFormData.email}
                     onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
@@ -367,10 +417,11 @@ function Overview({ patient }: OverviewProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                <label htmlFor="overview-address" className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                   Address
                 </label>
                 <textarea
+                  id="overview-address"
                   value={editFormData.address}
                   onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
                   placeholder="Street address, City, State ZIP"
@@ -384,10 +435,11 @@ function Overview({ patient }: OverviewProps) {
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Emergency Contact</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="overview-emergency-name" className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Name
                     </label>
                     <input
+                      id="overview-emergency-name"
                       type="text"
                       value={editFormData.emergencyContact.name}
                       onChange={(e) => setEditFormData({
@@ -398,10 +450,11 @@ function Overview({ patient }: OverviewProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="overview-emergency-relationship" className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Relationship
                     </label>
                     <input
+                      id="overview-emergency-relationship"
                       type="text"
                       value={editFormData.emergencyContact.relationship}
                       onChange={(e) => setEditFormData({
@@ -413,10 +466,11 @@ function Overview({ patient }: OverviewProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="overview-emergency-phone" className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Phone
                     </label>
                     <input
+                      id="overview-emergency-phone"
                       type="tel"
                       value={editFormData.emergencyContact.phone}
                       onChange={(e) => setEditFormData({
@@ -435,10 +489,11 @@ function Overview({ patient }: OverviewProps) {
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Insurance Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="overview-insurance-provider" className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Provider
                     </label>
                     <input
+                      id="overview-insurance-provider"
                       type="text"
                       value={editFormData.insurance.provider}
                       onChange={(e) => setEditFormData({
@@ -450,10 +505,11 @@ function Overview({ patient }: OverviewProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="overview-insurance-policy" className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Policy Number
                     </label>
                     <input
+                      id="overview-insurance-policy"
                       type="text"
                       value={editFormData.insurance.policyNumber}
                       onChange={(e) => setEditFormData({
@@ -465,10 +521,11 @@ function Overview({ patient }: OverviewProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="overview-insurance-group" className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Group Number
                     </label>
                     <input
+                      id="overview-insurance-group"
                       type="text"
                       value={editFormData.insurance.groupNumber}
                       onChange={(e) => setEditFormData({
@@ -506,7 +563,9 @@ function Overview({ patient }: OverviewProps) {
             <div className="space-y-4">
               <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400 font-sans">Age</span>
-                <span className="text-base font-semibold text-gray-900 dark:text-gray-100 font-sans">{patient.age} years</span>
+                <span className="text-base font-semibold text-gray-900 dark:text-gray-100 font-sans">
+                  {typeof patient.age === 'number' && !Number.isNaN(patient.age) ? `${patient.age} yrs` : 'Not recorded'}
+                </span>
               </div>
               <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400 font-sans">Gender</span>
@@ -786,7 +845,7 @@ function Overview({ patient }: OverviewProps) {
         <div className="card">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Calendar size={20} className="text-teal-600 dark:text-teal-400" />
-            Upcoming Appointments
+            Appointment Schedule
           </h3>
           {upcomingAppointments.length > 0 ? (
             <div className="space-y-3">

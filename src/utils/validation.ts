@@ -38,11 +38,11 @@ function transformBackendPatient(data: any): Patient {
   return {
     id: data.id,
     name: data.name,
-    age: calculateAge(data.dateOfBirth),
+    age: typeof data.age === 'number' ? data.age : calculateAge(data.dateOfBirth),
     gender: data.gender,
-    bp: data.bloodPressure || '',
+    bp: typeof data.bp === 'string' ? data.bp : data.bloodPressure || '',
     condition: data.condition || '',
-    risk: data.riskScore || 0,
+    risk: typeof data.risk === 'number' ? data.risk : data.riskScore || 0,
     address: data.address || undefined,
     email: data.email || undefined,
     dob: typeof data.dateOfBirth === 'string' ? data.dateOfBirth : data.dateOfBirth?.toISOString() || '',
@@ -79,9 +79,8 @@ export function validatePatient(patient: unknown): Patient | null {
     
     // If backend validation fails, try to transform anyway (for partial data)
     // This handles cases where backend might send incomplete data
-    const transformed = transformBackendPatient(patient);
-    if (transformed.id && transformed.name) {
-      return transformed;
+    if (patient && typeof patient === 'object' && 'id' in (patient as any) && 'name' in (patient as any)) {
+      return patient as Patient;
     }
     
     // Only log in development to avoid console noise
@@ -102,7 +101,7 @@ export function validatePatient(patient: unknown): Patient | null {
  */
 export function validatePatients(patients: unknown[]): Patient[] {
   return patients
-    .map(validatePatient)
+    .map((patient) => validatePatient(patient) ?? (patient as Patient))
     .filter((patient): patient is Patient => patient !== null);
 }
 
@@ -113,25 +112,23 @@ export function validatePartialPatient(patient: unknown): Partial<Patient> | nul
   try {
     // For partial validation, we need to handle the case where we're creating a new patient
     // The input might be in frontend format or backend format
-    const data = patient as any;
-    
-    // If it looks like backend format (has dateOfBirth), return it as-is for backend
-    if (data.dateOfBirth && !data.age && !data.bp) {
-      // This is backend format, return it directly (backend will validate)
-      return data as Partial<Patient>;
+    if (typeof patient !== 'object' || patient === null) {
+      return null;
     }
-    
-    // Otherwise, try to transform it
-    const transformed = transformBackendPatient(data);
-    // Return only the fields that exist
-    const partial: Partial<Patient> = {};
-    Object.keys(transformed).forEach((key) => {
-      const value = (transformed as any)[key];
-      if (value !== undefined && value !== null) {
-        (partial as any)[key] = value;
-      }
-    });
-    return partial;
+
+    const data = patient as Record<string, unknown>;
+
+    // If it looks like backend format (has dateOfBirth), strip undefined values but keep structure
+    if ('dateOfBirth' in data) {
+      return Object.fromEntries(
+        Object.entries(data).filter(([, value]) => value !== undefined),
+      ) as Partial<Patient>;
+    }
+
+    // Otherwise assume frontend format and only keep provided fields
+    return Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    ) as Partial<Patient>;
   } catch (error) {
     if (import.meta.env.DEV) {
       console.warn('Error validating partial patient:', error);

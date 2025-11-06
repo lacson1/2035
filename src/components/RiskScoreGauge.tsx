@@ -11,9 +11,14 @@ export default function RiskScoreGauge({ risk }: RiskScoreGaugeProps) {
   const validRisk = Math.max(0, Math.min(100, risk || 0));
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const supportsResizeObserver = typeof window !== "undefined" && typeof window.ResizeObserver !== "undefined";
 
   // Wait for container to have dimensions before rendering chart
   useEffect(() => {
+    if (!supportsResizeObserver) {
+      return;
+    }
+
     if (!containerRef.current) return;
 
     const checkDimensions = () => {
@@ -29,7 +34,7 @@ export default function RiskScoreGauge({ risk }: RiskScoreGaugeProps) {
     if (checkDimensions()) return;
 
     // Use ResizeObserver to detect when container gets dimensions
-    const resizeObserver = new ResizeObserver((entries) => {
+    const resizeObserver = new window.ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
           setIsReady(true);
@@ -45,12 +50,12 @@ export default function RiskScoreGauge({ risk }: RiskScoreGaugeProps) {
         setIsReady(true);
       }
     }, 200);
-    
+
     return () => {
       resizeObserver.disconnect();
       clearTimeout(timeout);
     };
-  }, []);
+  }, [supportsResizeObserver]);
 
   // Calculate the gauge data
   const data = [
@@ -64,38 +69,55 @@ export default function RiskScoreGauge({ risk }: RiskScoreGaugeProps) {
 
   return (
     <div className="flex flex-col items-center">
-      <div 
-        ref={containerRef}
-        className="relative w-full" 
-        style={{ width: "100%", height: "200px", minHeight: "200px", minWidth: "200px" }}
-      >
-        {isReady ? (
-          <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={200}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                startAngle={90}
-                endAngle={-270}
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={0}
-                dataKey="value"
-                label={renderCustomLabel}
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-sm text-gray-400">Loading...</div>
+      {supportsResizeObserver ? (
+        <div
+          ref={containerRef}
+          className="relative w-full"
+          style={{ width: "100%", height: "200px", minHeight: "200px", minWidth: "200px" }}
+        >
+          {isReady ? (
+            <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={200}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  startAngle={90}
+                  endAngle={-270}
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={0}
+                  dataKey="value"
+                  label={renderCustomLabel}
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-sm text-gray-400">Loading...</div>
+            </div>
+          )}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div
+              className="text-4xl font-bold"
+              style={{ color: getRiskColorHex(validRisk) }}
+            >
+              {validRisk}%
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {getRiskLabel(validRisk)} Risk
+            </div>
           </div>
-        )}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        </div>
+      ) : (
+        <div
+          className="flex flex-col items-center justify-center"
+          style={{ width: "100%", minHeight: "200px", minWidth: "200px" }}
+        >
           <div
             className="text-4xl font-bold"
             style={{ color: getRiskColorHex(validRisk) }}
@@ -106,7 +128,7 @@ export default function RiskScoreGauge({ risk }: RiskScoreGaugeProps) {
             {getRiskLabel(validRisk)} Risk
           </div>
         </div>
-      </div>
+      )}
       <div className="mt-4 flex gap-4 text-xs">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
