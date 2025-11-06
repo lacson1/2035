@@ -326,7 +326,7 @@ export function validateEmail(email: string): ValidationResult {
     return { isValid: false, error: "Email is required" };
   }
   if (!emailPattern.test(email)) {
-    return { isValid: false, error: "Please enter a valid email address" };
+    return { isValid: false, error: "Invalid email address" };
   }
   return { isValid: true };
 }
@@ -383,14 +383,30 @@ export function formatPhoneNumber(value: string): string {
 export function formatDate(value: string): string {
   const cleaned = value.replace(/\D/g, "");
   if (cleaned.length === 0) return "";
-  
+
   if (cleaned.length <= 2) {
     return cleaned;
-  } else if (cleaned.length <= 4) {
-    return `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
-  } else {
-    return `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
   }
+
+  if (cleaned.length <= 4) {
+    return `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+  }
+
+  const month = cleaned.slice(0, 2);
+  const day = cleaned.slice(2, 4);
+  let year = cleaned.slice(4, 8);
+
+  if (year.length === 0) {
+    return `${month}/${day}`;
+  }
+
+  if (year.length === 2) {
+    year = year.padStart(4, '20');
+  } else if (year.length < 4) {
+    year = year.padEnd(4, '0');
+  }
+
+  return `${month}/${day}/${year}`;
 }
 
 // Get field hints/help text

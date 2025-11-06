@@ -1,6 +1,9 @@
 import apiClient, { ApiResponse } from './api';
 import { Patient } from '../types';
-import { validatePatient, validatePatients, validatePartialPatient } from '../utils/validation';
+import { validatePatient, validatePartialPatient } from '../utils/validation';
+
+const isBackendPatient = (patient: unknown): patient is Record<string, unknown> =>
+  typeof patient === 'object' && patient !== null && 'dateOfBirth' in patient;
 
 export interface PatientListParams {
   page?: number;
@@ -28,11 +31,24 @@ export const patientService = {
    * Get list of patients with filters and pagination
    */
   async getPatients(params?: PatientListParams): Promise<ApiResponse<PatientListResponse>> {
-    const response = await apiClient.get<PatientListResponse>('/v1/patients', params as Record<string, string>);
+    const queryParams = params
+      ? Object.fromEntries(
+          Object.entries(params).map(([key, value]) => [key, value?.toString() ?? ''])
+        )
+      : undefined;
+
+    const response = await apiClient.get<PatientListResponse>('/v1/patients', queryParams);
     
     // Validate response data
     if (response.data.patients) {
-      response.data.patients = validatePatients(response.data.patients);
+      response.data.patients = response.data.patients.map((patient) => {
+        if (isBackendPatient(patient)) {
+          const validated = validatePatient(patient);
+          return (validated ?? patient) as Patient;
+        }
+
+        return patient as Patient;
+      });
     }
     
     return response;
@@ -45,12 +61,14 @@ export const patientService = {
     const response = await apiClient.get<Patient>(`/v1/patients/${id}`);
     
     // Validate patient data
-    const validated = validatePatient(response.data);
-    if (!validated) {
-      throw new Error('Invalid patient data received from API');
+    if (isBackendPatient(response.data)) {
+      const validated = validatePatient(response.data);
+      if (!validated) {
+        throw new Error('Invalid patient data received from API');
+      }
+      response.data = validated;
     }
-    response.data = validated;
-    
+
     return response;
   },
 
@@ -67,12 +85,14 @@ export const patientService = {
     const response = await apiClient.post<Patient>('/v1/patients', validated);
     
     // Validate response
-    const responseValidated = validatePatient(response.data);
-    if (!responseValidated) {
-      throw new Error('Invalid response data received from API');
+    if (isBackendPatient(response.data)) {
+      const responseValidated = validatePatient(response.data);
+      if (!responseValidated) {
+        throw new Error('Invalid response data received from API');
+      }
+      response.data = responseValidated;
     }
-    response.data = responseValidated;
-    
+
     return response;
   },
 
@@ -89,11 +109,13 @@ export const patientService = {
     const response = await apiClient.put<Patient>(`/v1/patients/${id}`, validated);
     
     // Validate response
-    const responseValidated = validatePatient(response.data);
-    if (!responseValidated) {
-      throw new Error('Invalid response data received from API');
+    if (isBackendPatient(response.data)) {
+      const responseValidated = validatePatient(response.data);
+      if (!responseValidated) {
+        throw new Error('Invalid response data received from API');
+      }
+      response.data = responseValidated;
     }
-    response.data = responseValidated;
     
     return response;
   },

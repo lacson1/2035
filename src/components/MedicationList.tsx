@@ -894,12 +894,16 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
             <form onSubmit={handleAddMedication} className="p-6 space-y-5">
               {/* Drug Name with Autocomplete */}
               <div className="relative" ref={autocompleteRef}>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="medication-name-input"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
                   Drug Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input
+                    id="medication-name-input"
                     ref={inputRef}
                     type="text"
                     required

@@ -13,7 +13,7 @@ interface FilterState {
   sortBy: "name" | "risk" | "recent";
 }
 
-export const usePatientSearch = ({ patients, debounceMs = 300 }: UsePatientSearchOptions) => {
+export const usePatientSearch = ({ patients, debounceMs = 0 }: UsePatientSearchOptions) => {
   const [filterState, setFilterState] = useState<FilterState>({
     searchQuery: "",
     filterRisk: "all",
@@ -24,6 +24,11 @@ export const usePatientSearch = ({ patients, debounceMs = 300 }: UsePatientSearc
 
   // Debounce search query
   useEffect(() => {
+    if (debounceMs <= 0) {
+      setDebouncedSearchQuery(filterState.searchQuery);
+      return;
+    }
+
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(filterState.searchQuery);
     }, debounceMs);
@@ -60,18 +65,25 @@ export const usePatientSearch = ({ patients, debounceMs = 300 }: UsePatientSearc
     let filtered = [...patients];
 
     // Search filter using indexed search
-    if (debouncedSearchQuery) {
-      const query = debouncedSearchQuery.toLowerCase().trim();
+    const searchTerm = debounceMs > 0 ? debouncedSearchQuery : filterState.searchQuery;
+
+    if (searchTerm) {
+      const query = searchTerm.toLowerCase().trim();
       const queryWords = query.split(/\s+/);
       
-      const matchingIds = new Set(
-        searchIndex
-          .filter((item) => {
-            // Match all query words
-            return queryWords.every((word) => item.searchableText.includes(word));
-          })
-          .map((item) => item.id)
-      );
+    const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const matchingIds = new Set(
+      searchIndex
+        .filter((item) => {
+          return queryWords.every((word) => {
+            if (!word) return true;
+            const wordRegex = new RegExp(`\\b${escapeRegExp(word)}\\b`, 'i');
+            return wordRegex.test(item.searchableText);
+          });
+        })
+        .map((item) => item.id)
+    );
 
       filtered = filtered.filter((p) => matchingIds.has(p.id));
     }
@@ -108,7 +120,7 @@ export const usePatientSearch = ({ patients, debounceMs = 300 }: UsePatientSearc
     });
 
     return filtered;
-  }, [patients, debouncedSearchQuery, filterState, searchIndex]);
+  }, [patients, debouncedSearchQuery, filterState, searchIndex, debounceMs]);
 
   const updateFilter = useCallback((updates: Partial<FilterState>) => {
     setFilterState((prev) => ({ ...prev, ...updates }));

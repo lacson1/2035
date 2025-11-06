@@ -126,7 +126,7 @@ export default function OverviewSummaryCards({ patient }: OverviewSummaryCardsPr
       </div>
       
       <div className="flex items-center gap-4 mb-3">
-        <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{count}</div>
+        <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{count > 0 ? count : "None"}</div>
         {pending !== undefined && pending > 0 && (
           <div className="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400">
             <AlertCircle size={14} />

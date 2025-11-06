@@ -46,7 +46,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (token) {
       fetchCurrentUser();
     } else {
-      setIsLoading(false);
+      const timeout = setTimeout(() => setIsLoading(false), 0);
+      return () => clearTimeout(timeout);
     }
   }, [fetchCurrentUser]);
 
