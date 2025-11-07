@@ -1,20 +1,24 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_API_BASE_URL?: string
+  readonly VITE_API_BASE_URL: string
   readonly VITE_SENTRY_DSN?: string
-  readonly MODE: 'development' | 'production' | 'test'
-  // Add more env variables as needed
+  readonly DEV: boolean
+  readonly PROD: boolean
+  readonly MODE: string
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
 
-// For process.env.NODE_ENV (Vite provides this via import.meta.env.MODE)
-declare var process: {
-  env: {
-    NODE_ENV: 'development' | 'production' | 'test'
+// Add process.env types for compatibility
+declare namespace NodeJS {
+  interface ProcessEnv {
+    readonly NODE_ENV: 'development' | 'production' | 'test'
   }
 }
 
+declare const process: {
+  env: NodeJS.ProcessEnv
+}

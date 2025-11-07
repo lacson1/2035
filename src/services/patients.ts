@@ -132,12 +132,18 @@ export const patientService = {
    */
   async searchPatients(query: string): Promise<ApiResponse<Patient[]>> {
     const response = await apiClient.get<Patient[]>('/v1/patients/search', { q: query });
-    
+
     // Validate response data
     if (response.data) {
-      response.data = validatePatients(response.data);
+      response.data = response.data.map((patient) => {
+        if (isBackendPatient(patient)) {
+          const validated = validatePatient(patient);
+          return (validated ?? patient) as Patient;
+        }
+        return patient as Patient;
+      });
     }
-    
+
     return response;
   },
 };
