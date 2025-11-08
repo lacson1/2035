@@ -136,18 +136,27 @@ See [FORM_IMPROVEMENTS.md](./FORM_IMPROVEMENTS.md) and [BUILD_MONITORING.md](./B
 - **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** - Complete deployment guide (Render + Vercel)
 - **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[docs/BACKEND.md](./docs/BACKEND.md)** - Backend development guide
+- **[docs/README.md](./docs/README.md)** - Complete documentation index
 
 **Getting Started:**
 - **[QUICK_START.md](./QUICK_START.md)** - Get started in minutes
 - **[README_FULL_STACK.md](./README_FULL_STACK.md)** - Full-stack overview
 
-**Recent Features:**
+**Feature Guides:**
 - **[FORM_IMPROVEMENTS.md](./FORM_IMPROVEMENTS.md)** - Enhanced form components and accessibility
 - **[BUILD_MONITORING.md](./BUILD_MONITORING.md)** - Build monitoring and optimization guide
+- **[IMAGING_GUIDE.md](./IMAGING_GUIDE.md)** - Imaging studies guide
+- **[PRINT_MULTIPLE_ORDERS_GUIDE.md](./PRINT_MULTIPLE_ORDERS_GUIDE.md)** - Print orders guide
 
-**API & Integration:**
+**Reference:**
 - **[API_ENDPOINTS.md](./API_ENDPOINTS.md)** - Complete API documentation
-- **[INTEGRATION_CHECKLIST.md](./INTEGRATION_CHECKLIST.md)** - Integration checklist
+- **[TESTING.md](./TESTING.md)** - Testing guidelines
+- **[ERROR_HANDLING.md](./ERROR_HANDLING.md)** - Error handling guide
+- **[SECURITY_AUDIT.md](./SECURITY_AUDIT.md)** - Security audit and best practices
+- **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)** - Design system reference
+- **[ACCESSIBILITY.md](./ACCESSIBILITY.md)** - Accessibility guidelines
+- **[PERFORMANCE.md](./PERFORMANCE.md)** - Performance optimization
+- **[MOBILE_RESPONSIVENESS.md](./MOBILE_RESPONSIVENESS.md)** - Mobile responsiveness guide
 
 ### Tech Stack
 
