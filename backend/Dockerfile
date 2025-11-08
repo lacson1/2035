@@ -19,8 +19,8 @@ RUN npm ci
 
 # Generate Prisma Client (after installing dependencies, before building)
 # Force Debian binary target in builder stage too
-ENV PRISMA_BINARY_TARGETS=debian-openssl-3.0.x
-RUN npx prisma generate --schema=./prisma/schema.prisma
+ENV PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x
+RUN npx prisma generate --schema=./prisma/schema.prisma --binary-targets=debian-openssl-1.1.x,debian-openssl-3.0.x
 
 # Copy source code
 COPY . .
@@ -54,11 +54,15 @@ RUN npm install -g prisma@^5.7.1
 # Copy Prisma schema to regenerate Prisma Client for Debian (glibc) platform
 # IMPORTANT: We regenerate here instead of copying from builder to ensure Debian binary
 COPY --from=builder /app/prisma ./prisma
+
 # Regenerate Prisma Client for Debian platform (ensures correct binary, not Alpine/musl)
 # This must happen AFTER installing dependencies and BEFORE copying dist
-# Use debian-openssl-1.1.x for compatibility with libssl.so.1.1
+# Force Debian binary targets - don't let Prisma auto-detect
 ENV PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x
-RUN npx prisma generate --schema=./prisma/schema.prisma
+ENV PRISMA_QUERY_ENGINE_LIBRARY=debian-openssl-1.1.x
+# Remove any existing Prisma client to force regeneration
+RUN rm -rf node_modules/.prisma 2>/dev/null || true
+RUN npx prisma generate --schema=./prisma/schema.prisma --binary-targets=debian-openssl-1.1.x,debian-openssl-3.0.x
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist

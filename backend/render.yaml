@@ -3,7 +3,7 @@ services:
     name: physician-dashboard-backend
     env: node
     plan: free  # Change to 'starter' or 'standard' for production
-    buildCommand: npm install && npm run build && npx prisma generate
+    buildCommand: PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x npm install && npm run build && PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x npx prisma generate --binary-targets=debian-openssl-1.1.x,debian-openssl-3.0.x
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -22,6 +22,10 @@ services:
         sync: false  # Set to your Vercel frontend URL
       - key: SENTRY_DSN
         sync: false  # Optional - set if using Sentry
+      - key: PRISMA_BINARY_TARGETS
+        value: debian-openssl-1.1.x,debian-openssl-3.0.x
+      - key: PRISMA_QUERY_ENGINE_LIBRARY
+        value: debian-openssl-1.1.x
     healthCheckPath: /health
     autoDeploy: true
 
