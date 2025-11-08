@@ -43,8 +43,10 @@ RUN npm ci --only=production && npm cache clean --force
 RUN npm install -g prisma@^5.7.1
 
 # Copy Prisma schema to regenerate Prisma Client for Debian (glibc) platform
+# IMPORTANT: We regenerate here instead of copying from builder to ensure Debian binary
 COPY --from=builder /app/prisma ./prisma
 # Regenerate Prisma Client for Debian platform (ensures correct binary, not Alpine/musl)
+# This must happen AFTER installing dependencies and BEFORE copying dist
 RUN npx prisma generate
 
 # Copy built files from builder

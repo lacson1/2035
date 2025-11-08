@@ -49,7 +49,7 @@ export const config = {
     url: process.env.DATABASE_URL || '',
   },
   redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    url: process.env.REDIS_URL || '',
   },
   jwt: {
     secret: jwtSecret || 'change-me-in-production',
