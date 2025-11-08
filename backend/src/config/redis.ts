@@ -59,12 +59,7 @@ export const createRedisClient = (): Redis | null => {
 
 export const getRedisClient = (): Redis | null => {
   if (!redis) {
-    try {
-      return createRedisClient();
-    } catch (error) {
-      logger.error('Failed to create Redis client:', error);
-      return null;
-    }
+    return createRedisClient();
   }
   return redis;
 };
