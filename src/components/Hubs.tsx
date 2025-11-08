@@ -333,7 +333,9 @@ export default function Hubs() {
 
   // Debug: Log hubs state changes
   useEffect(() => {
-    console.log(`🔍 Hubs component state: ${hubs.length} hubs`, hubs.map(h => h.name));
+    if (Array.isArray(hubs)) {
+      console.log(`🔍 Hubs component state: ${hubs.length} hubs`, hubs.map(h => h?.name || 'Unknown'));
+    }
   }, [hubs]);
 
   // Load hub data when hub is selected
@@ -1638,13 +1640,14 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
       return sum + resources.length;
     }, 0);
 
-    const hubPerformance = hubs.map(hub => {
+    const hubPerformance = (Array.isArray(hubs) ? hubs : []).map(hub => {
+      if (!hub) return null;
       const stats = getHubStats(patients, hub.id);
       const functions = hubFunctions[hub.id] || [];
       const resources = hubResources[hub.id] || [];
       const score = ((stats?.totalPatients ?? 0) * 2) + ((stats?.activeAppointments ?? 0) * 3) + functions.length + resources.length;
       return { hub, score };
-    }).sort((a, b) => b.score - a.score);
+    }).filter((item): item is { hub: Hub; score: number } => item !== null).sort((a, b) => b.score - a.score);
 
     return {
       totalPatients,

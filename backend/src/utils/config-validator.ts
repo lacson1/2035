@@ -66,8 +66,8 @@ export class ConfigValidator {
       return;
     }
 
-    // Check if it's a valid PostgreSQL URL
-    const postgresRegex = /^postgresql:\/\/.+:.+@.+:\d+\/.+/;
+    // Check if it's a valid PostgreSQL URL (postgres:// or postgresql://)
+    const postgresRegex = /^postgres(ql)?:\/\/.+:.+@.+:\d+\/.+/;
     if (!postgresRegex.test(dbUrl)) {
       this.errors.push('DATABASE_URL must be a valid PostgreSQL connection string');
     }

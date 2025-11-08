@@ -36,10 +36,13 @@ export const createRedisClient = (): Redis | null => {
       logger.info('✅ Redis connected successfully');
     });
 
-    redis.on('error', (err) => {
+    redis.on('error', (err: any) => {
       // Only log if it's not a connection refused error (expected when Redis is not available)
       if (err.code !== 'ECONNREFUSED') {
         logger.warn('⚠️  Redis connection error (non-critical):', err.message);
+      } else {
+        // Connection refused is expected when Redis is not available - log as info
+        logger.info('ℹ️  Redis not available, continuing without cache');
       }
       // Don't throw - allow app to continue without Redis
     });

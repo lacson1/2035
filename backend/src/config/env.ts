@@ -63,6 +63,8 @@ export const config = {
       : [
           'http://localhost:5173', 
           'https://*.vercel.app',
+          'https://2035.fly.dev',
+          'https://physician-dashboard.fly.dev',
           'https://2035-851d9jfja-lacs-projects-650efe27.vercel.app',
           'https://2035-git-cursor-run-application-a271-lacs-projects-650efe27.vercel.app'
         ],

@@ -1,10 +1,12 @@
 services:
   - type: web
     name: physician-dashboard-backend
-    env: node
+    env: docker  # Using Docker for consistent builds
     plan: free  # Change to 'starter' or 'standard' for production
-    buildCommand: PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x npm install && npm run build && PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x npx prisma generate --binary-targets=debian-openssl-1.1.x,debian-openssl-3.0.x
-    startCommand: npm start
+    # When using Docker, set these in Render dashboard:
+    # - Docker Build Context: backend
+    # - Dockerfile Path: backend/Dockerfile
+    # buildCommand and startCommand are handled by Dockerfile
     envVars:
       - key: NODE_ENV
         value: production
@@ -24,8 +26,6 @@ services:
         sync: false  # Optional - set if using Sentry
       - key: PRISMA_BINARY_TARGETS
         value: debian-openssl-1.1.x,debian-openssl-3.0.x
-      - key: PRISMA_QUERY_ENGINE_LIBRARY
-        value: debian-openssl-1.1.x
     healthCheckPath: /health
     autoDeploy: true
 

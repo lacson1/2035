@@ -62,6 +62,9 @@ import { configValidator } from './utils/config-validator';
 
 const app = express();
 
+// Trust proxy for Fly.io (required for rate limiting and X-Forwarded-For header)
+app.set('trust proxy', true);
+
 // Sentry request handler must be the first middleware
 if (process.env.SENTRY_DSN) {
   app.use(Sentry.Handlers.requestHandler());
@@ -288,7 +291,7 @@ logger.info('✅ Configuration validation passed');
 
 // Start server
 // Use PORT from environment (Render/Vercel) or fallback to config
-const PORT = process.env.PORT || config.port;
+const PORT = parseInt(process.env.PORT || String(config.port), 10);
 
 // Auto-seed hubs on startup (non-blocking)
 seedHubsIfNeeded().catch((error) => {

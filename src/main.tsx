@@ -107,7 +107,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // Suppress React StrictMode double-invocation warnings and browser extension errors
 // These are intentional and don't indicate real problems
-  const originalError = console.error;
+const originalError = console.error;
 const originalWarn = console.warn;
 
 // Helper function to check if error is from Chrome extension
@@ -133,33 +133,33 @@ const isChromeExtensionError = (arg: any): boolean => {
   return false;
 };
 
-  console.error = (...args: any[]) => {
-    // Filter out React StrictMode warnings
-    if (
-      typeof args[0] === 'string' &&
-      (args[0].includes('Warning: ReactDOM.render') ||
-       args[0].includes('findDOMNode') ||
-       args[0].includes('componentWillReceiveProps') ||
-       args[0].includes('componentWillMount') ||
-       args[0].includes('componentWillUpdate'))
-    ) {
-      return;
-    }
-  
+console.error = (...args: any[]) => {
+  // Filter out React StrictMode warnings
+  if (
+    typeof args[0] === 'string' &&
+    (args[0].includes('Warning: ReactDOM.render') ||
+     args[0].includes('findDOMNode') ||
+     args[0].includes('componentWillReceiveProps') ||
+     args[0].includes('componentWillMount') ||
+     args[0].includes('componentWillUpdate'))
+  ) {
+    return;
+  }
+
   // Filter out Chrome extension errors
   if (args.some(isChromeExtensionError)) {
-      return;
-    }
-  
-    originalError.apply(console, args);
-  };
+    return;
+  }
+
+  originalError.apply(console, args);
+};
 
 console.warn = (...args: any[]) => {
   // Filter out Chrome extension warnings
   if (args.some(isChromeExtensionError)) {
     return;
-}
-  
+  }
+
   originalWarn.apply(console, args);
 };
 

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Connection Diagnostic</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .test {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test h3 {
+            margin-top: 0;
+            color: #666;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            border: 1px solid #ddd;
+        }
+        .result {
+            margin-top: 10px;
+        }
+        .error-message {
+            color: #d32f2f;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .alert {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Backend Connection Diagnostic</h1>
+        <div class="info">
+            <strong>This tool will help diagnose frontend-to-backend connection issues.</strong><br>
+            Running from: <code id="currentUrl"></code>
+        </div>
+
+        <div id="swAlert" class="alert" style="display: none;">
+            <strong>⚠️ Service Worker Detected!</strong><br>
+            A Service Worker might be interfering with API requests.
+            <button onclick="unregisterServiceWorker()" class="danger" style="margin-top: 10px;">Unregister Service Worker</button>
+        </div>
+
+        <button onclick="runAllTests()" id="runBtn">▶️ Run All Tests</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+        <button onclick="checkServiceWorker()">🔍 Check Service Worker</button>
+        <button onclick="clearAllCache()" class="danger">🗑️ Clear All Cache</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Display current URL
+        document.getElementById('currentUrl').textContent = window.location.href;
+
+        const API_BASE = 'http://localhost:3000';
+        const API_URL = 'http://localhost:3000/api';
+
+        // Check for Service Worker on load
+        window.addEventListener('load', async () => {
+            await checkServiceWorker();
+        });
+
+        async function checkServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                if (registrations.length > 0) {
+                    document.getElementById('swAlert').style.display = 'block';
+                    console.warn('Service Workers detected:', registrations.length);
+                    registrations.forEach((reg, i) => {
+                        console.log(`SW ${i + 1}:`, reg.scope);
+                    });
+                } else {
+                    document.getElementById('swAlert').style.display = 'none';
+                    console.log('✅ No Service Workers registered');
+                }
+            }
+        }
+
+        async function unregisterServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+                alert('Service Workers unregistered! Please reload the page.');
+                await checkServiceWorker();
+            }
+        }
+
+        async function clearAllCache() {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+                alert(`Cleared ${cacheNames.length} caches!`);
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('All cache and storage cleared! Please reload the page.');
+            window.location.reload();
+        }
+
+        function log(testId, message, status = 'info') {
+            const testDiv = document.getElementById(testId);
+            const resultDiv = testDiv.querySelector('.result');
+            const timestamp = new Date().toLocaleTimeString();
+            const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : 'warning';
+            resultDiv.innerHTML += `<div style="margin: 5px 0;"><span class="status ${statusClass}">${status.toUpperCase()}</span> [${timestamp}] ${message}</div>`;
+        }
+
+        function createTest(id, title) {
+            const resultsDiv = document.getElementById('results');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test';
+            testDiv.id = id;
+            testDiv.innerHTML = `
+                <h3>${title} <span class="status loading">Running...</span></h3>
+                <div class="result"></div>
+            `;
+            resultsDiv.appendChild(testDiv);
+            return testDiv;
+        }
+
+        function updateTestStatus(testId, status, message = '') {
+            const testDiv = document.getElementById(testId);
+            const statusSpan = testDiv.querySelector('.status');
+            statusSpan.className = `status ${status}`;
+            statusSpan.textContent = status.toUpperCase();
+            if (message) {
+                log(testId, message, status);
+            }
+        }
+
+        async function test1_BasicConnectivity() {
+            const testId = 'test1';
+            createTest(testId, 'Test 1: Basic Connectivity');
+            
+            try {
+                log(testId, 'Testing connection to backend server...');
+                log(testId, `URL: ${API_BASE}/health`);
+                
+                const response = await fetch(`${API_BASE}/health`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store' // Bypass cache
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(testId, `✅ Backend is reachable`, 'success');
+                    log(testId, `Response: ${JSON.stringify(data, null, 2)}`);
+                    updateTestStatus(testId, 'success', `Status: ${data.status}, Environment: ${data.environment}`);
+                } else {
+                    log(testId, `❌ Backend returned status: ${response.status}`, 'error');
+                    updateTestStatus(testId, 'error');
+                }
+            } catch (error) {
+                log(testId, `❌ Connection failed: ${error.message}`, 'error');
+                log(testId, `Error type: ${error.name}`);
+                log(testId, 'Make sure backend is running: cd backend && npm run dev');
+                
+                if (error.message.includes('Failed to fetch')) {
+                    log(testId, '💡 Possible causes:', 'warning');
+                    log(testId, '   - Backend not running on port 3000');
+                    log(testId, '   - Service Worker blocking requests');
+                    log(testId, '   - Browser security policy');
+                    log(testId, '   - CORS misconfiguration');
+                }
+                
+                updateTestStatus(testId, 'error');
+            }
+        }
+
+        async function test2_ServiceWorkerCheck() {
+            const testId = 'test2';
+            createTest(testId, 'Test 2: Service Worker Status');
+            
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    
+                    if (registrations.length === 0) {
+                        log(testId, '✅ No Service Workers registered', 'success');
+                        updateTestStatus(testId, 'success', 'Clean');
+                    } else {
+                        log(testId, `⚠️ Found ${registrations.length} Service Worker(s)`, 'warning');
+                        registrations.forEach((reg, i) => {
+                            log(testId, `   SW ${i + 1}: ${reg.scope}`);
+                            log(testId, `   Active: ${reg.active ? 'Yes' : 'No'}`);
+                        });
+                        log(testId, '💡 Service Workers might be blocking API requests');
+                        updateTestStatus(testId, 'warning', `${registrations.length} active`);
+                    }
+                } else {
+                    log(testId, '✅ Service Workers not supported', 'success');
+                    updateTestStatus(testId, 'success');
+                }
+            } catch (error) {
+                log(testId, `❌ Test failed: ${error.message}`, 'error');
+                updateTestStatus(testId, 'error');
+            }
+        }
+
+        async function test3_DirectFetch() {
+            const testId = 'test3';
+            createTest(testId, 'Test 3: Direct Backend Fetch (No Cache)');
+            
+            try {
+                log(testId, 'Testing with cache: no-store...');
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(`${API_BASE}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    },
+                    cache: 'no-store',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(testId, `✅ Direct fetch successful`, 'success');
+                    log(testId, `Status: ${data.status}`);
+                    updateTestStatus(testId, 'success');
+                } else {
+                    log(testId, `❌ Status: ${response.status}`, 'error');
+                    updateTestStatus(testId, 'error');
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    log(testId, `❌ Request timed out after 5 seconds`, 'error');
+                    log(testId, 'Backend might not be running or not responding');
+                } else {
+                    log(testId, `❌ Fetch failed: ${error.message}`, 'error');
+                }
+                updateTestStatus(testId, 'error');
+            }
+        }
+
+        async function test4_CORSHeaders() {
+            const testId = 'test4';
+            createTest(testId, 'Test 4: CORS Headers');
+            
+            try {
+                log(testId, 'Checking CORS configuration...');
+                const response = await fetch(`${API_BASE}/health`, {
+                    method: 'GET',
+                    cache: 'no-store'
+                });
+                
+                const corsOrigin = response.headers.get('access-control-allow-origin');
+                const corsCredentials = response.headers.get('access-control-allow-credentials');
+                const corsMethods = response.headers.get('access-control-allow-methods');
+                
+                log(testId, `Access-Control-Allow-Origin: ${corsOrigin || 'NOT SET ❌'}`);
+                log(testId, `Access-Control-Allow-Credentials: ${corsCredentials || 'NOT SET'}`);
+                log(testId, `Access-Control-Allow-Methods: ${corsMethods || 'NOT SET'}`);
+                
+                if (corsOrigin) {
+                    log(testId, '✅ CORS is configured', 'success');
+                    updateTestStatus(testId, 'success');
+                } else {
+                    log(testId, '⚠️ CORS headers might be missing', 'warning');
+                    updateTestStatus(testId, 'warning');
+                }
+            } catch (error) {
+                log(testId, `❌ Test failed: ${error.message}`, 'error');
+                updateTestStatus(testId, 'error');
+            }
+        }
+
+        async function test5_APIEndpoint() {
+            const testId = 'test5';
+            createTest(testId, 'Test 5: API Endpoint (/api/v1/hubs)');
+            
+            try {
+                log(testId, 'Testing hubs endpoint...');
+                const response = await fetch(`${API_URL}/v1/hubs`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const hubs = data.data || [];
+                    log(testId, `✅ API endpoint working`, 'success');
+                    log(testId, `Loaded ${hubs.length} hubs from database`);
+                    if (hubs.length > 0) {
+                        log(testId, `First hub: ${hubs[0].name}`);
+                    }
+                    updateTestStatus(testId, 'success', `${hubs.length} hubs`);
+                } else {
+                    log(testId, `❌ Status: ${response.status}`, 'error');
+                    const text = await response.text();
+                    log(testId, `Error: ${text.substring(0, 200)}`);
+                    updateTestStatus(testId, 'error');
+                }
+            } catch (error) {
+                log(testId, `❌ API test failed: ${error.message}`, 'error');
+                updateTestStatus(testId, 'error');
+            }
+        }
+
+        async function runAllTests() {
+            const runBtn = document.getElementById('runBtn');
+            runBtn.disabled = true;
+            document.getElementById('results').innerHTML = '';
+            
+            await test1_BasicConnectivity();
+            await test2_ServiceWorkerCheck();
+            await test3_DirectFetch();
+            await test4_CORSHeaders();
+            await test5_APIEndpoint();
+            
+            runBtn.disabled = false;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
+

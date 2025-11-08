@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install OpenSSL for Prisma in builder stage too
 RUN apt-get update && \
-    apt-get install -y openssl ca-certificates && \
+    apt-get install -y openssl ca-certificates libssl3 && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy package files
@@ -18,9 +18,8 @@ COPY prisma ./prisma/
 RUN npm ci
 
 # Generate Prisma Client (after installing dependencies, before building)
-# Force Debian binary target in builder stage too
-ENV PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x
-RUN npx prisma generate --schema=./prisma/schema.prisma --binary-targets=debian-openssl-1.1.x,debian-openssl-3.0.x
+# Force Debian binary target in builder stage - explicitly set to avoid musl detection
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copy source code
 COPY . .
@@ -38,10 +37,9 @@ FROM node:18-slim AS production
 WORKDIR /app
 
 # Install OpenSSL and other dependencies for Prisma
-# Try to install libssl1.1 first, fallback to default openssl if not available
+# Install both OpenSSL 1.1 and 3.0 to support both binary targets
 RUN apt-get update && \
-    (apt-get install -y openssl ca-certificates libssl1.1 2>/dev/null || \
-     apt-get install -y openssl ca-certificates) && \
+    apt-get install -y openssl ca-certificates libssl3 && \
     rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies only (including Prisma CLI for migrations)
@@ -51,18 +49,14 @@ RUN npm ci --only=production && npm cache clean --force
 # Install Prisma CLI globally for migrations (install in production stage)
 RUN npm install -g prisma@^5.7.1
 
-# Copy Prisma schema to regenerate Prisma Client for Debian (glibc) platform
-# IMPORTANT: We regenerate here instead of copying from builder to ensure Debian binary
+# Copy Prisma schema (needed for migrations)
 COPY --from=builder /app/prisma ./prisma
 
-# Regenerate Prisma Client for Debian platform (ensures correct binary, not Alpine/musl)
-# This must happen AFTER installing dependencies and BEFORE copying dist
-# Force Debian binary targets - don't let Prisma auto-detect
-ENV PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x
-ENV PRISMA_QUERY_ENGINE_LIBRARY=debian-openssl-1.1.x
-# Remove any existing Prisma client to force regeneration
-RUN rm -rf node_modules/.prisma 2>/dev/null || true
-RUN npx prisma generate --schema=./prisma/schema.prisma --binary-targets=debian-openssl-1.1.x,debian-openssl-3.0.x
+# CRITICAL: Copy Prisma binaries from builder stage to avoid platform misdetection
+# The builder stage generates the correct Debian binaries, so we just copy them
+# instead of regenerating which might detect the platform incorrectly
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
@@ -71,9 +65,9 @@ COPY --from=builder /app/docker-entrypoint.sh /app/docker-entrypoint.sh
 # Make entrypoint executable
 RUN chmod +x /app/docker-entrypoint.sh
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# Create non-root user for security (Debian syntax)
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs --shell /bin/bash nodejs
 
 # Change ownership
 RUN chown -R nodejs:nodejs /app

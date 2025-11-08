@@ -1,0 +1,40 @@
+# Fly.io Configuration for Frontend (React/Vite)
+app = "2035"
+primary_region = "iad" # Washington D.C. - Change to region closest to your users
+
+# Use Dockerfile for builds
+[build]
+  dockerfile = "Dockerfile.frontend"
+
+# HTTP Service Configuration
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0 # Scale to zero on free tier
+  processes = ["app"]
+
+  # Health checks
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "30s"
+    method = "GET"
+    timeout = "3s"
+    path = "/"
+
+# VM Resources (Free tier compatible)
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256 # Frontend is static files, doesn't need much RAM
+
+# Environment Variables
+# API URL will be baked into the build
+[env]
+  VITE_API_BASE_URL = "https://physician-dashboard-backend.fly.dev/api"
+
+# Deploy configuration
+[deploy]
+  release_command = "echo 'Frontend deployed successfully'"
+

@@ -83,18 +83,18 @@ export default function HubList({
 
   // Filter and sort hubs
   const filteredHubs = useMemo(() => {
-    console.log(`🔍 HubList: Filtering ${hubs.length} hubs`, { 
-      hubsReceived: hubs.length,
-      hubNames: hubs.map(h => h.name),
-      searchTerm, 
-      filters 
-    });
-    
     // Safety check: if no hubs, return empty array
-    if (!hubs || hubs.length === 0) {
+    if (!hubs || !Array.isArray(hubs) || hubs.length === 0) {
       console.warn('⚠️ HubList: No hubs received in props');
       return [];
     }
+    
+    console.log(`🔍 HubList: Filtering ${hubs.length} hubs`, { 
+      hubsReceived: hubs.length,
+      hubNames: hubs.map(h => h?.name || 'Unknown'),
+      searchTerm, 
+      filters 
+    });
     
     let filtered = hubs.filter(hub => {
       // Safety checks for hub properties
