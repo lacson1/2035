@@ -1,0 +1,68 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - cursor/run-application-a271
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Render
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy@v1.0.0
+        with:
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+        if: ${{ secrets.RENDER_SERVICE_ID != '' && secrets.RENDER_API_KEY != '' }}
+
+      - name: Set Render Environment Variables
+        run: |
+          echo "⚠️  Render environment variables must be set manually in Render Dashboard"
+          echo "Required variables:"
+          echo "  - CORS_ORIGIN=https://2035-git-cursor-run-application-a271-lacs-projects-650efe27.vercel.app,https://*.vercel.app"
+          echo "  - DATABASE_URL=<your-render-postgres-internal-url>"
+          echo "  - JWT_SECRET=<your-jwt-secret>"
+          echo "  - JWT_REFRESH_SECRET=<your-refresh-secret>"
+          echo "  - NODE_ENV=production"
+          echo "  - PORT=3000"
+
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+        if: ${{ secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != '' }}
+
+      - name: Set Vercel Environment Variables
+        run: |
+          echo "⚠️  Vercel environment variables must be set manually in Vercel Dashboard"
+          echo "Required variables:"
+          echo "  - VITE_API_BASE_URL=https://your-backend.onrender.com/api"
+
+  notify:
+    name: Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    steps:
+      - name: Deployment Complete
+        run: |
+          echo "✅ Code pushed to GitHub"
+          echo "✅ GitHub Actions triggered deployment"
+          echo "⚠️  Remember to set environment variables in Vercel and Render dashboards"
+

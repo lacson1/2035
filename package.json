@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "deploy": "./scripts/auto-deploy.sh",
+    "setup-env": "./scripts/setup-env-vars.sh",
     "dev": "vite",
     "build": "tsc && vite build",
     "build:watch": "tsc --watch & vite build --watch",
