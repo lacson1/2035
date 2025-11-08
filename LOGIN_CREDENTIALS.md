@@ -6,7 +6,7 @@ I've created a test admin account for you:
 
 ### Login Credentials:
 - **Email**: `admin@test.com`
-- **Password**: `password123`
+- **Password**: `Admin123!`
 - **Role**: Admin (first user automatically becomes admin)
 
 ---
@@ -16,7 +16,7 @@ I've created a test admin account for you:
 1. **Open your frontend**: http://localhost:5173 (or your Vercel URL)
 2. **Enter credentials**:
    - Email: `admin@test.com`
-   - Password: `password123`
+   - Password: `Admin123!`
 3. **Click "Login"**
 
 ---
