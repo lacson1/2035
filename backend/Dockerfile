@@ -32,7 +32,7 @@ WORKDIR /app
 
 # Install OpenSSL and other dependencies for Prisma
 RUN apt-get update && \
-    apt-get install -y openssl && \
+    apt-get install -y openssl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies only (including Prisma CLI for migrations)
@@ -42,10 +42,12 @@ RUN npm ci --only=production && npm cache clean --force
 # Install Prisma CLI globally for migrations (install in production stage)
 RUN npm install -g prisma@^5.7.1
 
+# Copy Prisma schema and regenerate Prisma Client for Debian (glibc) platform
+COPY --from=builder /app/prisma ./prisma
+RUN npx prisma generate
+
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/docker-entrypoint.sh /app/docker-entrypoint.sh
 
 # Make entrypoint executable
