@@ -60,7 +60,12 @@ export const config = {
   cors: {
     origin: process.env.CORS_ORIGIN 
       ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-      : ['http://localhost:5173', 'https://*.vercel.app'],
+      : [
+          'http://localhost:5173', 
+          'https://*.vercel.app',
+          'https://2035-851d9jfja-lacs-projects-650efe27.vercel.app',
+          'https://2035-git-cursor-run-application-a271-lacs-projects-650efe27.vercel.app'
+        ],
   },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
