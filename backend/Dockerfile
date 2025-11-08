@@ -1,11 +1,9 @@
 # Multi-stage Dockerfile for Backend API
 # Stage 1: Build
-FROM node:18-alpine AS builder
+# Using Debian base instead of Alpine for better Prisma compatibility
+FROM node:18-slim AS builder
 
 WORKDIR /app
-
-# Install OpenSSL for Prisma (required for Alpine Linux)
-RUN apk add --no-cache openssl1.1-compat
 
 # Copy package files
 COPY package*.json ./
@@ -27,12 +25,15 @@ COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN npm run build
 
 # Stage 2: Production
-FROM node:18-alpine AS production
+# Using Debian base instead of Alpine for better Prisma compatibility
+FROM node:18-slim AS production
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma (required for Alpine Linux)
-RUN apk add --no-cache openssl1.1-compat
+# Install OpenSSL and other dependencies for Prisma
+RUN apt-get update && \
+    apt-get install -y openssl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies only (including Prisma CLI for migrations)
 COPY package*.json ./
