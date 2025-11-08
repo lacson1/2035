@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { imagingStudiesController } from '../controllers/imaging-studies.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/auth.middleware';
+import { uploadReport } from '../middleware/upload.middleware';
 
 const router = Router({ mergeParams: true });
 
@@ -33,6 +34,14 @@ router.delete(
   '/:studyId',
   requireRole('admin', 'physician', 'radiologist'),
   imagingStudiesController.deleteImagingStudy.bind(imagingStudiesController)
+);
+
+// POST /patients/:patientId/imaging/:studyId/upload-report - Upload report file for imaging study
+router.post(
+  '/:studyId/upload-report',
+  requireRole('admin', 'physician', 'radiologist'),
+  uploadReport,
+  imagingStudiesController.uploadReport.bind(imagingStudiesController)
 );
 
 export default router;

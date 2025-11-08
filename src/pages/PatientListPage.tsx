@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { X, Plus, RefreshCw, ArrowLeft } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
 import { useToast } from "../context/ToastContext";
@@ -9,6 +9,8 @@ import { patientService } from "../services/patients";
 import PatientDirectoryAnalytics from "../components/PatientDirectoryAnalytics";
 import DashboardEmptyState from "../components/DashboardEmptyState";
 import { PatientCardSkeleton } from "../components/SkeletonLoader";
+import AdvancedSearchPanel from "../components/AdvancedSearchPanel";
+import { SearchResult } from "../hooks/useAdvancedSearch";
 import { logger } from "../utils/logger";
 
 interface PatientListPageProps {
@@ -22,6 +24,8 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filteredPatients, setFilteredPatients] = useState<SearchResult[]>([]);
+  const [searchPanelCollapsed, setSearchPanelCollapsed] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -198,13 +202,13 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden" style={{ margin: 0, padding: 0, marginTop: 0, paddingTop: 0 }}>
-      {/* Mobile menu button */}
+      {/* Professional Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className="md:hidden fixed top-2.5 left-2.5 z-50 p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95"
+        className="md:hidden fixed top-6 left-6 z-50 p-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
         aria-label="Open menu"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-slate-700 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
@@ -218,15 +222,15 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
         />
       )}
 
-      {/* Sidebar */}
-      <aside 
+      {/* Professional Sidebar */}
+      <aside
         className={`
           fixed md:static inset-y-0 left-0 z-50
-          w-64 md:w-64 md:h-full
-          bg-white/98 dark:bg-gray-900/98 backdrop-blur-lg
-          border-r border-gray-200/60 dark:border-gray-700/60
-          shadow-xl md:shadow-sm
-          pt-5 md:pt-5 px-5 pb-5
+          w-72 md:w-72 md:h-full
+          bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl
+          border-r border-slate-200/60 dark:border-slate-700/60
+          shadow-2xl md:shadow-lg
+          pt-8 md:pt-8 px-6 pb-6
           transform transition-transform duration-300 ease-out
           overflow-y-auto overflow-x-hidden
           flex flex-col
@@ -237,97 +241,126 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
         {/* Close button for mobile */}
         <button
           onClick={() => setSidebarOpen(false)}
-          className="md:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-all duration-200"
+          className="md:hidden absolute top-6 right-6 p-2 rounded-lg hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-all duration-200"
           aria-label="Close menu"
         >
           <X size={18} />
         </button>
 
-        {/* Header */}
-        <div className="mb-5">
-          <h1 className="text-lg md:text-xl font-bold text-gradient leading-tight">
-            Bluequee2.0
-          </h1>
+        {/* Professional Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-lg">B</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+                Bluequee 2.0
+              </h1>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Healthcare Platform</p>
+            </div>
+          </div>
         </div>
 
         {/* Navigation to Workspace (if patient selected) */}
         {selectedPatient && (
           <button
             onClick={onSelectPatient}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 mb-5 rounded-xl bg-gradient-to-r from-primary-50 to-success-50 dark:from-primary-900/20 dark:to-success-900/20 hover:from-primary-100 hover:to-success-100 dark:hover:from-primary-900/30 dark:hover:to-success-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium transition-all duration-200 border border-primary-200/60 dark:border-primary-800/60 hover:shadow-sm active:scale-[0.98] group"
+            className="w-full flex items-center gap-3 px-4 py-3 mb-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-300 text-sm font-medium transition-all duration-200 border border-slate-200/50 dark:border-slate-700/50 hover:shadow-md active:scale-[0.98] group"
           >
             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-200" />
-            <span className="flex-1 text-left">Back to Workspace</span>
+            <span className="flex-1 text-left">Return to Workspace</span>
           </button>
         )}
 
-        {/* User Profile - At bottom */}
-        <div className="mt-auto pt-5 border-t border-gray-200/40 dark:border-gray-700/40">
+        {/* User Profile - Professional Design */}
+        <div className="mt-auto pt-6 border-t border-slate-200/40 dark:border-slate-700/40">
           <UserSelector />
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 md:min-w-0 px-4 md:px-6 pb-4 md:pb-6 pt-4 md:pt-6 overflow-y-auto">
-        <div className="w-full max-w-7xl mx-auto">
-          {/* Header - Streamlined */}
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-xl md:text-2xl font-bold text-gradient">
-                  Patient Directory
-                </h2>
-                {patients.length > 0 && (
-                  <span className="px-2.5 py-1 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full">
-                    {patients.length}
-                  </span>
-                )}
+      <main className="flex-1 md:min-w-0 bg-gradient-to-br from-slate-50/50 via-white to-slate-50/30 dark:from-slate-900/50 dark:via-slate-800 dark:to-slate-900/30 min-h-screen">
+        <div className="w-full max-w-6xl mx-auto px-6 py-8">
+          {/* Professional Header */}
+          <div className="mb-8">
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h1 className="text-3xl font-light text-slate-800 dark:text-slate-100 tracking-tight">
+                    Patient Directory
+                  </h1>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                    Comprehensive patient management and care coordination
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  {patients.length > 0 && (
+                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 rounded-lg px-4 py-2">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Patients</div>
+                      <div className="text-lg font-semibold text-slate-800 dark:text-slate-200">{patients.length}</div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 rounded-lg p-3 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Refresh patient list"
+                  >
+                    <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+                  </button>
+
+                  <button
+                    onClick={() => setShowNewPatientModal(true)}
+                    className="bg-slate-600 hover:bg-slate-700 text-white rounded-lg p-3 font-medium transition-all duration-200 hover:shadow-lg active:scale-95"
+                    title="Add Patient"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Select a patient to view their medical information and care plan
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg font-medium transition-all hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Refresh patient list"
-              >
-                <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-              <button
-                onClick={() => setShowNewPatientModal(true)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus size={18} />
-                <span>New Patient</span>
-              </button>
             </div>
           </div>
 
-          {/* Dashboard Analytics - Compact */}
-          {patients.length > 0 && (
-            <div className="mb-6">
-              <PatientDirectoryAnalytics patients={patients} />
-            </div>
-          )}
+          {/* Content Container */}
+          <div className="space-y-6">
+            {/* Advanced Search Panel - Professional Design */}
+            {patients.length > 0 && !isLoading && (
+              <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 rounded-xl shadow-sm overflow-hidden">
+                <AdvancedSearchPanel
+                  patients={patients}
+                  onResultsChange={setFilteredPatients}
+                  isCollapsed={searchPanelCollapsed}
+                  onToggleCollapse={() => setSearchPanelCollapsed(!searchPanelCollapsed)}
+                />
+              </div>
+            )}
 
-          {/* Patient List or Empty State */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <PatientCardSkeleton count={6} />
+            {/* Patient List Container */}
+            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 rounded-xl shadow-sm overflow-hidden">
+              {isLoading ? (
+                <div className="p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <PatientCardSkeleton count={6} />
+                  </div>
+                </div>
+              ) : error || patients.length === 0 ? (
+                <div className="p-12">
+                  <DashboardEmptyState />
+                </div>
+              ) : (
+                <div className="p-6">
+                  <PatientList
+                    patients={filteredPatients.length > 0 ? filteredPatients.map(r => r.patient) : patients}
+                    selectedPatient={selectedPatient}
+                    onSelectPatient={handleSelectPatient}
+                  />
+                </div>
+              )}
             </div>
-          ) : error || patients.length === 0 ? (
-            <DashboardEmptyState />
-          ) : (
-            <PatientList
-              patients={patients}
-              selectedPatient={selectedPatient}
-              onSelectPatient={handleSelectPatient}
-            />
-          )}
+          </div>
         </div>
       </main>
 

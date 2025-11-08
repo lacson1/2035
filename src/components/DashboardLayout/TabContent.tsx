@@ -16,6 +16,11 @@ const Telemedicine = lazy(() => import("../Telemedicine"));
 const Longevity = lazy(() => import("../Longevity"));
 const Microbiome = lazy(() => import("../Microbiome"));
 
+// Static imports for components used in both static and dynamic contexts
+import MedicationList from "../MedicationList";
+import Overview from "../Overview";
+import Vitals from "../Vitals";
+
 // Map of lazy-loaded components
 const lazyComponents: Record<string, LazyExoticComponent<ComponentType<any>>> = {
   consultation: Consultation,

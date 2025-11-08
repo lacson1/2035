@@ -53,18 +53,20 @@ export async function loadHubs(): Promise<Hub[]> {
   try {
     const response = await hubService.getHubs({ limit: 100 });
     // Backend returns: { data: Hub[], meta: {...} }
-    // API client wraps it: { data: { data: Hub[], meta: {...} }, message, errors }
-    // So we need: response.data.data (the array of hubs)
-    const hubs = Array.isArray(response.data?.data) 
-      ? response.data.data 
-      : Array.isArray(response.data) 
-        ? response.data 
+    // API client extracts responseData.data (the array) and returns it as result.data
+    // So response.data is the array directly: Hub[]
+    const hubs = Array.isArray(response.data) 
+      ? response.data 
+      : Array.isArray(response.data?.data) 
+        ? response.data.data 
         : [];
     
     if (hubs.length > 0) {
       cachedHubs = hubs;
       hubsLoaded = true;
       console.log(`✅ Loaded ${hubs.length} hubs from API`);
+    } else {
+      console.warn('⚠️ No hubs found in API response');
     }
     return hubs;
   } catch (error) {
@@ -78,10 +80,13 @@ export async function loadHubs(): Promise<Hub[]> {
  * Get all hubs (loads from API if not already loaded)
  */
 export async function getAllHubs(): Promise<Hub[]> {
+  // If we have cached hubs, return them
   if (hubsLoaded && cachedHubs.length > 0) {
     return cachedHubs;
   }
-  return loadHubs();
+  // Otherwise, load from API (this will update the cache)
+  const hubs = await loadHubs();
+  return hubs;
 }
 
 /**

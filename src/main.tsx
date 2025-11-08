@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext.tsx'
 import { UserProvider } from './context/UserContext.tsx'
 import { DashboardProvider } from './context/DashboardContext.tsx'
 import { ToastProvider } from './context/ToastContext.tsx'
+import { NotificationProvider } from './context/NotificationContext.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { initSentry } from './utils/sentry'
 import { logger } from './utils/logger'
@@ -169,7 +170,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <UserProvider>
             <DashboardProvider>
-              <App />
+              <NotificationProvider>
+                <App />
+              </NotificationProvider>
             </DashboardProvider>
           </UserProvider>
         </AuthProvider>

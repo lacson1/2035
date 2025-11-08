@@ -4,6 +4,8 @@ import { Patient } from "../types";
 import { useDashboard } from "../context/DashboardContext";
 import { useToast } from "../context/ToastContext";
 import { patientService } from "../services/patients";
+import SmartFormField from "./SmartFormField";
+import FormGroup from "./FormGroup";
 
 interface EditPatientModalProps {
   patient: Patient;
@@ -174,139 +176,113 @@ export default function EditPatientModal({ patient, isOpen, onClose }: EditPatie
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
             {/* Basic Information */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Basic Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.name}
-                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date of Birth *
-                  </label>
-                  <input
-                    type="date"
-                    value={editFormData.dob}
-                    onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Gender *
-                  </label>
-                  <select
-                    value={editFormData.gender}
-                    onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select...</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Condition
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.condition}
-                    onChange={(e) => setEditFormData({ ...editFormData, condition: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Blood Pressure
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.bp}
-                    onChange={(e) => setEditFormData({ ...editFormData, bp: e.target.value })}
-                    placeholder="e.g., 120/80"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
+            <FormGroup
+              title="Basic Information"
+              description="Patient demographics and basic health information"
+              collapsible
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SmartFormField
+                  type="text"
+                  name="name"
+                  label="Full Name"
+                  value={editFormData.name}
+                  onChange={(value) => setEditFormData({ ...editFormData, name: value })}
+                  required
+                />
+                <SmartFormField
+                  type="date"
+                  name="dob"
+                  label="Date of Birth"
+                  value={editFormData.dob}
+                  onChange={(value) => setEditFormData({ ...editFormData, dob: value })}
+                  required
+                />
+                <SmartFormField
+                  type="select"
+                  name="gender"
+                  label="Gender"
+                  value={editFormData.gender}
+                  onChange={(value) => setEditFormData({ ...editFormData, gender: value })}
+                  options={["Male", "Female", "Other", "Prefer not to say"]}
+                  required
+                />
+                <SmartFormField
+                  type="text"
+                  name="condition"
+                  label="Medical Condition"
+                  value={editFormData.condition}
+                  onChange={(value) => setEditFormData({ ...editFormData, condition: value })}
+                />
+                <SmartFormField
+                  type="text"
+                  name="bloodPressure"
+                  label="Blood Pressure"
+                  value={editFormData.bp}
+                  onChange={(value) => setEditFormData({ ...editFormData, bp: value })}
+                  placeholder="e.g., 120/80"
+                />
               </div>
-            </div>
+            </FormGroup>
 
             {/* Contact Information */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Contact Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={editFormData.phone}
-                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={editFormData.email}
-                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
+            <FormGroup
+              title="Contact Information"
+              description="Patient contact details and address"
+              collapsible
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SmartFormField
+                  type="phone"
+                  name="phone"
+                  label="Phone Number"
+                  value={editFormData.phone}
+                  onChange={(value) => setEditFormData({ ...editFormData, phone: value })}
+                />
+                <SmartFormField
+                  type="email"
+                  name="email"
+                  label="Email Address"
+                  value={editFormData.email}
+                  onChange={(value) => setEditFormData({ ...editFormData, email: value })}
+                />
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Address
-                  </label>
-                  <textarea
+                  <SmartFormField
+                    type="textarea"
+                    name="address"
+                    label="Address"
                     value={editFormData.address}
-                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                    onChange={(value) => setEditFormData({ ...editFormData, address: value })}
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
                 </div>
               </div>
-            </div>
+            </FormGroup>
 
             {/* Allergies */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Allergies
-              </h3>
-              <div className="space-y-2">
+            <FormGroup
+              title="Allergies"
+              description="Known allergies and sensitivities"
+              collapsible
+            >
+              <div className="space-y-3">
                 {editFormData.allergies.map((allergy, index) => (
-                  <div key={index} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={allergy}
-                      onChange={(e) => handleAllergyChange(index, e.target.value)}
-                      placeholder="Allergy name"
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    />
+                  <div key={index} className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <SmartFormField
+                        type="text"
+                        name={`allergy-${index}`}
+                        label={index === 0 ? "Allergy" : undefined}
+                        value={allergy}
+                        onChange={(value) => handleAllergyChange(index, value)}
+                        placeholder="e.g., Penicillin, Peanuts"
+                      />
+                    </div>
                     <button
                       onClick={() => removeAllergy(index)}
-                      className="px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      className="px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors mb-1"
                       type="button"
+                      aria-label="Remove allergy"
                     >
                       <X size={16} />
                     </button>
@@ -314,128 +290,107 @@ export default function EditPatientModal({ patient, isOpen, onClose }: EditPatie
                 ))}
                 <button
                   onClick={addAllergy}
-                  className="text-sm text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium"
+                  className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
                   type="button"
                 >
                   + Add Allergy
                 </button>
               </div>
-            </div>
+            </FormGroup>
 
             {/* Emergency Contact */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Emergency Contact
-              </h3>
+            <FormGroup
+              title="Emergency Contact"
+              description="Person to contact in case of emergency"
+              collapsible
+            >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.emergencyContact.name}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        emergencyContact: { ...editFormData.emergencyContact, name: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Relationship
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.emergencyContact.relationship}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        emergencyContact: { ...editFormData.emergencyContact, relationship: e.target.value },
-                      })
-                    }
-                    placeholder="e.g., Spouse, Parent"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={editFormData.emergencyContact.phone}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        emergencyContact: { ...editFormData.emergencyContact, phone: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
+                <SmartFormField
+                  type="text"
+                  name="emergencyName"
+                  label="Name"
+                  value={editFormData.emergencyContact.name}
+                  onChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      emergencyContact: { ...editFormData.emergencyContact, name: value },
+                    })
+                  }
+                />
+                <SmartFormField
+                  type="text"
+                  name="emergencyRelationship"
+                  label="Relationship"
+                  value={editFormData.emergencyContact.relationship}
+                  onChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      emergencyContact: { ...editFormData.emergencyContact, relationship: value },
+                    })
+                  }
+                  placeholder="e.g., Spouse, Parent, Child"
+                />
+                <SmartFormField
+                  type="phone"
+                  name="emergencyPhone"
+                  label="Phone"
+                  value={editFormData.emergencyContact.phone}
+                  onChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      emergencyContact: { ...editFormData.emergencyContact, phone: value },
+                    })
+                  }
+                />
               </div>
-            </div>
+            </FormGroup>
 
             {/* Insurance */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Insurance Information
-              </h3>
+            <FormGroup
+              title="Insurance Information"
+              description="Health insurance details"
+              collapsible
+            >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Provider
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.insurance.provider}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        insurance: { ...editFormData.insurance, provider: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Policy Number
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.insurance.policyNumber}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        insurance: { ...editFormData.insurance, policyNumber: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Group Number
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.insurance.groupNumber}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        insurance: { ...editFormData.insurance, groupNumber: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
+                <SmartFormField
+                  type="text"
+                  name="insuranceProvider"
+                  label="Provider"
+                  value={editFormData.insurance.provider}
+                  onChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      insurance: { ...editFormData.insurance, provider: value },
+                    })
+                  }
+                  placeholder="e.g., Blue Cross Blue Shield"
+                />
+                <SmartFormField
+                  type="text"
+                  name="policyNumber"
+                  label="Policy Number"
+                  value={editFormData.insurance.policyNumber}
+                  onChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      insurance: { ...editFormData.insurance, policyNumber: value },
+                    })
+                  }
+                />
+                <SmartFormField
+                  type="text"
+                  name="groupNumber"
+                  label="Group Number"
+                  value={editFormData.insurance.groupNumber}
+                  onChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      insurance: { ...editFormData.insurance, groupNumber: value },
+                    })
+                  }
+                />
               </div>
-            </div>
+            </FormGroup>
           </div>
         </div>
 

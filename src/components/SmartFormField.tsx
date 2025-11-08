@@ -122,9 +122,9 @@ export default function SmartFormField({
   if (type === "select") {
     return (
       <div className={className}>
-        <label 
+        <label
           htmlFor={fieldId}
-          className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300"
+          className="block text-base font-semibold mb-3 text-gray-900 dark:text-gray-100"
         >
           {label}
           {required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
@@ -146,7 +146,7 @@ export default function SmartFormField({
         {helpVisible && hint && (
           <div 
             id={helpId}
-            className="mb-2 p-2 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded text-xs text-teal-800 dark:text-teal-200"
+            className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm font-medium text-blue-800 dark:text-blue-200"
             role="tooltip"
           >
             {hint}
@@ -174,12 +174,12 @@ export default function SmartFormField({
                 .filter(Boolean)
                 .join(" ") || undefined
             }
-            className={`w-full px-4 py-2 text-sm border rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 transition-all appearance-none ${
+            className={`w-full px-4 py-3 text-base border-2 rounded-xl dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all appearance-none ${
               touched && !validationResult.isValid
-                ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
-                : "border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500"
-            } ${disabled || loading ? "opacity-50 cursor-not-allowed" : ""} ${
-              loading ? "pr-10" : ""
+                ? "border-red-400 dark:border-red-600 focus:ring-red-500 focus:border-red-500 bg-red-50/50 dark:bg-red-900/20"
+                : "border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500"
+            } ${disabled || loading ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700" : ""} ${
+              loading ? "pr-12" : ""
             }`}
           >
             <option value="">Select {label.toLowerCase()}...</option>
@@ -191,31 +191,31 @@ export default function SmartFormField({
           </select>
           {loading && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-              <Loader2 className="animate-spin text-teal-500" size={18} />
+              <Loader2 className="animate-spin text-primary-500" size={18} />
             </div>
           )}
         </div>
 
         {touched && !validationResult.isValid && (
-          <p 
+          <p
             id={errorId}
-            className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+            className="mt-2 text-sm font-medium text-red-700 dark:text-red-300 flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800"
             role="alert"
           >
-            <AlertCircle size={14} aria-hidden="true" />
+            <AlertCircle size={16} aria-hidden="true" />
             <span>{validationResult.error}</span>
           </p>
         )}
 
-        {touched && validationResult.isValid && value && (
-          <p className="mt-1 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-            <CheckCircle size={14} aria-hidden="true" />
-            <span>Looks good</span>
-          </p>
-        )}
+          {touched && validationResult.isValid && value && (
+            <p className="mt-2 text-sm font-medium text-green-700 dark:text-green-300 flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg border border-green-200 dark:border-green-800">
+              <CheckCircle size={16} aria-hidden="true" />
+              <span>Looks good</span>
+            </p>
+          )}
 
         {validationResult.suggestion && (
-          <p className="mt-1 text-sm text-teal-600 dark:text-teal-400">
+          <p className="mt-1 text-sm text-primary-600 dark:text-primary-400">
             💡 {validationResult.suggestion}
           </p>
         )}
@@ -226,9 +226,9 @@ export default function SmartFormField({
   if (type === "textarea") {
     return (
       <div className={className}>
-        <label 
+        <label
           htmlFor={fieldId}
-          className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300"
+          className="block text-base font-semibold mb-3 text-gray-900 dark:text-gray-100"
         >
           {label}
           {required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
@@ -250,7 +250,7 @@ export default function SmartFormField({
         {helpVisible && hint && (
           <div 
             id={helpId}
-            className="mb-2 p-2 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded text-xs text-teal-800 dark:text-teal-200"
+            className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm font-medium text-blue-800 dark:text-blue-200"
             role="tooltip"
           >
             {hint}
@@ -265,6 +265,7 @@ export default function SmartFormField({
             onChange={(e) => handleChange(e.target.value)}
             onBlur={handleBlur}
             placeholder={placeholder}
+          style={{ fontSize: '16px' }} // Prevents zoom on iOS
             required={required}
             disabled={disabled || loading}
             rows={rows}
@@ -280,17 +281,17 @@ export default function SmartFormField({
                 .filter(Boolean)
                 .join(" ") || undefined
             }
-            className={`w-full px-4 py-2 text-sm border rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 transition-all resize-y ${
+            className={`w-full px-4 py-3 text-base border-2 rounded-xl dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all resize-y ${
               touched && !validationResult.isValid
-                ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
-                : "border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500"
-            } ${disabled || loading ? "opacity-50 cursor-not-allowed" : ""} ${
-              loading ? "pr-10" : ""
+                ? "border-red-400 dark:border-red-600 focus:ring-red-500 focus:border-red-500 bg-red-50/50 dark:bg-red-900/20"
+                : "border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500"
+            } ${disabled || loading ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700" : ""} ${
+              loading ? "pr-12" : ""
             }`}
           />
           {loading && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Loader2 className="animate-spin text-teal-500" size={18} />
+              <Loader2 className="animate-spin text-primary-500" size={18} />
             </div>
           )}
         </div>
@@ -316,7 +317,7 @@ export default function SmartFormField({
             )}
 
             {validationResult.suggestion && (
-              <p className="text-sm text-teal-600 dark:text-teal-400">
+              <p className="text-sm text-primary-600 dark:text-primary-400">
                 💡 {validationResult.suggestion}
               </p>
             )}
@@ -364,7 +365,7 @@ export default function SmartFormField({
       {helpVisible && hint && (
         <div 
           id={helpId}
-          className="mb-2 p-2 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded text-xs text-teal-800 dark:text-teal-200"
+          className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm font-medium text-blue-800 dark:text-blue-200"
           role="tooltip"
         >
           {hint}
@@ -386,6 +387,7 @@ export default function SmartFormField({
           }}
           onBlur={handleBlur}
           placeholder={placeholder}
+          style={{ fontSize: '16px' }} // Prevents zoom on iOS
           required={required}
           disabled={disabled || loading}
           aria-label={ariaLabel || label}
@@ -400,17 +402,17 @@ export default function SmartFormField({
               .filter(Boolean)
               .join(" ") || undefined
           }
-          className={`w-full px-4 py-2 text-sm border rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 transition-all ${
+          className={`w-full px-4 py-3 text-base border-2 rounded-xl dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all ${
             touched && !validationResult.isValid
-              ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
-              : "border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500"
-          } ${disabled || loading ? "opacity-50 cursor-not-allowed" : ""} ${
-            loading ? "pr-10" : ""
+              ? "border-red-400 dark:border-red-600 focus:ring-red-500 focus:border-red-500 bg-red-50/50 dark:bg-red-900/20"
+              : "border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500"
+          } ${disabled || loading ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700" : ""} ${
+            loading ? "pr-12" : ""
           }`}
         />
         {loading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <Loader2 className="animate-spin text-teal-500" size={18} />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <Loader2 className="animate-spin text-primary-500" size={20} />
           </div>
         )}
       </div>
@@ -436,19 +438,20 @@ export default function SmartFormField({
           )}
 
           {validationResult.suggestion && (
-            <p className="text-sm text-teal-600 dark:text-teal-400">
-              💡 {validationResult.suggestion}
+            <p className="mt-2 text-sm font-medium text-primary-700 dark:text-primary-300 flex items-start gap-2 bg-primary-50 dark:bg-primary-900/20 px-3 py-2 rounded-lg border border-primary-200 dark:border-primary-800">
+              <span className="text-lg">💡</span>
+              <span>{validationResult.suggestion}</span>
             </p>
           )}
         </div>
         
         {showCounter && maxChars && (
-          <div className={`text-xs ml-2 ${
-            charCount > maxChars 
-              ? "text-red-600 dark:text-red-400" 
-              : charCount > maxChars * 0.9 
-              ? "text-yellow-600 dark:text-yellow-400"
-              : "text-gray-500 dark:text-gray-400"
+          <div className={`text-sm font-medium ml-3 px-2 py-1 rounded-md ${
+            charCount > maxChars
+              ? "text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30"
+              : charCount > maxChars * 0.9
+              ? "text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30"
+              : "text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800"
           }`}>
             {charCount}/{maxChars}
           </div>

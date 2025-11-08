@@ -1,0 +1,198 @@
+name: Blue-Green Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  blue-green-deployment:
+    name: Blue-Green Deployment to ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine active deployment
+        id: active-deployment
+        run: |
+          # Check which deployment is currently active
+          # This would integrate with your load balancer or service mesh
+          ACTIVE_BLUE=$(curl -s ${{ secrets.BLUE_STATUS_URL }})
+          ACTIVE_GREEN=$(curl -s ${{ secrets.GREEN_STATUS_URL }})
+
+          if [ "$ACTIVE_BLUE" = "active" ]; then
+            echo "active=blue" >> $GITHUB_OUTPUT
+            echo "inactive=green" >> $GITHUB_OUTPUT
+          else
+            echo "active=green" >> $GITHUB_OUTPUT
+            echo "inactive=blue" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to inactive environment
+        run: |
+          INACTIVE_ENV=${{ steps.active-deployment.outputs.inactive }}
+
+          echo "Deploying to $INACTIVE_ENV environment..."
+
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            # Deploy backend to inactive slot
+            if [ "$INACTIVE_ENV" == "blue" ]; then
+              SERVICE_ID=${{ secrets.RENDER_PRODUCTION_BLUE_SERVICE_ID }}
+            else
+              SERVICE_ID=${{ secrets.RENDER_PRODUCTION_GREEN_SERVICE_ID }}
+            fi
+          else
+            # Staging deployment
+            SERVICE_ID=${{ secrets.RENDER_STAGING_SERVICE_ID }}
+          fi
+
+          # Deploy backend
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"commit": "${{ github.sha }}"}' \
+            https://api.render.com/v1/services/$SERVICE_ID/deploys
+
+      - name: Wait for deployment
+        run: |
+          INACTIVE_ENV=${{ steps.active-deployment.outputs.inactive }}
+          sleep 120  # Wait for deployment to complete
+
+      - name: Run health checks on inactive environment
+        run: |
+          INACTIVE_ENV=${{ steps.active-deployment.outputs.inactive }}
+
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            if [ "$INACTIVE_ENV" == "blue" ]; then
+              BACKEND_URL=${{ secrets.PRODUCTION_BLUE_BACKEND_URL }}
+              FRONTEND_URL=${{ secrets.PRODUCTION_BLUE_FRONTEND_URL }}
+            else
+              BACKEND_URL=${{ secrets.PRODUCTION_GREEN_BACKEND_URL }}
+              FRONTEND_URL=${{ secrets.PRODUCTION_GREEN_FRONTEND_URL }}
+            fi
+          fi
+
+          # Health checks
+          curl -f $BACKEND_URL/health || exit 1
+          curl -f $FRONTEND_URL || exit 1
+
+      - name: Run smoke tests on inactive environment
+        run: |
+          INACTIVE_ENV=${{ steps.active-deployment.outputs.inactive }}
+
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            if [ "$INACTIVE_ENV" == "blue" ]; then
+              FRONTEND_URL=${{ secrets.PRODUCTION_BLUE_FRONTEND_URL }}
+            else
+              FRONTEND_URL=${{ secrets.PRODUCTION_GREEN_FRONTEND_URL }}
+            fi
+          fi
+
+          npm ci
+          npm run test:smoke -- $FRONTEND_URL
+
+      - name: Switch traffic to new deployment
+        run: |
+          INACTIVE_ENV=${{ steps.active-deployment.outputs.inactive }}
+
+          # Switch load balancer to route traffic to new deployment
+          # This would integrate with your load balancer (AWS ALB, nginx, etc.)
+
+          if [ "$INACTIVE_ENV" == "blue" ]; then
+            # Switch to blue
+            curl -X POST ${{ secrets.LOAD_BALANCER_SWITCH_URL }} \
+              -H "Authorization: Bearer ${{ secrets.LOAD_BALANCER_TOKEN }}" \
+              -d '{"active": "blue"}'
+          else
+            # Switch to green
+            curl -X POST ${{ secrets.LOAD_BALANCER_SWITCH_URL }} \
+              -H "Authorization: Bearer ${{ secrets.LOAD_BALANCER_TOKEN }}" \
+              -d '{"active": "green"}'
+          fi
+
+      - name: Monitor traffic switch
+        run: |
+          # Monitor the traffic switch for a period
+          sleep 300  # 5 minutes
+
+          # Check error rates, response times
+          ERROR_RATE=$(curl -s ${{ secrets.MONITORING_API_URL }}/error-rate)
+
+          if (( $(echo "$ERROR_RATE > 0.05" | bc -l) )); then
+            echo "High error rate detected, initiating rollback..."
+            # Trigger rollback
+            exit 1
+          fi
+
+      - name: Terminate old deployment
+        if: success()
+        run: |
+          ACTIVE_ENV=${{ steps.active-deployment.outputs.active }}
+
+          echo "Terminating $ACTIVE_ENV environment..."
+
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            if [ "$ACTIVE_ENV" == "blue" ]; then
+              SERVICE_ID=${{ secrets.RENDER_PRODUCTION_BLUE_SERVICE_ID }}
+            else
+              SERVICE_ID=${{ secrets.RENDER_PRODUCTION_GREEN_SERVICE_ID }}
+            fi
+          fi
+
+          # Scale down the old deployment
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -d '{"numInstances": 0}' \
+            https://api.render.com/v1/services/$SERVICE_ID/scale
+
+      - name: Notify successful deployment
+        uses: 8398a7/action-slack@v3
+        if: success()
+        with:
+          status: success
+          fields: workflow,status
+          custom_payload: |
+            {
+              "attachments": [{
+                "color": "good",
+                "title": "🚀 Blue-Green Deployment Successful",
+                "text": "Environment: ${{ github.event.inputs.environment }}\nNew Active: ${{ steps.active-deployment.outputs.inactive }}\nCommit: ${{ github.sha }}"
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Emergency rollback
+        if: failure()
+        run: |
+          echo "Deployment failed, switching back to previous deployment..."
+
+          ACTIVE_ENV=${{ steps.active-deployment.outputs.active }}
+
+          if [ "$ACTIVE_ENV" == "blue" ]; then
+            curl -X POST ${{ secrets.LOAD_BALANCER_SWITCH_URL }} \
+              -H "Authorization: Bearer ${{ secrets.LOAD_BALANCER_TOKEN }}" \
+              -d '{"active": "blue"}'
+          else
+            curl -X POST ${{ secrets.LOAD_BALANCER_SWITCH_URL }} \
+              -H "Authorization: Bearer ${{ secrets.LOAD_BALANCER_TOKEN }}" \
+              -d '{"active": "green"}'
+          fi
+
+          # Notify about rollback
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-type: application/json' \
+            -d '{"text":"🚨 Emergency rollback initiated due to deployment failure"}'

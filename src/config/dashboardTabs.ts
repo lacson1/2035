@@ -65,6 +65,7 @@ import Vaccinations from "../components/Vaccinations";
 import Billing from "../components/Billing";
 import Hubs from "../components/Hubs";
 import DailySchedule from "../components/DailySchedule";
+import Analytics from "../components/Analytics";
 
 // Clinical workflow groups organized by care phases:
 // 1. ASSESSMENT: Initial patient evaluation and vital signs
@@ -334,6 +335,16 @@ export const dashboardTabs: DashboardTab[] = [
     permission: "roles:write",
     workflowGroup: "administrative",
     order: 24,
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: LayoutDashboard,
+    component: Analytics,
+    requiresPatient: false,
+    permission: "view_analytics",
+    workflowGroup: "administrative",
+    order: 20.5,
   },
   {
     id: "settings",

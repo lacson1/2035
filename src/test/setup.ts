@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { afterEach, beforeAll, afterAll } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import 'vitest-axe/extend-expect';
 
 // Cleanup after each test
 afterEach(() => {
@@ -32,6 +33,15 @@ Object.defineProperty(window, 'matchMedia', {
   }
   unobserve() {}
 } as any;
+
+if (typeof (globalThis as any).ResizeObserver === 'undefined') {
+  (globalThis as any).ResizeObserver = class ResizeObserver {
+    constructor(_callback?: ResizeObserverCallback) {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as any;
+}
 
 // Suppress console errors in tests (optional)
 const originalError = console.error;

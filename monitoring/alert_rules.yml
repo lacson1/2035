@@ -1,0 +1,141 @@
+# Alert rules for Physician Dashboard monitoring
+
+groups:
+  - name: application_alerts
+    rules:
+      # Backend API alerts
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Backend API is down"
+          description: "Backend service has been down for more than 5 minutes."
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="backend"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is above 2 seconds for 5 minutes."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5..", job="backend"}[5m]) / rate(http_requests_total{job="backend"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for 5 minutes."
+
+      # Database alerts
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Database service has been down for more than 2 minutes."
+
+      - alert: HighDatabaseConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database connection count"
+          description: "Database has more than 80 active connections."
+
+      # Redis alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis service has been down for more than 2 minutes."
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is above 80%."
+
+      # System resource alerts
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{container_name=~".+"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "Container CPU usage is above 80% for 5 minutes."
+
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{container_name=~".+"} / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Container memory usage is above 90% for 5 minutes."
+
+      - alert: DiskSpaceLow
+        expr: (1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Disk space running low"
+          description: "Disk usage is above 85% for 10 minutes."
+
+  - name: business_logic_alerts
+    rules:
+      # Business-specific alerts
+      - alert: LowActiveUsers
+        expr: increase(user_login_total[1h]) < 1
+        for: 1h
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Low user activity detected"
+          description: "Less than 1 user login in the last hour."
+
+      - alert: HighFailedLogins
+        expr: increase(login_failed_total[15m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High number of failed login attempts"
+          description: "More than 10 failed login attempts in 15 minutes."
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_activity_max_tx_duration{datname="physician_dashboard_2035"}[5m]) > 30000
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Database queries taking longer than 30 seconds."

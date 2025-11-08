@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, UserPlus, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import SmartFormField from './SmartFormField';
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -227,110 +228,69 @@ export default function Login() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {isSignUp && (
               <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      First Name
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="input-base input-with-icon pr-4 py-3 text-sm"
-                        placeholder="John"
-                        required
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Last Name
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="input-base input-with-icon pr-4 py-3 text-sm"
-                        placeholder="Doe"
-                        required
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <SmartFormField
+                    type="text"
+                    name="firstName"
+                    label="First Name"
+                    value={firstName}
+                    onChange={setFirstName}
+                    placeholder="John"
+                    required
+                    disabled={isLoading}
+                  />
+                  <SmartFormField
+                    type="text"
+                    name="lastName"
+                    label="Last Name"
+                    value={lastName}
+                    onChange={setLastName}
+                    placeholder="Doe"
+                    required
+                    disabled={isLoading}
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Username <span className="text-gray-500 font-normal">(Optional)</span>
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="input-base input-with-icon pr-4 py-3 text-sm"
-                      placeholder="johndoe"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                    If not provided, username will be generated from your email
-                  </p>
-                </div>
+                <SmartFormField
+                  type="text"
+                  name="username"
+                  label="Username"
+                  value={username}
+                  onChange={setUsername}
+                  placeholder="johndoe"
+                  disabled={isLoading}
+                  helpText="If not provided, username will be generated from your email"
+                />
               </>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-base input-with-icon pr-4 py-3 text-sm"
-                  placeholder="sarah.johnson@hospital2035.com"
-                  autoComplete={isSignUp ? "email" : "username"}
-                  required
-                  disabled={isLoading || isRateLimited}
-                />
-              </div>
-            </div>
+            <SmartFormField
+              type="email"
+              name="email"
+              label="Email"
+              value={email}
+              onChange={setEmail}
+              placeholder="sarah.johnson@hospital2035.com"
+              autoComplete={isSignUp ? "email" : "username"}
+              required
+              disabled={isLoading || isRateLimited}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-base input-with-icon pr-4 py-3 text-sm"
-                  placeholder={isSignUp ? "At least 8 characters" : "Enter your password"}
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                  required
-                  minLength={isSignUp ? 8 : undefined}
-                  disabled={isLoading || isRateLimited}
-                />
-              </div>
-              {isSignUp && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                  Password must be at least 8 characters
-                </p>
-              )}
-            </div>
+            <SmartFormField
+              type="password"
+              name="password"
+              label="Password"
+              value={password}
+              onChange={setPassword}
+              placeholder={isSignUp ? "At least 8 characters" : "Enter your password"}
+              autoComplete={isSignUp ? "new-password" : "current-password"}
+              required
+              disabled={isLoading || isRateLimited}
+              validation={isSignUp ? { minLength: 8 } : undefined}
+              helpText={isSignUp ? "Password must be at least 8 characters" : undefined}
+            />
 
             <button
               type="submit"

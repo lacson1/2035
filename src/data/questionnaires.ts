@@ -39,6 +39,8 @@ export interface Questionnaire {
 }
 
 // Common questionnaires for all specialties
+// TODO: In production, these should be loaded from API endpoint (e.g., /api/v1/questionnaires)
+// For now, returning empty array - implement API loading before production deployment
 const questionnaires: Questionnaire[] = [
   // CARDIOLOGY
   {
@@ -1535,14 +1537,18 @@ const questionnaires: Questionnaire[] = [
   },
 ];
 
+// TODO: Replace these functions to load from API instead of hardcoded data
 export function getQuestionnairesByHub(hubId: string): Questionnaire[] {
+  // TODO: Load from API endpoint (e.g., /api/v1/questionnaires?hubId=${hubId})
   return questionnaires.filter(q => q.hubId === hubId);
 }
 
 export function getQuestionnaireById(id: string): Questionnaire | undefined {
+  // TODO: Load from API endpoint (e.g., /api/v1/questionnaires/${id})
   return questionnaires.find(q => q.id === id);
 }
 
 export function getAllQuestionnaires(): Questionnaire[] {
+  // TODO: Load from API endpoint (e.g., /api/v1/questionnaires)
   return questionnaires;
 }

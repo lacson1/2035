@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus,
@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Sparkles,
   Search,
-  FileText,
   Users,
   BarChart3,
   Link2,
@@ -29,8 +28,20 @@ import {
   Activity,
   Filter,
   Printer,
+  SlidersHorizontal,
+  SortAsc,
+  SortDesc,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  PieChart,
+  LineChart,
+  CalendarDays,
+  FileText,
+  Heart,
 } from "lucide-react";
-import { getAllHubsSync, getHubById, HubId, getHubColorClass, initializeHubs, Hub } from "../data/hubs";
+import { getAllHubsSync, getAllHubs, getHubById, HubId, getHubColorClass, initializeHubs, Hub } from "../data/hubs";
 import { useDashboard } from "../context/DashboardContext";
 import { filterPatientsByHub, getHubStats, getHubQuickActions } from "../utils/hubIntegration";
 import { getHubConditions, getHubTreatments, getPatientConditions } from "../utils/hubConditions";
@@ -47,6 +58,10 @@ import { commonProcedures } from "../utils/formHelpers";
 import { openPrintWindow } from "../utils/popupHandler";
 import { getOrganizationDetails } from "../utils/organization";
 import { useToast } from "../context/ToastContext";
+import HubsErrorBoundary from "./HubsErrorBoundary";
+import { validators, createDebouncedValidator } from "../utils/inputValidation";
+import HubList from "./HubList";
+import HubDetailView from "./HubDetailView";
 
 // Use API types
 type HubFunction = ApiHubFunction;
@@ -242,7 +257,32 @@ export default function Hubs() {
     currentSpecimen: "",
   });
 
+  // Space management states
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    patients: false,
+    conditions: false,
+    treatments: false,
+    questionnaires: false,
+  });
+
   const [hubs, setHubs] = useState<Hub[]>([]);
+
+  // Advanced search and filtering state
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    specialty: "all" as string,
+    patientCount: "all" as string,
+    activityLevel: "all" as string,
+  });
+  const [sortBy, setSortBy] = useState<"name" | "patients" | "activity" | "created">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Bulk operations state
+  const [bulkModeEnabled, setBulkModeEnabled] = useState(false);
+  const [selectedHubsForBulk, setSelectedHubsForBulk] = useState<string[]>([]);
+
+  // Input validation
+  const debouncedSearchValidator = createDebouncedValidator(validators.searchTerm);
 
   // Load hubs on mount
   useEffect(() => {
@@ -250,25 +290,51 @@ export default function Hubs() {
       try {
         setLoading(true);
         setError(null);
-        await initializeHubs();
-        // Refresh the hubs state after loading - use getAllHubsSync to get cached data
-        const loadedHubs = getAllHubsSync();
-        setHubs(loadedHubs);
-        if (loadedHubs.length === 0) {
-          console.warn('No hubs loaded - check API connection and database');
+        
+        // First, try to get cached hubs (might be empty initially)
+        const cached = getAllHubsSync();
+        console.log(`🔍 Initial cached hubs: ${cached.length}`);
+        
+        // If we have cached hubs, use them immediately for faster render
+        if (cached.length > 0) {
+          setHubs(cached);
+          console.log(`✅ Using ${cached.length} cached hubs immediately`);
+        }
+        
+        // Then load fresh data from API
+        const loadedHubs = await getAllHubs();
+        console.log(`🔍 Hubs component: Received ${loadedHubs.length} hubs from getAllHubs()`, loadedHubs);
+        
+        // Only update if we got hubs, or if we had cached and now have different data
+        if (loadedHubs.length > 0) {
+          setHubs(loadedHubs);
+          console.log(`✅ Loaded ${loadedHubs.length} hubs into component state`);
+        } else if (cached.length === 0) {
+          // Only show error if we had no cached data AND got no data from API
+          console.warn('⚠️ No hubs loaded - check API connection and database');
+          setError('No hubs found. Please ensure the backend is running and seeded with data.');
         }
       } catch (err) {
         setError('Failed to load hubs');
-        console.error('Error loading hubs:', err);
-        // Try to use cached data
+        console.error('❌ Error loading hubs:', err);
+        // Try to use cached data as fallback
         const cached = getAllHubsSync();
-        setHubs(cached);
+        console.log(`🔍 Fallback: Found ${cached.length} cached hubs`, cached);
+        if (cached.length > 0) {
+          setHubs(cached);
+          console.log(`⚠️ Using ${cached.length} cached hubs`);
+        }
       } finally {
         setLoading(false);
       }
     };
     loadHubs();
   }, []);
+
+  // Debug: Log hubs state changes
+  useEffect(() => {
+    console.log(`🔍 Hubs component state: ${hubs.length} hubs`, hubs.map(h => h.name));
+  }, [hubs]);
 
   // Load hub data when hub is selected
   useEffect(() => {
@@ -321,23 +387,123 @@ export default function Hubs() {
     localStorage.setItem("customConsultationTemplates", JSON.stringify(customTemplates));
   }, [customTemplates]);
 
+  // Advanced filtering and sorting logic
   const filteredHubs = useMemo(() => {
     if (!hubs || hubs.length === 0) return [];
-    if (!searchTerm) return hubs;
-    const term = searchTerm.toLowerCase();
-    return hubs.filter(
-      (hub) =>
-        hub.name.toLowerCase().includes(term) ||
-        hub.description.toLowerCase().includes(term) ||
-        (hub.specialties && hub.specialties.some(s => s.toLowerCase().includes(term)))
-    );
-  }, [searchTerm, hubs]);
 
-  // Sort hubs alphabetically by name (must be before any early returns)
-  const sortedHubs = useMemo(() => {
-    if (!filteredHubs || filteredHubs.length === 0) return [];
-    return [...filteredHubs].sort((a, b) => a.name.localeCompare(b.name));
-  }, [filteredHubs]);
+    let filtered = hubs;
+
+    // Text search
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (hub) =>
+          hub.name.toLowerCase().includes(term) ||
+          hub.description.toLowerCase().includes(term) ||
+          (hub.specialties && hub.specialties.some(s => s.toLowerCase().includes(term)))
+      );
+    }
+
+    // Specialty filter
+    if (filters.specialty !== "all") {
+      filtered = filtered.filter(hub =>
+        hub.specialties && hub.specialties.some(s => s.toLowerCase().includes(filters.specialty.toLowerCase()))
+      );
+    }
+
+    // Patient count filter
+    if (filters.patientCount !== "all") {
+      filtered = filtered.filter(hub => {
+        const stats = getHubStats(patients, hub.id);
+        const patientCount = stats?.totalPatients ?? 0;
+
+        switch (filters.patientCount) {
+          case "none": return patientCount === 0;
+          case "low": return patientCount > 0 && patientCount <= 5;
+          case "medium": return patientCount > 5 && patientCount <= 20;
+          case "high": return patientCount > 20;
+          default: return true;
+        }
+      });
+    }
+
+    // Activity level filter
+    if (filters.activityLevel !== "all") {
+      filtered = filtered.filter(hub => {
+        const stats = getHubStats(patients, hub.id);
+        const activity = (stats?.recentNotes ?? 0) + (stats?.activeAppointments ?? 0);
+
+        switch (filters.activityLevel) {
+          case "none": return activity === 0;
+          case "low": return activity > 0 && activity <= 2;
+          case "medium": return activity > 2 && activity <= 10;
+          case "high": return activity > 10;
+          default: return true;
+        }
+      });
+    }
+
+    // Sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let aValue: any, bValue: any;
+
+      switch (sortBy) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "patients":
+          aValue = getHubStats(patients, a.id)?.totalPatients ?? 0;
+          bValue = getHubStats(patients, b.id)?.totalPatients ?? 0;
+          break;
+        case "activity":
+          const aStats = getHubStats(patients, a.id);
+          const bStats = getHubStats(patients, b.id);
+          aValue = (aStats?.recentNotes ?? 0) + (aStats?.activeAppointments ?? 0);
+          bValue = (bStats?.recentNotes ?? 0) + (bStats?.activeAppointments ?? 0);
+          break;
+        case "created":
+          // Assuming hubs have createdAt, fallback to name
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        default:
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+
+      if (sortOrder === "asc") {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+
+    return sorted;
+  }, [searchTerm, hubs, filters, sortBy, sortOrder, patients]);
+
+  // Use filteredHubs directly (already sorted)
+  const sortedHubs = filteredHubs;
+
+  // Refs for keyboard shortcuts
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const hubGridRef = useRef<HTMLDivElement>(null);
+
+  // Selected hub index for keyboard navigation
+  const [selectedHubIndex, setSelectedHubIndex] = useState<number>(-1);
+
+  // Activity tracking state
+  const [activities, setActivities] = useState<Array<{
+    id: string;
+    type: 'function_added' | 'resource_added' | 'note_created' | 'template_created' | 'questionnaire_completed' | 'patient_added' | 'appointment_scheduled';
+    hubId: string;
+    hubName: string;
+    title: string;
+    description: string;
+    timestamp: Date;
+    user?: string;
+    metadata?: any;
+  }>>([]);
 
   const handleAddFunction = async () => {
     if (!selectedHub || !newFunction.name.trim()) return;
@@ -353,6 +519,20 @@ export default function Hubs() {
         ...prev,
         [selectedHub]: [...(prev[selectedHub] || []), response.data],
       }));
+
+      // Record activity
+      const hub = getHubById(selectedHub);
+      if (hub) {
+        recordActivity({
+          type: 'function_added',
+          hubId: selectedHub,
+          hubName: hub.name,
+          title: `New function added: ${response.data.name}`,
+          description: response.data.description || 'Custom workflow function created',
+          user: 'System',
+          metadata: { functionId: response.data.id },
+        });
+      }
 
       setNewFunction({ name: "", description: "", category: "" });
       setIsAddingFunction(false);
@@ -427,6 +607,20 @@ export default function Hubs() {
         [selectedHub]: [response.data],
       }));
 
+      // Record activity
+      const hub = getHubById(selectedHub);
+      if (hub) {
+        recordActivity({
+          type: 'note_created',
+          hubId: selectedHub,
+          hubName: hub.name,
+          title: `Hub notes updated`,
+          description: `Clinical notes updated for ${hub.name}`,
+          user: 'System',
+          metadata: { noteId: response.data.id },
+        });
+      }
+
       setIsEditingNote(false);
     } catch (err) {
       console.error('Error saving hub note:', err);
@@ -449,6 +643,20 @@ export default function Hubs() {
         ...prev,
         [selectedHub]: [...(prev[selectedHub] || []), response.data],
       }));
+
+      // Record activity
+      const hub = getHubById(selectedHub);
+      if (hub) {
+        recordActivity({
+          type: 'resource_added',
+          hubId: selectedHub,
+          hubName: hub.name,
+          title: `Resource added: ${response.data.title}`,
+          description: `New ${response.data.type} resource added to ${hub.name}`,
+          user: 'System',
+          metadata: { resourceId: response.data.id },
+        });
+      }
 
       setNewResource({ title: "", type: "link", url: "", description: "" });
       setIsAddingResource(false);
@@ -501,6 +709,10 @@ export default function Hubs() {
   // Generate template note function (similar to Consultation)
   const generateTemplateNote = (specialty: SpecialtyType, showPreview = false) => {
     const template = getSpecialtyTemplate(specialty);
+    if (!template) {
+      // Template not found - silently handle to avoid console spam
+      return;
+    }
     const specialtyName = template?.name || specialty.charAt(0).toUpperCase() + specialty.slice(1);
     const templateData = template?.consultationTemplate;
 
@@ -1078,6 +1290,20 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
       [selectedHub]: [...(prev[selectedHub] || []), completed],
     }));
 
+    // Record activity
+    const hub = getHubById(selectedHub);
+    if (hub) {
+      recordActivity({
+        type: 'questionnaire_completed',
+        hubId: selectedHub,
+        hubName: hub.name,
+        title: `Questionnaire completed: ${completed.title}`,
+        description: `${completed.title} assessment completed`,
+        user: 'System',
+        metadata: { questionnaireId: completed.questionnaireId },
+      });
+    }
+
     setSelectedQuestionnaire(null);
     setQuestionnaireAnswers({});
     setQuestionnaireScore(null);
@@ -1160,6 +1386,363 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
       // This would require passing filter state - for now just show in hub
     }
   };
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Record activity in the feed
+  const recordActivity = (activity: Omit<typeof activities[0], 'id' | 'timestamp'>) => {
+    const newActivity = {
+      ...activity,
+      id: `activity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date(),
+    };
+    setActivities(prev => [newActivity, ...prev.slice(0, 49)]); // Keep last 50 activities
+  };
+
+  // Handle search term changes
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      specialty: "all",
+      patientCount: "all",
+      activityLevel: "all",
+    });
+    setSearchTerm("");
+    setSortBy("name");
+    setSortOrder("asc");
+  };
+
+  // Get unique specialties from all hubs
+  const getUniqueSpecialties = useMemo(() => {
+    const specialtySet = new Set<string>();
+    hubs.forEach(hub => {
+      hub.specialties?.forEach(specialty => {
+        specialtySet.add(specialty.toLowerCase());
+      });
+    });
+    return Array.from(specialtySet).sort();
+  }, [hubs]);
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return searchTerm ||
+           filters.specialty !== "all" ||
+           filters.patientCount !== "all" ||
+           filters.activityLevel !== "all" ||
+           sortBy !== "name" ||
+           sortOrder !== "asc";
+  }, [searchTerm, filters, sortBy, sortOrder]);
+
+  // Analytics data calculations
+  const hubAnalytics = useMemo(() => {
+    if (!selectedHub) return null;
+
+    const hub = hubs.find(h => h.id === selectedHub);
+    if (!hub) return null;
+
+    const stats = getHubStats(patients, selectedHub);
+    const hubPatients = filterPatientsByHub(patients, selectedHub);
+    const hubFunctions = currentFunctions;
+    const hubResources = currentResources;
+    const hubQuestionnaires = getQuestionnairesByHub(String(selectedHub));
+    const completedQuestionnaires = hubCompletedQuestionnaires;
+
+    // Calculate activity trends - should be loaded from API
+    // TODO: Load from API endpoint (e.g., /api/v1/analytics/hub-activity-trend?hubId=${selectedHub})
+    const activityTrend = [
+      { date: 'Mon', value: 0 },
+      { date: 'Tue', value: 0 },
+      { date: 'Wed', value: 0 },
+      { date: 'Thu', value: 0 },
+      { date: 'Fri', value: 0 },
+      { date: 'Sat', value: 0 },
+      { date: 'Sun', value: 0 },
+    ];
+
+    // Patient engagement metrics
+    const engagementRate = hubPatients.length > 0 ? Math.min(((stats?.activeAppointments ?? 0) / hubPatients.length) * 100, 100) : 0;
+    const questionnaireCompletionRate = hubQuestionnaires.length > 0 ? Math.min((completedQuestionnaires.length / hubQuestionnaires.length) * 100, 100) : 0;
+
+    // Resource utilization
+    const totalActivities = (stats?.recentNotes ?? 0) + (stats?.activeAppointments ?? 0) + hubFunctions.length + hubResources.length;
+    const activityDistribution = [
+      { name: 'Patient Care', value: Math.round(((stats?.activeAppointments ?? 0) / Math.max(totalActivities, 1)) * 100), color: '#10b981' },
+      { name: 'Documentation', value: Math.round(((stats?.recentNotes ?? 0) / Math.max(totalActivities, 1)) * 100), color: '#3b82f6' },
+      { name: 'Resources', value: Math.round((hubResources.length / Math.max(totalActivities, 1)) * 100), color: '#8b5cf6' },
+      { name: 'Functions', value: Math.round((hubFunctions.length / Math.max(totalActivities, 1)) * 100), color: '#f59e0b' },
+    ];
+
+    // Performance indicators
+    const performanceMetrics = [
+      {
+        label: 'Patient Engagement',
+        value: `${engagementRate.toFixed(1)}%`,
+        trend: engagementRate > 60 ? 'up' : engagementRate > 30 ? 'neutral' : 'down',
+        icon: Heart,
+        color: engagementRate > 60 ? 'text-green-600' : engagementRate > 30 ? 'text-yellow-600' : 'text-red-600',
+      },
+      {
+        label: 'Questionnaire Completion',
+        value: `${questionnaireCompletionRate.toFixed(1)}%`,
+        trend: questionnaireCompletionRate > 70 ? 'up' : questionnaireCompletionRate > 40 ? 'neutral' : 'down',
+        icon: Target,
+        color: questionnaireCompletionRate > 70 ? 'text-green-600' : questionnaireCompletionRate > 40 ? 'text-yellow-600' : 'text-red-600',
+      },
+      {
+        label: 'Resource Utilization',
+        value: `${totalActivities}`,
+        trend: totalActivities > 15 ? 'up' : totalActivities > 8 ? 'neutral' : 'down',
+        icon: BarChart3,
+        color: totalActivities > 15 ? 'text-green-600' : totalActivities > 8 ? 'text-yellow-600' : 'text-red-600',
+      },
+      {
+        label: 'Function Coverage',
+        value: `${hubFunctions.length}`,
+        trend: hubFunctions.length > 5 ? 'up' : hubFunctions.length > 2 ? 'neutral' : 'down',
+        icon: Zap,
+        color: hubFunctions.length > 5 ? 'text-green-600' : hubFunctions.length > 2 ? 'text-yellow-600' : 'text-red-600',
+      },
+    ];
+
+    return {
+      hub,
+      stats,
+      hubPatients,
+      hubFunctions,
+      hubResources,
+      hubQuestionnaires,
+      completedQuestionnaires,
+      activityTrend,
+      engagementRate,
+      questionnaireCompletionRate,
+      activityDistribution,
+      performanceMetrics,
+      totalActivities,
+    };
+  }, [selectedHub, hubs, patients, currentFunctions, currentResources, hubQuestionnaires, hubCompletedQuestionnaires]);
+
+  // Hub Activity Feed - combines real activities with generated ones
+  const hubActivityFeed = useMemo(() => {
+    const allActivities = [...activities];
+
+    // Generate additional activities based on current hub data for demonstration
+    // In a real app, all activities would come from the activities state/API
+    hubs.forEach(hub => {
+      const currentHubFunctions = hubFunctions[hub.id] || [];
+      const currentHubResources = hubResources[hub.id] || [];
+      const currentHubNotes = hubNotes[hub.id] || [];
+      const hubQuestionnaires = hubCompletedQuestionnaires;
+      const hubPatients = filterPatientsByHub(patients, hub.id);
+
+      // Only add if we don't already have activities for these items
+      const existingFunctionIds = new Set(activities.filter(a => a.type === 'function_added').map(a => a.metadata?.functionId));
+      const existingResourceIds = new Set(activities.filter(a => a.type === 'resource_added').map(a => a.metadata?.resourceId));
+
+      // Add function activities (only if not already recorded)
+      currentHubFunctions.forEach((func) => {
+        if (!existingFunctionIds.has(func.id)) {
+          allActivities.push({
+            id: `func-${hub.id}-${func.id}`,
+            type: 'function_added',
+            hubId: hub.id,
+            hubName: hub.name,
+            title: `New function added: ${func.name}`,
+            description: func.description || 'Custom workflow function created',
+            timestamp: new Date(),
+            user: 'System',
+            metadata: { functionId: func.id },
+          });
+        }
+      });
+
+      // Add resource activities (only if not already recorded)
+      currentHubResources.forEach((resource) => {
+        if (!existingResourceIds.has(resource.id)) {
+          allActivities.push({
+            id: `res-${hub.id}-${resource.id}`,
+            type: 'resource_added',
+            hubId: hub.id,
+            hubName: hub.name,
+            title: `Resource added: ${resource.title}`,
+            description: `New ${resource.type} resource added to ${hub.name}`,
+            timestamp: new Date(),
+            user: 'System',
+            metadata: { resourceId: resource.id },
+          });
+        }
+      });
+
+      // Add note activities
+      currentHubNotes.forEach((note) => {
+        const noteExists = activities.some(a => a.type === 'note_created' && a.metadata?.noteId === note.id);
+        if (!noteExists) {
+          allActivities.push({
+            id: `note-${hub.id}-${note.id}`,
+            type: 'note_created',
+            hubId: hub.id,
+            hubName: hub.name,
+            title: `Hub notes updated`,
+            description: `Clinical notes updated for ${hub.name}`,
+            timestamp: new Date(note.updatedAt),
+            user: 'System',
+            metadata: { noteId: note.id },
+          });
+        }
+      });
+
+      // Add questionnaire activities
+      hubQuestionnaires.forEach((completed, index) => {
+        const questExists = activities.some(a => a.type === 'questionnaire_completed' && a.metadata?.questionnaireId === completed.questionnaireId);
+        if (!questExists) {
+          allActivities.push({
+            id: `quest-${hub.id}-${completed.questionnaireId}-${index}`,
+            type: 'questionnaire_completed',
+            hubId: hub.id,
+            hubName: hub.name,
+            title: `Questionnaire completed: ${completed.title}`,
+            description: `${completed.title} assessment completed`,
+            timestamp: new Date(completed.completedAt),
+            user: 'System',
+            metadata: { questionnaireId: completed.questionnaireId },
+          });
+        }
+      });
+    });
+
+    // Sort by timestamp (most recent first)
+    return allActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 20);
+  }, [hubs, patients, hubFunctions, hubResources, hubNotes, hubCompletedQuestionnaires, activities]);
+
+  // Analytics for overview (all hubs)
+  const overviewAnalytics = useMemo(() => {
+    if (!hubs.length) return null;
+
+    const totalPatients = hubs.reduce((sum, hub) => sum + (getHubStats(patients, hub.id)?.totalPatients ?? 0), 0);
+    const totalAppointments = hubs.reduce((sum, hub) => sum + (getHubStats(patients, hub.id)?.activeAppointments ?? 0), 0);
+    const totalNotes = hubs.reduce((sum, hub) => sum + (getHubStats(patients, hub.id)?.recentNotes ?? 0), 0);
+    const totalFunctions = hubs.reduce((sum, hub) => {
+      const functions = hubFunctions[hub.id] || [];
+      return sum + functions.length;
+    }, 0);
+    const totalResources = hubs.reduce((sum, hub) => {
+      const resources = hubResources[hub.id] || [];
+      return sum + resources.length;
+    }, 0);
+
+    const hubPerformance = hubs.map(hub => {
+      const stats = getHubStats(patients, hub.id);
+      const functions = hubFunctions[hub.id] || [];
+      const resources = hubResources[hub.id] || [];
+      const score = ((stats?.totalPatients ?? 0) * 2) + ((stats?.activeAppointments ?? 0) * 3) + functions.length + resources.length;
+      return { hub, score };
+    }).sort((a, b) => b.score - a.score);
+
+    return {
+      totalPatients,
+      totalAppointments,
+      totalNotes,
+      totalFunctions,
+      totalResources,
+      topPerformingHubs: hubPerformance.slice(0, 3),
+      totalHubs: hubs.length,
+    };
+  }, [hubs, patients, hubFunctions, hubResources]);
+
+  // Custom keyboard shortcuts for hubs
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore if user is typing in an input/textarea
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.contentEditable === 'true'
+      ) {
+        return;
+      }
+
+      // Handle keyboard shortcuts
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key.toLowerCase()) {
+          case 'k':
+            event.preventDefault();
+            searchInputRef.current?.focus();
+            searchInputRef.current?.select();
+            break;
+          case 'f':
+            event.preventDefault();
+            setShowAdvancedFilters(!showAdvancedFilters);
+            break;
+        }
+      } else {
+        switch (event.key) {
+          case 'Escape':
+            event.preventDefault();
+            if (searchTerm) {
+              setSearchTerm('');
+            } else if (hasActiveFilters) {
+              clearFilters();
+            } else if (selectedHub) {
+              setSelectedHub(null);
+              setSelectedHubIndex(-1);
+            }
+            break;
+          case 'ArrowDown':
+            event.preventDefault();
+            if (selectedHubIndex < sortedHubs.length - 1) {
+              const newIndex = selectedHubIndex + 1;
+              setSelectedHubIndex(newIndex);
+              const hubElement = document.querySelector(`[data-hub-index="${newIndex}"]`);
+              hubElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            if (selectedHubIndex > 0) {
+              const newIndex = selectedHubIndex - 1;
+              setSelectedHubIndex(newIndex);
+              const hubElement = document.querySelector(`[data-hub-index="${newIndex}"]`);
+              hubElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            break;
+          case 'Enter':
+            event.preventDefault();
+            if (selectedHubIndex >= 0 && selectedHubIndex < sortedHubs.length) {
+              setSelectedHub(sortedHubs[selectedHubIndex].id);
+              setSelectedHubIndex(-1);
+            }
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [searchTerm, hasActiveFilters, selectedHub, selectedHubIndex, sortedHubs, showAdvancedFilters]);
+
+  // Handle keyboard navigation effects
+  useEffect(() => {
+    if (selectedHubIndex >= 0) {
+      // Add visual indicator for keyboard-selected hub
+      const hubElements = document.querySelectorAll('[data-hub-index]');
+      hubElements.forEach((el, index) => {
+        if (index === selectedHubIndex) {
+          el.classList.add('ring-2', 'ring-teal-500', 'ring-offset-2');
+        } else {
+          el.classList.remove('ring-2', 'ring-teal-500', 'ring-offset-2');
+        }
+      });
+    }
+  }, [selectedHubIndex]);
 
   // Surgical Notes helper functions
   const getSurgicalStatusColor = (status: SurgicalStatus) => {
@@ -1347,7 +1930,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
   if (selectedHub && currentHub) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 animate-in slide-in-from-right-5 duration-300">
         {/* Hub Header */}
         <div className="flex items-center justify-between">
           <button
@@ -1373,187 +1956,236 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-            {[
-              { id: "overview", label: "Overview", icon: BarChart3 },
-              { id: "questionnaires", label: "Questionnaires", icon: ClipboardList },
-              { id: "templates", label: "Templates", icon: FileEdit },
-              { id: "functions", label: "Functions", icon: Zap },
-              { id: "notes", label: "Notes", icon: FileText },
-              ...(isSurgicalHub ? [{ id: "surgical-notes", label: "Surgical Notes", icon: Activity }] : []),
-              { id: "resources", label: "Resources", icon: BookOpen },
-              { id: "team", label: "Team", icon: Users },
-              { id: "stats", label: "Statistics", icon: BarChart3 },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setHubActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${hubActiveTab === tab.id
-                  ? "border-teal-600 text-teal-600 dark:text-teal-400"
-                  : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+          {/* Compact Tabs */}
+          <div className="mb-4">
+            <div className="flex gap-1 mb-3 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
+              {[
+                { id: "overview", label: "Overview", icon: BarChart3, compact: true },
+                { id: "questionnaires", label: "Q&A", icon: ClipboardList, compact: true },
+                { id: "templates", label: "Templates", icon: FileEdit, compact: true },
+                { id: "functions", label: "Functions", icon: Zap, compact: false },
+                { id: "notes", label: "Notes", icon: FileText, compact: false },
+                ...(isSurgicalHub ? [{ id: "surgical-notes", label: "Surgery", icon: Activity, compact: true }] : []),
+                { id: "resources", label: "Resources", icon: BookOpen, compact: false },
+                { id: "team", label: "Team", icon: Users, compact: false },
+                { id: "stats", label: "Stats", icon: BarChart3, compact: true },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setHubActiveTab(tab.id as any)}
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-all duration-200 text-xs font-medium whitespace-nowrap hover:scale-105 ${
+                    hubActiveTab === tab.id
+                      ? "bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-sm"
                   }`}
-              >
-                <tab.icon size={16} />
-                {tab.label}
-              </button>
-            ))}
+                  title={tab.label}
+                >
+                  <tab.icon size={14} />
+                  {!tab.compact && <span>{tab.label}</span>}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Overview Tab */}
+          {/* Overview Tab - Compact Layout */}
           {hubActiveTab === "overview" && (
-            <div className="space-y-6">
-              {/* Specialties */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Specialties</h3>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Specialty information will be loaded from API
-                  </span>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              {quickActions.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-3">Quick Actions</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {quickActions.map((action) => (
-                      <button
-                        key={action.id}
-                        onClick={() => handleQuickAction(action)}
-                        className="flex items-center gap-2 px-4 py-3 bg-white/60 dark:bg-gray-800/60 hover:bg-white/80 dark:hover:bg-gray-800/80 rounded-lg text-sm font-medium transition-colors border border-gray-200 dark:border-gray-700"
-                      >
-                        {action.action === "schedule" && <Calendar size={16} />}
-                        {action.action === "consultation" && <Stethoscope size={16} />}
-                        {action.action === "referral" && <ArrowRight size={16} />}
-                        {action.action === "filter-patients" && <User size={16} />}
-                        {action.label}
-                      </button>
-                    ))}
+            <div className="space-y-4 animate-in fade-in-0 duration-300">
+              {/* Top Row: Stats & Quick Actions */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Quick Stats - Compact */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Quick Stats</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg text-center">
+                      <div className="text-lg font-bold text-teal-600 dark:text-teal-400">{hubStats.totalPatients}</div>
+                      <div className="text-xs opacity-70">Patients</div>
+                    </div>
+                    <div className="p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg text-center">
+                      <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{hubStats.activeAppointments}</div>
+                      <div className="text-xs opacity-70">Appointments</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg text-center">
+                      <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{currentFunctions.length}</div>
+                      <div className="text-xs opacity-70">Functions</div>
+                    </div>
+                    <div className="p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg text-center">
+                      <div className="text-lg font-bold text-green-600 dark:text-green-400">{hubQuestionnaires.length}</div>
+                      <div className="text-xs opacity-70">Questionnaires</div>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-2xl font-bold">{hubStats.totalPatients}</div>
-                  <div className="text-sm opacity-70">Total Patients</div>
-                </div>
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-2xl font-bold">{hubStats.activeAppointments}</div>
-                  <div className="text-sm opacity-70">Active Appointments</div>
-                </div>
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-2xl font-bold">{currentFunctions.length}</div>
-                  <div className="text-sm opacity-70">Custom Functions</div>
-                </div>
+                {/* Quick Actions - Compact */}
+                {quickActions.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Quick Actions</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      {quickActions.slice(0, 4).map((action) => (
+                        <button
+                          key={action.id}
+                          onClick={() => handleQuickAction(action)}
+                          className="flex items-center gap-2 px-3 py-2 bg-white/60 dark:bg-gray-800/60 hover:bg-white/80 dark:hover:bg-gray-800/80 rounded-lg text-xs font-medium transition-colors border border-gray-200 dark:border-gray-700"
+                        >
+                          {action.action === "schedule" && <Calendar size={14} />}
+                          {action.action === "consultation" && <Stethoscope size={14} />}
+                          {action.action === "referral" && <ArrowRight size={14} />}
+                          {action.action === "filter-patients" && <User size={14} />}
+                          <span className="truncate">{action.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Hub Patients Preview */}
+              {/* Hub Patients Preview - Collapsible */}
               {hubPatients.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">Hub Patients ({hubPatients.length})</h3>
-                    <button
-                      onClick={() => {
-                        // Navigate to patient list - would need to pass filter
-                        // For now, just show first patient
-                        if (hubPatients[0]) {
-                          setSelectedPatient(hubPatients[0]);
-                          setActiveTab("overview");
-                        }
-                      }}
-                      className="text-sm text-teal-600 dark:text-teal-400 hover:underline"
-                    >
-                      View All
-                    </button>
-                  </div>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {hubPatients.slice(0, 5).map((patient) => (
+                <div>
+                  <button
+                    onClick={() => toggleSection("patients")}
+                    className="flex items-center justify-between w-full mb-2 group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded px-2 py-1 -mx-2 -my-1"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
+                      Recent Patients ({hubPatients.length})
+                    </h3>
+                    <div className="flex items-center gap-2">
                       <button
-                        key={patient.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPatient(patient);
-                          setActiveTab("overview");
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (hubPatients[0]) {
+                            setSelectedPatient(hubPatients[0]);
+                            setActiveTab("overview");
+                          }
                         }}
-                        className="w-full text-left p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-white/80 dark:hover:bg-gray-800/80 transition-colors"
-                        aria-label={`Select patient: ${patient.name}`}
+                        className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
                       >
-                        <div className="font-medium text-sm">{patient.name}</div>
-                        {patient.condition && (
-                          <div className="text-xs opacity-70 mt-1">{patient.condition}</div>
-                        )}
+                        View All
                       </button>
-                    ))}
-                    {hubPatients.length > 5 && (
-                      <div className="text-sm text-center text-gray-500 dark:text-gray-400 py-2">
-                        +{hubPatients.length - 5} more patients
-                      </div>
-                    )}
-                  </div>
+                      <ChevronRight
+                        size={14}
+                        className={`text-gray-400 transition-transform ${collapsedSections.patients ? "" : "rotate-90"}`}
+                      />
+                    </div>
+                  </button>
+                  {!collapsedSections.patients && (
+                    <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                      {hubPatients.slice(0, 3).map((patient) => (
+                        <button
+                          key={patient.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPatient(patient);
+                            setActiveTab("overview");
+                          }}
+                          className="text-left p-2 bg-white/60 dark:bg-gray-800/60 rounded border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-white/80 dark:hover:bg-gray-800/80 transition-colors"
+                          aria-label={`Select patient: ${patient.name}`}
+                        >
+                          <div className="font-medium text-xs truncate">{patient.name}</div>
+                          {patient.condition && (
+                            <div className="text-xs opacity-70 truncate">{patient.condition}</div>
+                          )}
+                        </button>
+                      ))}
+                      {hubPatients.length > 3 && (
+                        <div className="text-xs text-center text-gray-500 dark:text-gray-400 py-1">
+                          +{hubPatients.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Common Conditions */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Common Conditions</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {(() => {
-                    const hub = hubs.find(h => h.id === selectedHub);
-                    const commonConditions = hub ? getHubConditions(hub.id) : [];
-                    const patientConditions = getPatientConditions(hubPatients);
-                    const conditionsToShow = patientConditions.length > 0
-                      ? [...new Set([...patientConditions, ...commonConditions])].slice(0, 6)
-                      : commonConditions.slice(0, 6);
+              {/* Common Conditions & Treatments - Collapsible Side by Side */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Common Conditions - Collapsible */}
+                <div>
+                  <button
+                    onClick={() => toggleSection("conditions")}
+                    className="flex items-center justify-between w-full mb-2 group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded px-2 py-1 -mx-2 -my-1"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
+                      Common Conditions
+                    </h3>
+                    <ChevronRight
+                      size={14}
+                      className={`text-gray-400 transition-transform ${collapsedSections.conditions ? "" : "rotate-90"}`}
+                    />
+                  </button>
+                  {!collapsedSections.conditions && (
+                    <div className="space-y-1 max-h-24 overflow-y-auto">
+                      {(() => {
+                        const hub = hubs.find(h => h.id === selectedHub);
+                        const commonConditions = hub ? getHubConditions(hub.id) : [];
+                        const patientConditions = getPatientConditions(hubPatients);
+                        const conditionsToShow = patientConditions.length > 0
+                          ? [...new Set([...patientConditions, ...commonConditions])].slice(0, 4)
+                          : commonConditions.slice(0, 4);
 
-                    if (conditionsToShow.length === 0) {
-                      return (
-                        <div className="px-3 py-2 rounded-lg bg-white/60 dark:bg-gray-800/60 text-sm text-gray-500 dark:text-gray-400">
-                          No conditions available
-                        </div>
-                      );
-                    }
+                        if (conditionsToShow.length === 0) {
+                          return (
+                            <div className="px-2 py-1 rounded bg-white/60 dark:bg-gray-800/60 text-xs text-gray-500 dark:text-gray-400">
+                              No conditions
+                            </div>
+                          );
+                        }
 
-                    return conditionsToShow.map((condition, idx) => (
-                      <div
-                        key={idx}
-                        className="px-3 py-2 rounded-lg bg-white/60 dark:bg-gray-800/60 text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
-                      >
-                        {condition}
-                      </div>
-                    ));
-                  })()}
+                        return conditionsToShow.map((condition, idx) => (
+                          <div
+                            key={idx}
+                            className="px-2 py-1 rounded bg-white/60 dark:bg-gray-800/60 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 truncate"
+                            title={condition}
+                          >
+                            {condition}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              {/* Common Treatments */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Common Treatments</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {(() => {
-                    const hub = hubs.find(h => h.id === selectedHub);
-                    const treatments = hub ? getHubTreatments(hub.id) : [];
+                {/* Common Treatments - Collapsible */}
+                <div>
+                  <button
+                    onClick={() => toggleSection("treatments")}
+                    className="flex items-center justify-between w-full mb-2 group transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded px-2 py-1 -mx-2 -my-1"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
+                      Common Treatments
+                    </h3>
+                    <ChevronRight
+                      size={14}
+                      className={`text-gray-400 transition-transform ${collapsedSections.treatments ? "" : "rotate-90"}`}
+                    />
+                  </button>
+                  {!collapsedSections.treatments && (
+                    <div className="space-y-1 max-h-24 overflow-y-auto">
+                      {(() => {
+                        const hub = hubs.find(h => h.id === selectedHub);
+                        const treatments = hub ? getHubTreatments(hub.id) : [];
 
-                    if (treatments.length === 0) {
-                      return (
-                        <div className="px-3 py-2 rounded-lg bg-white/60 dark:bg-gray-800/60 text-sm text-gray-500 dark:text-gray-400">
-                          No treatments available
-                        </div>
-                      );
-                    }
+                        if (treatments.length === 0) {
+                          return (
+                            <div className="px-2 py-1 rounded bg-white/60 dark:bg-gray-800/60 text-xs text-gray-500 dark:text-gray-400">
+                              No treatments
+                            </div>
+                          );
+                        }
 
-                    return treatments.slice(0, 6).map((treatment, idx) => (
-                      <div
-                        key={idx}
-                        className="px-3 py-2 rounded-lg bg-white/60 dark:bg-gray-800/60 text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
-                      >
-                        {treatment}
-                      </div>
-                    ));
-                  })()}
+                        return treatments.slice(0, 4).map((treatment, idx) => (
+                          <div
+                            key={idx}
+                            className="px-2 py-1 rounded bg-white/60 dark:bg-gray-800/60 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 truncate"
+                            title={treatment}
+                          >
+                            {treatment}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1561,7 +2193,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
           {/* Functions Tab */}
           {hubActiveTab === "functions" && (
-            <div>
+            <div className="animate-in fade-in-0 duration-300">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold">Custom Functions</h3>
                 {!isAddingFunction && (
@@ -1688,7 +2320,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
           {/* Notes Tab */}
           {hubActiveTab === "notes" && (
-            <div>
+            <div className="animate-in fade-in-0 duration-300">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold">Hub Notes</h3>
                 {!isEditingNote && (
@@ -1754,7 +2386,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
           {/* Resources Tab */}
           {hubActiveTab === "resources" && (
-            <div>
+            <div className="animate-in fade-in-0 duration-300">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold">Resources</h3>
                 {!isAddingResource && (
@@ -1896,7 +2528,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
           {/* Surgical Notes Tab */}
           {hubActiveTab === "surgical-notes" && isSurgicalHub && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-in fade-in-0 duration-300">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold">Surgical Notes</h3>
                 {selectedPatient && (
@@ -2050,7 +2682,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
           {/* Team Tab */}
           {hubActiveTab === "team" && (
-            <div>
+            <div className="animate-in fade-in-0 duration-300">
               <h3 className="text-lg font-semibold mb-3">Team Members</h3>
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <Users size={32} className="mx-auto mb-2 opacity-50" />
@@ -2061,7 +2693,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
           {/* Questionnaires Tab */}
           {hubActiveTab === "questionnaires" && (
-            <div>
+            <div className="animate-in fade-in-0 duration-300">
               {selectedQuestionnaire ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mb-4">
@@ -2280,39 +2912,47 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                   </div>
 
                   {hubQuestionnaires.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
                       {hubQuestionnaires.map((questionnaire) => (
-                        <div
+                        <button
                           key={questionnaire.id}
-                          className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-colors"
+                          onClick={() => setSelectedQuestionnaire(questionnaire)}
+                          className="w-full text-left p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-colors"
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-semibold text-sm">{questionnaire.title}</h4>
-                                <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
-                                  General
+                                <h4 className="font-medium text-sm truncate">{questionnaire.title}</h4>
+                                <span className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400 flex-shrink-0">
+                                  {questionnaire.questions.length}Q
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                {questionnaire.description}
-                              </p>
-                              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                                <span>{questionnaire.questions.length} questions</span>
+                              {questionnaire.description && (
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1 line-clamp-2">
+                                  {questionnaire.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                 {questionnaire.estimatedTime && (
-                                  <span>⏱ {questionnaire.estimatedTime} min</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock size={12} />
+                                    {questionnaire.estimatedTime}min
+                                  </span>
+                                )}
+                                {questionnaire.hasScoring && (
+                                  <span className="flex items-center gap-1">
+                                    <BarChart3 size={12} />
+                                    Scored
+                                  </span>
                                 )}
                               </div>
                             </div>
-                            <button
-                              onClick={() => setSelectedQuestionnaire(questionnaire)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-teal-500 text-white rounded-lg hover:bg-teal-600 text-sm font-medium transition-colors"
-                            >
-                              <Play size={14} />
-                              Start
-                            </button>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Play size={14} className="text-teal-500" />
+                              <span className="text-xs font-medium text-teal-600 dark:text-teal-400">Start</span>
+                            </div>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   ) : (
@@ -2329,7 +2969,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
           {/* Templates Tab */}
           {hubActiveTab === "templates" && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-in fade-in-0 duration-300">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold">Consultation Templates</h3>
@@ -2340,11 +2980,10 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                 <div className="flex gap-2">
                   {!isCreatingTemplate && (
                     <>
-                      <button
-                        onClick={() => {
-                          console.log('Generate Template button clicked');
-                          setShowTemplateGenerator(true);
-                        }}
+                        <button
+                          onClick={() => {
+                            setShowTemplateGenerator(true);
+                          }}
                         className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
                         type="button"
                         aria-label="Generate consultation template"
@@ -2727,39 +3366,414 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
             </div>
           )}
 
-          {/* Statistics Tab */}
+          {/* Enhanced Analytics Dashboard */}
           {hubActiveTab === "stats" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-3xl font-bold mb-1">{hubStats.totalPatients}</div>
-                  <div className="text-sm opacity-70">Total Patients</div>
-                </div>
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-3xl font-bold mb-1">{hubStats.activeAppointments}</div>
-                  <div className="text-sm opacity-70">Active Appointments</div>
-                </div>
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-3xl font-bold mb-1">{currentFunctions.length}</div>
-                  <div className="text-sm opacity-70">Custom Functions</div>
-                </div>
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-3xl font-bold mb-1">{currentResources.length}</div>
-                  <div className="text-sm opacity-70">Resources</div>
-                </div>
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-3xl font-bold mb-1">{hubQuestionnaires.length}</div>
-                  <div className="text-sm opacity-70">Questionnaires</div>
-                </div>
-                <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                  <div className="text-3xl font-bold mb-1">{hubCompletedQuestionnaires.length}</div>
-                  <div className="text-sm opacity-70">Completed</div>
-                </div>
-              </div>
-              <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
-                <h4 className="font-semibold mb-2">Recent Activity</h4>
-                <div className="text-sm opacity-70">{hubStats.recentActivities} activities in the last 7 days</div>
-              </div>
+            <div className="space-y-6 animate-in fade-in-0 duration-300">
+              {hubAnalytics ? (
+                <>
+                  {/* Performance Indicators */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Target size={20} className="text-teal-600 dark:text-teal-400" />
+                      Performance Metrics
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {hubAnalytics.performanceMetrics.map((metric, index) => (
+                        <div
+                          key={index}
+                          className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <metric.icon size={16} className={metric.color} />
+                            <div className="flex items-center">
+                              {metric.trend === 'up' && <TrendingUp size={14} className="text-green-600" />}
+                              {metric.trend === 'down' && <TrendingDown size={14} className="text-red-600" />}
+                            </div>
+                          </div>
+                          <div className="text-2xl font-bold mb-1">{metric.value}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{metric.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Activity Trend Chart */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <LineChart size={20} className="text-blue-600 dark:text-blue-400" />
+                      Weekly Activity Trend
+                    </h3>
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                      <div className="flex items-end justify-between h-32 gap-2 mb-4">
+                        {hubAnalytics.activityTrend.map((day, index) => (
+                          <div key={index} className="flex-1 flex flex-col items-center">
+                            <div
+                              className="bg-gradient-to-t from-teal-500 to-teal-400 rounded-t w-full transition-all hover:from-teal-600 hover:to-teal-500"
+                              style={{ height: `${(day.value / 30) * 100}%` }}
+                              title={`${day.date}: ${day.value} activities`}
+                            />
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">{day.date}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Daily Activity</span>
+                        <span className="font-medium">
+                          Avg: {Math.round(hubAnalytics.activityTrend.reduce((sum, day) => sum + day.value, 0) / hubAnalytics.activityTrend.length)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activity Distribution */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <PieChart size={20} className="text-purple-600 dark:text-purple-400" />
+                      Activity Distribution
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Pie Chart Visualization */}
+                      <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                        <div className="relative w-32 h-32 mx-auto mb-4">
+                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                            {hubAnalytics.activityDistribution.map((item, index) => {
+                              const previousTotal = hubAnalytics.activityDistribution.slice(0, index).reduce((sum, d) => sum + d.value, 0);
+                              const percentage = item.value;
+                              const strokeDasharray = `${percentage} ${100 - percentage}`;
+                              const strokeDashoffset = -previousTotal;
+
+                              return (
+                                <path
+                                  key={index}
+                                  d="M18 2.0845
+                                    a 15.9155 15.9155 0 0 1 0 31.831
+                                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                                  fill="none"
+                                  stroke={item.color}
+                                  strokeWidth="3"
+                                  strokeDasharray={strokeDasharray}
+                                  strokeDashoffset={strokeDashoffset}
+                                />
+                              );
+                            })}
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="text-lg font-bold">{hubAnalytics.totalActivities}</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Legend */}
+                      <div className="space-y-3">
+                        {hubAnalytics.activityDistribution.map((item, index) => (
+                          <div key={index} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: item.color }}
+                              />
+                              <span className="text-sm font-medium">{item.name}</span>
+                            </div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{item.value}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hub Insights */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <BarChart3 size={20} className="text-indigo-600 dark:text-indigo-400" />
+                      Hub Insights
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                          <Users size={16} className="text-blue-600" />
+                          Patient Demographics
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Total Patients:</span>
+                            <span className="font-medium">{hubAnalytics.hubPatients.length}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Active Cases:</span>
+                            <span className="font-medium">{hubAnalytics.stats?.activeAppointments ?? 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Engagement Rate:</span>
+                            <span className="font-medium">{hubAnalytics.engagementRate.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                          <FileText size={16} className="text-green-600" />
+                          Documentation Status
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Notes Created:</span>
+                            <span className="font-medium">{hubAnalytics.stats?.recentNotes ?? 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Questionnaires:</span>
+                            <span className="font-medium">{hubAnalytics.hubQuestionnaires.length}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Completion Rate:</span>
+                            <span className="font-medium">{hubAnalytics.questionnaireCompletionRate.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hub-Specific Activity Feed */}
+                  {hubActivityFeed.filter(activity => activity.hubId === selectedHub).length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <Activity size={20} className="text-orange-600 dark:text-orange-400" />
+                        Recent Hub Activity
+                      </h3>
+                      <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 p-4 max-h-80 overflow-y-auto">
+                        <div className="space-y-3">
+                          {hubActivityFeed
+                            .filter(activity => activity.hubId === selectedHub)
+                            .slice(0, 8)
+                            .map((activity) => (
+                            <div
+                              key={activity.id}
+                              className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                            >
+                              <div className={`p-1.5 rounded-full flex-shrink-0 ${
+                                activity.type === 'function_added' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' :
+                                activity.type === 'resource_added' ? 'bg-green-100 dark:bg-green-900/30 text-green-600' :
+                                activity.type === 'note_created' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' :
+                                activity.type === 'questionnaire_completed' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600' :
+                                activity.type === 'patient_added' ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-600' :
+                                'bg-gray-100 dark:bg-gray-800 text-gray-600'
+                              }`}>
+                                {activity.type === 'function_added' && <Zap size={14} />}
+                                {activity.type === 'resource_added' && <BookOpen size={14} />}
+                                {activity.type === 'note_created' && <FileText size={14} />}
+                                {activity.type === 'questionnaire_completed' && <ClipboardList size={14} />}
+                                {activity.type === 'patient_added' && <User size={14} />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
+                                  {activity.title}
+                                </h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                    {activity.timestamp.toLocaleDateString()}
+                                  </span>
+                                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                    activity.type === 'function_added' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700' :
+                                    activity.type === 'resource_added' ? 'bg-green-100 dark:bg-green-900/30 text-green-700' :
+                                    activity.type === 'note_created' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700' :
+                                    activity.type === 'questionnaire_completed' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700' :
+                                    activity.type === 'patient_added' ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700' :
+                                    'bg-gray-100 dark:bg-gray-800 text-gray-700'
+                                  }`}>
+                                    {activity.type.replace('_', ' ')}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendations */}
+                  <div className="p-4 bg-gradient-to-r from-teal-50 to-blue-50 dark:from-teal-900/20 dark:to-blue-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Target size={16} className="text-teal-600 dark:text-teal-400" />
+                      Recommendations
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      {hubAnalytics.engagementRate < 50 && (
+                        <div className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
+                          <span>Consider scheduling more follow-up appointments to improve patient engagement</span>
+                        </div>
+                      )}
+                      {hubAnalytics.hubFunctions.length < 3 && (
+                        <div className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                          <span>Add more custom functions to streamline hub-specific workflows</span>
+                        </div>
+                      )}
+                      {hubAnalytics.questionnaireCompletionRate < 60 && (
+                        <div className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
+                          <span>Encourage more questionnaire completions for better patient assessments</span>
+                        </div>
+                      )}
+                      {hubAnalytics.hubResources.length === 0 && (
+                        <div className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                          <span>Add relevant resources and guidelines for better clinical support</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Overview Analytics (when no specific hub is selected)
+                overviewAnalytics && (
+                  <>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <BarChart3 size={20} className="text-teal-600 dark:text-teal-400" />
+                        System Overview
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                          <div className="text-3xl font-bold mb-1 text-teal-600">{overviewAnalytics.totalPatients}</div>
+                          <div className="text-sm opacity-70">Total Patients</div>
+                        </div>
+                        <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                          <div className="text-3xl font-bold mb-1 text-blue-600">{overviewAnalytics.totalAppointments}</div>
+                          <div className="text-sm opacity-70">Active Appointments</div>
+                        </div>
+                        <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                          <div className="text-3xl font-bold mb-1 text-purple-600">{overviewAnalytics.totalFunctions}</div>
+                          <div className="text-sm opacity-70">Custom Functions</div>
+                        </div>
+                        <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                          <div className="text-3xl font-bold mb-1 text-green-600">{overviewAnalytics.totalHubs}</div>
+                          <div className="text-sm opacity-70">Active Hubs</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {overviewAnalytics.topPerformingHubs.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                          <TrendingUp size={20} className="text-green-600 dark:text-green-400" />
+                          Top Performing Hubs
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {overviewAnalytics.topPerformingHubs.map((item, index) => (
+                            <div
+                              key={item.hub.id}
+                              className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer"
+                              onClick={() => setSelectedHub(item.hub.id)}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium truncate">{item.hub.name}</h4>
+                                <span className="text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 px-2 py-1 rounded">
+                                  #{index + 1}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                Performance Score: {item.score}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hub Activity Feed */}
+                    {hubActivityFeed.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                          <Activity size={20} className="text-blue-600 dark:text-blue-400" />
+                          Recent Hub Activity
+                        </h3>
+                        <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 p-4 max-h-96 overflow-y-auto">
+                          <div className="space-y-3">
+                            {hubActivityFeed.map((activity) => (
+                              <div
+                                key={activity.id}
+                                className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                              >
+                                {/* Activity Icon */}
+                                <div className={`p-2 rounded-full flex-shrink-0 ${
+                                  activity.type === 'function_added' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' :
+                                  activity.type === 'resource_added' ? 'bg-green-100 dark:bg-green-900/30 text-green-600' :
+                                  activity.type === 'note_created' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' :
+                                  activity.type === 'template_created' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' :
+                                  activity.type === 'questionnaire_completed' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600' :
+                                  activity.type === 'patient_added' ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-600' :
+                                  'bg-gray-100 dark:bg-gray-800 text-gray-600'
+                                }`}>
+                                  {activity.type === 'function_added' && <Zap size={16} />}
+                                  {activity.type === 'resource_added' && <BookOpen size={16} />}
+                                  {activity.type === 'note_created' && <FileText size={16} />}
+                                  {activity.type === 'template_created' && <FileEdit size={16} />}
+                                  {activity.type === 'questionnaire_completed' && <ClipboardList size={16} />}
+                                  {activity.type === 'patient_added' && <User size={16} />}
+                                  {activity.type === 'appointment_scheduled' && <Calendar size={16} />}
+                                </div>
+
+                                {/* Activity Content */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
+                                        {activity.title}
+                                      </h4>
+                                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                        {activity.description}
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                                        {activity.hubName}
+                                      </span>
+                                      <span className="text-xs text-gray-400 dark:text-gray-600">
+                                        {activity.timestamp.toLocaleDateString()} {activity.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Activity Type Badge */}
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                      activity.type === 'function_added' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                                      activity.type === 'resource_added' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                                      activity.type === 'note_created' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                      activity.type === 'template_created' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' :
+                                      activity.type === 'questionnaire_completed' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
+                                      activity.type === 'patient_added' ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300' :
+                                      'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                    }`}>
+                                      {activity.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                    </span>
+                                    {activity.user && (
+                                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                                        by {activity.user}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {hubActivityFeed.length === 0 && (
+                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                              <Activity size={32} className="mx-auto mb-2 opacity-50" />
+                              <p className="text-sm">No recent activity</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              )}
             </div>
           )}
         </div>
@@ -2767,12 +3781,53 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
     );
   }
 
+  // Skeleton loading component
+  const HubSkeleton = () => (
+    <div className="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 animate-pulse">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+          <div className="w-5 h-5 rounded bg-gray-300 dark:bg-gray-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded mb-1 w-3/4" />
+          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+        </div>
+      </div>
+      <div className="flex items-center justify-between text-xs">
+        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12" />
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading hubs...</p>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-48 mb-2" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-96" />
+          </div>
+          <div className="text-right">
+            <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-16 mb-1" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20" />
+          </div>
+        </div>
+
+        {/* Search Skeleton */}
+        <div className="space-y-3">
+          <div className="flex gap-3 items-center">
+            <div className="flex-1 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+            <div className="h-10 w-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Hub Grid Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <HubSkeleton key={index} />
+          ))}
         </div>
       </div>
     );
@@ -2780,863 +3835,100 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
   if (error) {
     return (
-      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-        <p className="text-red-700 dark:text-red-400">{error}</p>
-        <button
-          onClick={() => {
-            setError(null);
-            setLoading(true);
-            initializeHubs().finally(() => setLoading(false));
-          }}
-          className="mt-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-        >
-          Retry
-        </button>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+            <X size={32} className="text-red-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Failed to Load Hubs
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {error}
+          </p>
+          <div className="space-y-2">
+            <button
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                initializeHubs().then(() => {
+                  const loadedHubs = getAllHubsSync();
+                  setHubs(loadedHubs);
+                  setLoading(false);
+                }).catch(() => setLoading(false));
+              }}
+              className="w-full px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium"
+            >
+              <RefreshCw size={16} className="inline mr-2" />
+              Try Again
+            </button>
+            <button
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                // Try to use cached data
+                const cached = getAllHubsSync();
+                if (cached.length > 0) {
+                  setHubs(cached);
+                  setLoading(false);
+                } else {
+                  setError('No cached data available. Please check your connection.');
+                  setLoading(false);
+                }
+              }}
+              className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
+            >
+              Use Cached Data
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Ensure we have hubs before rendering
+  console.log(`🔍 Hubs render: hubs.length=${hubs.length}, loading=${loading}, error=${error}, selectedHub=${selectedHub}`);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Medical Hubs</h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Specialized care centers organized by medical specialty areas. Add custom functions, notes, and resources to personalize each hub.
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">{hubs.length}</div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Hubs</div>
-        </div>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex gap-4 items-center">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search hubs by name, specialty, or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
-          />
-        </div>
-        {searchTerm && (
-          <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            Showing {filteredHubs.length} of {hubs.length} hubs
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sortedHubs.map((hub) => {
-          const functions = hubFunctions[hub.id] || [];
-          const colorClass = getHubColorClass(hub.id);
-
-          return (
-            <div
-              key={hub.id}
-              onClick={() => setSelectedHub(hub.id)}
-              className={`p-6 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] ${colorClass}`}
-            >
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 rounded-lg bg-white/50 dark:bg-gray-800/50">
-                  <div className="w-7 h-7 rounded bg-teal-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-1">{hub.name}</h3>
-                  <p className="text-sm opacity-80 line-clamp-2">{hub.description}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="opacity-70">Specialty hub</span>
-                  {functions.length > 0 && (
-                    <span className="px-2 py-0.5 bg-white/60 dark:bg-gray-800/60 rounded">
-                      {functions.length} {functions.length === 1 ? "function" : "functions"}
-                    </span>
-                  )}
-                </div>
-                <ChevronRight size={16} className="opacity-50" />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {sortedHubs.length === 0 && (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          {hubs.length === 0 ? (
-            <>
-              <Search size={48} className="mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No hubs available</p>
-              <p className="text-sm mt-2">Hubs will appear here once loaded from the API</p>
-              <button
-                onClick={() => {
-                  setLoading(true);
-                  initializeHubs().then(() => {
-                    const loadedHubs = getAllHubsSync();
-                    setHubs(loadedHubs);
-                    setLoading(false);
-                  }).catch(() => setLoading(false));
-                }}
-                className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
-              >
-                Reload Hubs
-              </button>
-            </>
-          ) : (
-            <>
-              <Search size={48} className="mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No hubs match your search</p>
-              <p className="text-sm mt-2">Try adjusting your search terms</p>
-              <button
-                onClick={() => setSearchTerm("")}
-                className="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-              >
-                Clear Search
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Template Generator Modal */}
-      {showTemplateGenerator && createPortal(
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowTemplateGenerator(false);
-            }
+    <HubsErrorBoundary>
+      {!selectedHub ? (
+        <HubList
+          hubs={hubs}
+          patients={patients}
+          selectedHub={selectedHub}
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          onHubSelect={setSelectedHub}
+          showAdvancedFilters={showAdvancedFilters}
+          setShowAdvancedFilters={setShowAdvancedFilters}
+          filters={filters}
+          setFilters={setFilters}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          setSortBy={setSortBy}
+          setSortOrder={setSortOrder}
+          selectedHubIndex={selectedHubIndex}
+          setSelectedHubIndex={setSelectedHubIndex}
+          onClearFilters={clearFilters}
+          bulkModeEnabled={bulkModeEnabled}
+          selectedHubsForBulk={selectedHubsForBulk}
+          onBulkSelectionChange={setSelectedHubsForBulk}
+          onBulkModeToggle={() => {
+            setBulkModeEnabled(!bulkModeEnabled);
+            setSelectedHubsForBulk([]);
           }}
-        >
-          <div
-            className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h4 className="text-lg font-semibold flex items-center gap-2">
-                  <Sparkles size={20} className="text-indigo-600 dark:text-indigo-400" />
-                  Generate Consultation Template
-                </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Select a specialty to generate a consultation note template
-                </p>
-              </div>
-              <button
-                onClick={() => setShowTemplateGenerator(false)}
-                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                aria-label="Close template generator"
-                title="Close template generator"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Template Customization Options */}
-            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <Settings size={16} className="text-gray-600 dark:text-gray-400" />
-                  Template Customization
-                </h4>
-                <button
-                  onClick={() => {
-                    setTemplateCustomization({
-                      includeSections: {
-                        chiefComplaint: true,
-                        hpi: true,
-                        reviewOfSystems: true,
-                        vitalSigns: true,
-                        physicalExam: true,
-                        socialHistory: true,
-                        familyHistory: true,
-                        medicationReconciliation: true,
-                        diagnosisCodes: true,
-                        assessment: true,
-                        plan: true,
-                        patientInstructions: true,
-                        followUp: true,
-                      },
-                      includeCommonDiagnoses: true,
-                      includeCommonTests: true,
-                      includeCommonMedications: true,
-                    });
-                  }}
-                  className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
-                >
-                  Reset to Default
-                </button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
-                {Object.entries(templateCustomization.includeSections).map(([key, value]) => (
-                  <label key={key} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded">
-                    <input
-                      type="checkbox"
-                      checked={value}
-                      onChange={(e) => {
-                        setTemplateCustomization(prev => ({
-                          ...prev,
-                          includeSections: {
-                            ...prev.includeSections,
-                            [key]: e.target.checked
-                          }
-                        }));
-                      }}
-                      className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500"
-                    />
-                    <span className="text-gray-700 dark:text-gray-300 capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={templateCustomization.includeCommonDiagnoses}
-                    onChange={(e) => setTemplateCustomization(prev => ({ ...prev, includeCommonDiagnoses: e.target.checked }))}
-                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Include Common Diagnoses</span>
-                </label>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={templateCustomization.includeCommonTests}
-                    onChange={(e) => setTemplateCustomization(prev => ({ ...prev, includeCommonTests: e.target.checked }))}
-                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Include Common Tests</span>
-                </label>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={templateCustomization.includeCommonMedications}
-                    onChange={(e) => setTemplateCustomization(prev => ({ ...prev, includeCommonMedications: e.target.checked }))}
-                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Include Common Medications</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Recently Used Templates */}
-            {recentTemplates.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                  <Clock size={16} className="text-amber-600 dark:text-amber-400" />
-                  Recently Used
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {recentTemplates.map((specialty) => {
-                    const template = getSpecialtyTemplate(specialty);
-                    return (
-                      <div key={specialty} className="relative group">
-                        <button
-                          onClick={() => generateTemplateNote(specialty)}
-                          className="w-full p-4 border-2 border-amber-200 dark:border-amber-700 rounded-lg hover:border-amber-500 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-left"
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <Clock size={16} className="text-amber-600 dark:text-amber-400" />
-                            <span className="font-medium text-sm text-amber-700 dark:text-amber-300">
-                              {template?.name || specialty}
-                            </span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => generateTemplateNote(specialty, true)}
-                          className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-opacity"
-                          title="Preview template"
-                          aria-label={`Preview ${template?.name || specialty} template`}
-                        >
-                          <Eye size={14} className="text-gray-600 dark:text-gray-400" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Custom Templates Section */}
-            {customTemplates.filter(t => !selectedHub || t.hubId === selectedHub || !t.hubId).length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                  <Sparkles size={16} className="text-purple-600 dark:text-purple-400" />
-                  Custom Templates
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
-                  {customTemplates
-                    .filter(t => !selectedHub || t.hubId === selectedHub || !t.hubId)
-                    .filter((template) => template && template.id && template.name && template.consultationTemplate)
-                    .map((customTemplate) => (
-                      <div key={customTemplate.id} className="relative group">
-                        <button
-                          onClick={() => generateCustomTemplateNote(customTemplate)}
-                          className="w-full p-4 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-left"
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileText size={18} className="text-purple-600 dark:text-purple-400" />
-                            <span className="font-medium text-sm group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                              {customTemplate.name || "Unnamed Template"}
-                            </span>
-                          </div>
-                          {customTemplate.description && (
-                            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                              {customTemplate.description}
-                            </p>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => generateCustomTemplateNote(customTemplate, true)}
-                          className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-opacity"
-                          title="Preview template"
-                          aria-label={`Preview ${customTemplate.name || "custom"} template`}
-                        >
-                          <Eye size={14} className="text-gray-600 dark:text-gray-400" />
-                        </button>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Specialty Templates Section */}
-            <div className={customTemplates.filter(t => !selectedHub || t.hubId === selectedHub || !t.hubId).length > 0 || recentTemplates.length > 0 ? "border-t pt-6" : ""}>
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                <ClipboardList size={16} className="text-indigo-600 dark:text-indigo-400" />
-                All Specialty Templates
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {getAllSpecialties()
-                  .filter(s => s !== "other" && !recentTemplates.includes(s))
-                  .map((specialty) => {
-                    const template = getSpecialtyTemplate(specialty);
-                    return (
-                      <div key={specialty} className="relative group">
-                        <button
-                          onClick={() => generateTemplateNote(specialty as SpecialtyType)}
-                          className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all text-left"
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <ClipboardList size={18} className="text-indigo-600 dark:text-indigo-400" />
-                            <span className="font-medium text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
-                              {template?.name || specialty}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                            {template?.name || `Template for ${specialty} consultation`}
-                          </p>
-                        </button>
-                        <button
-                          onClick={() => generateTemplateNote(specialty as SpecialtyType, true)}
-                          className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-opacity"
-                          title="Preview template"
-                          aria-label={`Preview ${template?.name || specialty} template`}
-                        >
-                          <Eye size={14} className="text-gray-600 dark:text-gray-400" />
-                        </button>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
+          isLoading={loading}
+        />
+      ) : (
+        <HubDetailView
+          hub={currentHub!}
+          patients={patients}
+          allHubs={hubs}
+          onBack={() => setSelectedHub(null)}
+          activeTab={hubActiveTab}
+          onTabChange={setHubActiveTab}
+        />
       )}
-
-      {/* Template Preview Modal */}
-      {templatePreview && createPortal(
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setTemplatePreview(null);
-            }
-          }}
-        >
-          <div
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Template Preview</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{templatePreview.title}</p>
-              </div>
-              <button
-                onClick={() => setTemplatePreview(null)}
-                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                aria-label="Close template preview"
-                title="Close template preview"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="mb-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <FileText size={16} />
-                <span>Edit the template below before saving</span>
-              </div>
-              <textarea
-                value={editedTemplateContent}
-                onChange={(e) => setEditedTemplateContent(e.target.value)}
-                className="w-full h-[60vh] px-4 py-3 text-sm font-mono border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
-                placeholder="Template content will appear here..."
-              />
-              <div className="mt-4 flex justify-between items-center">
-                <button
-                  onClick={handleUseTemplateInConsultation}
-                  className="px-5 py-2.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-medium transition-colors flex items-center gap-2"
-                >
-                  <Stethoscope size={18} />
-                  Use in Consultation
-                </button>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setTemplatePreview(null);
-                      setEditedTemplateContent("");
-                    }}
-                    className="px-5 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium text-gray-700 dark:text-gray-300 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Parse template content
-                      const parseTemplateContent = (content: string) => {
-                        const result: {
-                          chiefComplaint: string;
-                          historyOfPresentIllness: string;
-                          reviewOfSystems: string[];
-                          physicalExamination: string[];
-                          assessment: string;
-                          plan: string[];
-                          commonDiagnoses: string[];
-                          commonTests: string[];
-                          commonMedications: string[];
-                        } = {
-                          chiefComplaint: "",
-                          historyOfPresentIllness: "",
-                          reviewOfSystems: [],
-                          physicalExamination: [],
-                          assessment: "",
-                          plan: [],
-                          commonDiagnoses: [],
-                          commonTests: [],
-                          commonMedications: [],
-                        };
-
-                        const lines = content.split("\n");
-                        let currentSection: string | null = null;
-                        let currentText: string[] = [];
-
-                        for (const line of lines) {
-                          const upperLine = line.toUpperCase().trim();
-
-                          if (upperLine.includes("CHIEF COMPLAINT")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "chiefComplaint";
-                            currentText = [];
-                            continue;
-                          } else if (upperLine.includes("HISTORY OF PRESENT ILLNESS") || upperLine.includes("HPI")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "historyOfPresentIllness";
-                            currentText = [];
-                            continue;
-                          } else if (upperLine.includes("REVIEW OF SYSTEMS")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "reviewOfSystems";
-                            currentText = [];
-                            continue;
-                          } else if (upperLine.includes("PHYSICAL EXAM")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "physicalExamination";
-                            currentText = [];
-                            continue;
-                          } else if (upperLine.includes("ASSESSMENT")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "assessment";
-                            currentText = [];
-                            continue;
-                          } else if (upperLine.includes("PLAN")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "plan";
-                            currentText = [];
-                            continue;
-                          } else if (upperLine.includes("COMMON DIAGNOSES")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "commonDiagnoses";
-                            currentText = [];
-                            continue;
-                          } else if (upperLine.includes("COMMON TESTS")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "commonTests";
-                            currentText = [];
-                            continue;
-                          } else if (upperLine.includes("COMMON MEDICATIONS")) {
-                            if (currentSection && currentText.length > 0) {
-                              if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                                (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                              } else {
-                                (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                              }
-                            }
-                            currentSection = "commonMedications";
-                            currentText = [];
-                            continue;
-                          }
-
-                          if (currentSection && line.trim() && !line.trim().endsWith(":")) {
-                            currentText.push(line);
-                          }
-                        }
-
-                        // Save last section
-                        if (currentSection && currentText.length > 0) {
-                          if (currentSection === "reviewOfSystems" || currentSection === "physicalExamination" || currentSection === "plan" || currentSection === "commonDiagnoses" || currentSection === "commonTests" || currentSection === "commonMedications") {
-                            (result[currentSection as keyof typeof result] as string[]).push(...currentText.filter(t => t.trim().replace(/^•\s*/, "")));
-                          } else {
-                            (result[currentSection as keyof typeof result] as string) = currentText.join("\n").trim();
-                          }
-                        }
-
-                        return result;
-                      };
-
-                      const parsed = parseTemplateContent(editedTemplateContent);
-
-                      // Save as custom template
-                      const customTemplate: CustomConsultationTemplate = {
-                        id: `template-${Date.now()}`,
-                        name: templatePreview.title,
-                        description: `Generated template${templatePreview.specialty ? ` from ${getSpecialtyTemplate(templatePreview.specialty)?.name}` : ""}`,
-                        hubId: selectedHub || undefined,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        consultationTemplate: {
-                          chiefComplaint: parsed.chiefComplaint,
-                          historyOfPresentIllness: parsed.historyOfPresentIllness,
-                          reviewOfSystems: parsed.reviewOfSystems.filter(s => s.trim()),
-                          physicalExamination: parsed.physicalExamination.filter(s => s.trim()),
-                          assessment: parsed.assessment,
-                          plan: parsed.plan.filter(s => s.trim()),
-                          commonDiagnoses: parsed.commonDiagnoses.filter(s => s.trim()),
-                          commonTests: parsed.commonTests.filter(s => s.trim()),
-                          commonMedications: parsed.commonMedications.filter(s => s.trim()),
-                        }
-                      };
-                      setCustomTemplates(prev => [...prev, customTemplate]);
-                      setTemplatePreview(null);
-                      setEditedTemplateContent("");
-                    }}
-                    className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors flex items-center gap-2"
-                  >
-                    <Save size={18} />
-                    Save Template
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Surgical Notes Form Modal */}
-      {showAddSurgicalForm && selectedPatient && createPortal(
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowAddSurgicalForm(false);
-            }
-          }}
-        >
-          <div
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Create Surgical Note</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">For {selectedPatient.name}</p>
-              </div>
-              <button
-                onClick={() => setShowAddSurgicalForm(false)}
-                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                aria-label="Close modal"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddSurgicalNote} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="surgical-date" className="block text-sm font-medium mb-1">Date <span className="text-red-500">*</span></label>
-                  <input
-                    id="surgical-date"
-                    type="date"
-                    required
-                    value={surgicalFormData.date}
-                    onChange={(e) => setSurgicalFormData({ ...surgicalFormData, date: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700"
-                  />
-                </div>
-                <div>
-                  <FormAutocomplete
-                    value={surgicalFormData.procedureName}
-                    onChange={(value) => setSurgicalFormData({ ...surgicalFormData, procedureName: value })}
-                    options={commonProcedures}
-                    placeholder="Procedure Name"
-                    label="Procedure Name"
-                    required
-                    fieldName="procedureName"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="surgical-procedure-type" className="block text-sm font-medium mb-1">Procedure Type</label>
-                  <select
-                    id="surgical-procedure-type"
-                    value={surgicalFormData.procedureType}
-                    onChange={(e) => setSurgicalFormData({ ...surgicalFormData, procedureType: e.target.value as SurgicalProcedureType })}
-                    className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700"
-                    aria-label="Procedure type"
-                  >
-                    <option value="scheduled">Scheduled</option>
-                    <option value="elective">Elective</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="emergency">Emergency</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="surgical-status" className="block text-sm font-medium mb-1">Status</label>
-                  <select
-                    id="surgical-status"
-                    value={surgicalFormData.status}
-                    onChange={(e) => setSurgicalFormData({ ...surgicalFormData, status: e.target.value as SurgicalStatus })}
-                    className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700"
-                    aria-label="Surgical status"
-                  >
-                    <option value="scheduled">Scheduled</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                    <option value="postponed">Postponed</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <UserAssignment
-                    assignedTo={surgicalFormData.surgeonId}
-                    onAssign={(userId: string | null) => setSurgicalFormData({ ...surgicalFormData, surgeonId: userId })}
-                    placeholder="Select surgeon"
-                    label="Surgeon"
-                  />
-                </div>
-                <div>
-                  <UserAssignment
-                    assignedTo={surgicalFormData.anesthesiologistId}
-                    onAssign={(userId: string | null) => setSurgicalFormData({ ...surgicalFormData, anesthesiologistId: userId })}
-                    placeholder="Select anesthesiologist"
-                    label="Anesthesiologist"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Indication</label>
-                <textarea
-                  value={surgicalFormData.indication}
-                  onChange={(e) => setSurgicalFormData({ ...surgicalFormData, indication: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700"
-                  placeholder="Reason for surgery..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Procedure Description</label>
-                <textarea
-                  value={surgicalFormData.procedureDescription}
-                  onChange={(e) => setSurgicalFormData({ ...surgicalFormData, procedureDescription: e.target.value })}
-                  rows={4}
-                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700"
-                  placeholder="Describe the procedure..."
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium"
-                >
-                  Create Surgical Note
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddSurgicalForm(false)}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Surgical Note Details Modal */}
-      {showSurgicalDetailsModal && selectedSurgicalNote && createPortal(
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowSurgicalDetailsModal(false);
-            }
-          }}
-        >
-          <div
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Surgical Note Details</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{selectedSurgicalNote.procedureName}</p>
-              </div>
-              <button
-                onClick={() => setShowSurgicalDetailsModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                aria-label="Close modal"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400">Date</label>
-                  <p className="text-sm font-medium">{new Date(selectedSurgicalNote.date).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400">Status</label>
-                  <p className="text-sm font-medium">{selectedSurgicalNote.status}</p>
-                </div>
-                {selectedSurgicalNote.surgeon && (
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400">Surgeon</label>
-                    <p className="text-sm font-medium">{selectedSurgicalNote.surgeon}</p>
-                  </div>
-                )}
-                {selectedSurgicalNote.operatingRoom && (
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400">Operating Room</label>
-                    <p className="text-sm font-medium">{selectedSurgicalNote.operatingRoom}</p>
-                  </div>
-                )}
-              </div>
-
-              {selectedSurgicalNote.indication && (
-                <div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400">Indication</label>
-                  <p className="text-sm mt-1">{selectedSurgicalNote.indication}</p>
-                </div>
-              )}
-
-              {selectedSurgicalNote.procedureDescription && (
-                <div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400">Procedure Description</label>
-                  <p className="text-sm mt-1 whitespace-pre-wrap">{selectedSurgicalNote.procedureDescription}</p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4 border-t">
-                <button
-                  onClick={() => handlePrintSurgicalNote(selectedSurgicalNote)}
-                  className="flex-1 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium flex items-center justify-center gap-2"
-                >
-                  <Printer size={16} />
-                  Print
-                </button>
-                <button
-                  onClick={() => setShowSurgicalDetailsModal(false)}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-    </div>
+    </HubsErrorBoundary>
   );
 }

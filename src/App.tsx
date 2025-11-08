@@ -5,6 +5,7 @@ import PatientListPage from "./pages/PatientListPage";
 import WorkspacePage from "./pages/WorkspacePage";
 import Login from "./components/Login";
 import { initializeHubs } from "./data/hubs";
+import { usePerformanceMonitor } from "./hooks/usePerformanceMonitor";
 
 type ViewMode = "patients" | "workspace";
 
@@ -13,6 +14,9 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("patients");
   const { selectedPatient: _selectedPatient } = useDashboard();
   const { isAuthenticated, isLoading } = useAuth();
+
+  // Performance monitoring
+  usePerformanceMonitor();
 
   // Initialize hubs when authenticated
   useEffect(() => {
@@ -62,9 +66,9 @@ function App() {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-primary-50 dark:bg-primary-950">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           <div className="text-gray-700 dark:text-gray-300">Loading application...</div>
         </div>
       </div>

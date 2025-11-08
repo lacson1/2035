@@ -58,6 +58,7 @@ import vaccinationsRoutes from './routes/vaccinations.routes';
 import surgicalNotesRoutes from './routes/surgical-notes.routes';
 import nutritionRoutes from './routes/nutrition.routes';
 import { seedHubsIfNeeded } from './utils/seedHubs';
+import { configValidator } from './utils/config-validator';
 
 const app = express();
 
@@ -154,6 +155,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Input sanitization (prevent XSS)
 app.use(sanitizeInput);
+
+// Static file serving for uploaded documents
+app.use('/uploads', express.static('uploads'));
 
 // Metrics collection
 app.use(metricsMiddleware);
@@ -265,16 +269,34 @@ if (process.env.SENTRY_DSN) {
 // Error handler (must be last)
 app.use(errorHandler);
 
+// Validate configuration before starting server
+logger.info('🔍 Validating configuration...');
+const validationResult = configValidator.validateAll();
+
+if (!validationResult.isValid) {
+  logger.error('❌ Configuration validation failed:');
+  validationResult.errors.forEach(error => logger.error(`  - ${error}`));
+  process.exit(1);
+}
+
+if (validationResult.warnings.length > 0) {
+  logger.warn('⚠️  Configuration warnings:');
+  validationResult.warnings.forEach(warning => logger.warn(`  - ${warning}`));
+}
+
+logger.info('✅ Configuration validation passed');
+
 // Start server
-const PORT = config.port;
+// Use PORT from environment (Render/Vercel) or fallback to config
+const PORT = process.env.PORT || config.port;
 
 // Auto-seed hubs on startup (non-blocking)
 seedHubsIfNeeded().catch((error) => {
   logger.warn('Failed to auto-seed hubs:', error);
 });
 
-app.listen(PORT, () => {
-  logger.info(`🚀 Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  logger.info(`🚀 Server running on http://0.0.0.0:${PORT}`);
   logger.info(`📝 Environment: ${config.nodeEnv}`);
   logger.info(`🔗 CORS Origin: ${config.cors.origin}`);
 });

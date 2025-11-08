@@ -1,8 +1,8 @@
 /**
  * Specialty Templates - Reference Data
  * 
- * In production, these should be loaded from the backend API or database.
- * For now, kept as minimal reference data.
+ * TODO: In production, these should be loaded from the backend API endpoint (e.g., /api/v1/specialty-templates)
+ * This file currently contains hardcoded reference data that should be replaced with API calls.
  */
 
 import { SpecialtyType, SpecialtyTemplate as ISpecialtyTemplate } from "../types";

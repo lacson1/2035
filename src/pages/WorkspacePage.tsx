@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { Sun, Moon, Users, Menu, Info } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
-import { useKeyboardShortcuts, KeyboardShortcut } from "../hooks/useKeyboardShortcuts";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import DashboardHeader from "../components/DashboardLayout/DashboardHeader";
 import TabContent from "../components/DashboardLayout/TabContent";
 import UserSelector from "../components/UserSelector";
 import LeftSidebar from "../components/DashboardLayout/LeftSidebar";
 import RightSidebar from "../components/DashboardLayout/RightSidebar";
 import DashboardShortcuts from "../components/DashboardShortcuts";
-import KeyboardShortcutsModal from "../components/KeyboardShortcutsModal";
 import QuickActionsBar from "../components/QuickActionsBar";
+import NotificationBell from "../components/NotificationBell";
 
 interface WorkspacePageProps {
   darkMode: boolean;
@@ -17,10 +17,10 @@ interface WorkspacePageProps {
   onNavigateToPatients: () => void;
 }
 
-export default function WorkspacePage({ 
-  darkMode, 
-  onToggleDarkMode, 
-  onNavigateToPatients 
+export default function WorkspacePage({
+  darkMode,
+  onToggleDarkMode,
+  onNavigateToPatients
 }: WorkspacePageProps) {
   const { selectedPatient, setActiveTab } = useDashboard();
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true); // Always start open
@@ -40,88 +40,9 @@ export default function WorkspacePage({
       return false;
     }
   });
-  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
-  // Define keyboard shortcuts
-  const shortcuts: KeyboardShortcut[] = [
-    {
-      key: "?",
-      action: () => setShowKeyboardShortcuts(true),
-      description: "Show keyboard shortcuts",
-      category: "Help",
-    },
-    {
-      key: "Escape",
-      action: () => {
-        setShowKeyboardShortcuts(false);
-        // Close any open modals
-        const event = new CustomEvent("close-modals");
-        window.dispatchEvent(event);
-      },
-      description: "Close modals/shortcuts",
-      category: "Navigation",
-    },
-    {
-      key: "v",
-      action: () => setActiveTab("vitals"),
-      description: "Open Vitals tab",
-      category: "Navigation",
-    },
-    {
-      key: "c",
-      action: () => setActiveTab("consultation"),
-      description: "Open Consultation tab",
-      category: "Navigation",
-    },
-    {
-      key: "m",
-      action: () => setActiveTab("medications"),
-      description: "Open Medications tab",
-      category: "Navigation",
-    },
-    {
-      key: "n",
-      ctrl: true,
-      action: () => setActiveTab("notes"),
-      description: "New Note (Ctrl+N)",
-      category: "Documentation",
-    },
-    {
-      key: "p",
-      ctrl: true,
-      action: () => setActiveTab("medications"),
-      description: "Prescribe (Ctrl+P)",
-      category: "Medication",
-    },
-    {
-      key: "l",
-      ctrl: true,
-      action: () => setActiveTab("labs"),
-      description: "Order Labs (Ctrl+L)",
-      category: "Diagnostics",
-    },
-    {
-      key: "a",
-      ctrl: true,
-      action: () => setActiveTab("appointments"),
-      description: "Schedule Appointment (Ctrl+A)",
-      category: "Scheduling",
-    },
-    {
-      key: "n",
-      action: () => setActiveTab("notes"),
-      description: "Open Clinical Notes tab",
-      category: "Navigation",
-    },
-    {
-      key: "o",
-      action: () => setActiveTab("overview"),
-      description: "Open Overview tab",
-      category: "Navigation",
-    },
-  ];
-
-  useKeyboardShortcuts(shortcuts);
+  // Use keyboard shortcuts hook
+  const { shortcuts, showHelp } = useKeyboardShortcuts();
 
   // Save right sidebar state to localStorage
   useEffect(() => {
@@ -217,6 +138,9 @@ export default function WorkspacePage({
                 <span className="hidden sm:inline text-teal-700 dark:text-teal-300">Patients</span>
               </button>
 
+              {/* Notifications */}
+              <NotificationBell />
+
               {/* Dark Mode Toggle */}
               <button
                 onClick={onToggleDarkMode}
@@ -263,13 +187,6 @@ export default function WorkspacePage({
 
       {/* Quick Actions Bar */}
       <QuickActionsBar patient={selectedPatient} position="bottom" />
-
-      {/* Keyboard Shortcuts Modal */}
-      <KeyboardShortcutsModal
-        isOpen={showKeyboardShortcuts}
-        onClose={() => setShowKeyboardShortcuts(false)}
-        shortcuts={shortcuts}
-      />
     </div>
   );
 }

@@ -1,11 +1,8 @@
 /**
  * Role Definitions and Permissions
  * 
- * This file contains role definitions. In production, these should be:
- * 1. Loaded from the backend API
- * 2. Or maintained as configuration
- * 
- * For now, kept as minimal reference data.
+ * TODO: In production, these should be loaded from the backend API endpoint (e.g., /api/v1/roles)
+ * This file currently contains hardcoded reference data that should be replaced with API calls.
  */
 
 export type UserRole =

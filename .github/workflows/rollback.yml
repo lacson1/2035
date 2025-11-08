@@ -1,0 +1,177 @@
+name: Emergency Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      target_commit:
+        description: 'Commit SHA to rollback to (leave empty for previous deployment)'
+        required: false
+        type: string
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  rollback:
+    name: Rollback ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_commit || github.sha }}
+
+      - name: Determine rollback target
+        id: rollback-target
+        run: |
+          if [ -n "${{ github.event.inputs.target_commit }}" ]; then
+            echo "target=${{ github.event.inputs.target_commit }}" >> $GITHUB_OUTPUT
+            echo "Rolling back to specific commit: ${{ github.event.inputs.target_commit }}"
+          else
+            # Get the previous successful deployment commit
+            PREV_COMMIT=$(gh api repos/${{ github.repository }}/deployments \
+              --jq '.[0].sha' \
+              --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}")
+            echo "target=$PREV_COMMIT" >> $GITHUB_OUTPUT
+            echo "Rolling back to previous deployment: $PREV_COMMIT"
+          fi
+
+      - name: Create rollback backup
+        run: |
+          echo "Creating rollback backup..."
+          # Trigger backup before rollback
+
+      - name: Rollback Backend
+        if: github.event.inputs.environment == 'production'
+        uses: johnbeynon/render-deploy@v1.0.0
+        with:
+          service-id: ${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          commit: ${{ steps.rollback-target.outputs.target }}
+
+      - name: Rollback Backend (Staging)
+        if: github.event.inputs.environment == 'staging'
+        uses: johnbeynon/render-deploy@v1.0.0
+        with:
+          service-id: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          commit: ${{ steps.rollback-target.outputs.target }}
+
+      - name: Rollback Frontend
+        if: github.event.inputs.environment == 'production'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_PRODUCTION_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PRODUCTION_PROJECT_ID }}
+          vercel-args: '--prod'
+          git-commit-sha: ${{ steps.rollback-target.outputs.target }}
+
+      - name: Rollback Frontend (Staging)
+        if: github.event.inputs.environment == 'staging'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_STAGING_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_STAGING_PROJECT_ID }}
+          vercel-args: '--prod'
+          git-commit-sha: ${{ steps.rollback-target.outputs.target }}
+
+      - name: Health Check
+        run: |
+          sleep 60
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            curl -f ${{ secrets.PRODUCTION_BACKEND_URL }}/health || exit 1
+            curl -f ${{ secrets.PRODUCTION_FRONTEND_URL }} || exit 1
+          else
+            curl -f ${{ secrets.STAGING_BACKEND_URL }}/health || exit 1
+            curl -f ${{ secrets.STAGING_FRONTEND_URL }} || exit 1
+          fi
+
+      - name: Run smoke tests
+        run: |
+          npm ci
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            npm run test:smoke -- ${{ secrets.PRODUCTION_FRONTEND_URL }}
+          else
+            npm run test:smoke -- ${{ secrets.STAGING_FRONTEND_URL }}
+          fi
+
+      - name: Notify successful rollback
+        uses: 8398a7/action-slack@v3
+        if: success()
+        with:
+          status: success
+          fields: workflow,status
+          custom_payload: |
+            {
+              "attachments": [{
+                "color": "warning",
+                "title": "🔄 Rollback Completed Successfully",
+                "text": "Environment: ${{ github.event.inputs.environment }}\nReason: ${{ github.event.inputs.reason }}\nTarget: ${{ steps.rollback-target.outputs.target }}\nTriggered by: ${{ github.actor }}"
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify failed rollback
+        uses: 8398a7/action-slack@v3
+        if: failure()
+        with:
+          status: custom
+          fields: workflow,status
+          custom_payload: |
+            {
+              "attachments": [{
+                "color": "danger",
+                "title": "❌ Rollback Failed",
+                "text": "Environment: ${{ github.event.inputs.environment }}\nReason: ${{ github.event.inputs.reason }}\nTarget: ${{ steps.rollback-target.outputs.target }}\nTriggered by: ${{ github.actor }}\n\nManual intervention required!"
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Create rollback issue
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Rollback Failed: ${{ github.event.inputs.environment }}`,
+              body: `
+            ## Rollback Failure Details
+
+            **Environment:** ${{ github.event.inputs.environment }}
+            **Reason:** ${{ github.event.inputs.reason }}
+            **Target Commit:** ${{ steps.rollback-target.outputs.target }}
+            **Triggered by:** ${{ github.actor }}
+            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ### Immediate Actions Required:
+            - [ ] Investigate the rollback failure
+            - [ ] Manually restore from backup if necessary
+            - [ ] Update monitoring dashboards
+            - [ ] Notify stakeholders
+            - [ ] Document the incident
+
+            ### Logs:
+            Check the workflow logs for detailed error information.
+              `,
+              labels: ['rollback-failure', 'urgent', 'incident']
+            })

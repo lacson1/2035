@@ -17,6 +17,7 @@ import {
   Trash2,
   CheckCircle,
   Info,
+  Upload,
 } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
 import { useUser } from "../context/UserContext";
@@ -29,6 +30,8 @@ import PrintPreview from "./PrintPreview";
 import { openPrintWindow } from "../utils/popupHandler";
 import { getOrganizationFooter, getOrganizationDetails } from "../utils/organization";
 import { logger } from "../utils/logger";
+import SmartFormField from "./SmartFormField";
+import FormGroup from "./FormGroup";
 
 interface ViewImagingProps {
   patient?: Patient;
@@ -75,6 +78,7 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"orders" | "completed">("orders");
   const [selectedStudiesForBulk, setSelectedStudiesForBulk] = useState<Set<string>>(new Set());
+  const [uploadingStudyId, setUploadingStudyId] = useState<string | null>(null);
 
   const [orderFormData, setOrderFormData] = useState({
     type: "",
@@ -113,8 +117,8 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
       if (response.data && response.data.length > 0) {
         setImagingStudies(response.data);
       } else {
-        // No data from API - use mock data to demonstrate results
-        setImagingStudies(getMockImagingStudies());
+        // No data from API - set empty array
+        setImagingStudies([]);
       }
     } catch (error) {
       logger.error("Failed to load imaging studies:", error);
@@ -122,74 +126,12 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
       if (currentPatient?.imagingStudies && currentPatient.imagingStudies.length > 0) {
         setImagingStudies(currentPatient.imagingStudies);
       } else {
-        // Use mock data to demonstrate results
-        setImagingStudies(getMockImagingStudies());
+        // No data available
+        setImagingStudies([]);
       }
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Mock imaging studies with completed results for demonstration
-  const getMockImagingStudies = (): ImagingStudy[] => {
-    const today = new Date();
-    const lastWeek = new Date(today);
-    lastWeek.setDate(today.getDate() - 7);
-    const twoWeeksAgo = new Date(today);
-    twoWeeksAgo.setDate(today.getDate() - 14);
-    const lastMonth = new Date(today);
-    lastMonth.setDate(today.getDate() - 30);
-
-    return [
-      {
-        id: "img-001",
-        date: lastWeek.toISOString().split("T")[0],
-        type: "Chest CT with Contrast",
-        modality: "CT",
-        bodyPart: "Chest",
-        status: "completed",
-        findings: "IMPRESSION: No acute cardiopulmonary abnormalities.\n\nFINDINGS:\n- Lungs: Clear bilaterally with no evidence of consolidation, pleural effusion, or pneumothorax.\n- Heart: Normal size and contour. No pericardial effusion.\n- Mediastinum: Normal in appearance. No lymphadenopathy.\n- Bones: No acute fractures or destructive lesions.\n- Soft tissues: Unremarkable.\n\nCLINICAL CORRELATION: The study demonstrates normal chest anatomy. No acute findings requiring immediate intervention.",
-        reportUrl: "https://example.com/reports/chest-ct-001.pdf",
-      },
-      {
-        id: "img-002",
-        date: twoWeeksAgo.toISOString().split("T")[0],
-        type: "Brain MRI",
-        modality: "MRI",
-        bodyPart: "Brain",
-        status: "completed",
-        findings: "IMPRESSION: Normal brain MRI. No acute intracranial abnormalities.\n\nFINDINGS:\n- Brain parenchyma: Normal signal intensity throughout. No evidence of acute infarction, hemorrhage, or mass effect.\n- Ventricular system: Normal size and configuration.\n- Posterior fossa: Normal appearance of cerebellum and brainstem.\n- Extra-axial spaces: Normal. No subdural or epidural collections.\n- Vascular structures: Normal flow voids present.\n\nCLINICAL CORRELATION: Normal brain MRI. No acute pathology identified.",
-        reportUrl: "https://example.com/reports/brain-mri-002.pdf",
-      },
-      {
-        id: "img-003",
-        date: lastMonth.toISOString().split("T")[0],
-        type: "Abdominal Ultrasound",
-        modality: "Ultrasound",
-        bodyPart: "Abdomen",
-        status: "completed",
-        findings: "IMPRESSION: Normal abdominal ultrasound examination.\n\nFINDINGS:\n- Liver: Normal size and echotexture. No focal lesions identified.\n- Gallbladder: Normal appearance. No gallstones or wall thickening.\n- Kidneys: Normal size and echogenicity bilaterally. No hydronephrosis.\n- Spleen: Normal size and echotexture.\n- Pancreas: Partially visualized, appears normal.\n- Aorta: Normal caliber.\n\nCLINICAL CORRELATION: Normal abdominal ultrasound. No acute abnormalities detected.",
-      },
-      {
-        id: "img-004",
-        date: today.toISOString().split("T")[0],
-        type: "Chest X-Ray PA and Lateral",
-        modality: "X-Ray",
-        bodyPart: "Chest",
-        status: "pending",
-        findings: "",
-      },
-      {
-        id: "img-005",
-        date: lastWeek.toISOString().split("T")[0],
-        type: "Pelvic MRI",
-        modality: "MRI",
-        bodyPart: "Pelvis",
-        status: "completed",
-        findings: "IMPRESSION: Normal pelvic MRI examination.\n\nFINDINGS:\n- Pelvic organs: Normal appearance. No masses or fluid collections.\n- Bladder: Normal distention and wall thickness.\n- Rectum: Normal appearance.\n- Pelvic bones: Normal signal intensity. No evidence of bone marrow edema or fractures.\n- Lymph nodes: No significant lymphadenopathy.\n\nCLINICAL CORRELATION: Normal pelvic MRI. No acute pathology.",
-        reportUrl: "https://example.com/reports/pelvic-mri-005.pdf",
-      },
-    ];
   };
 
   const getModalityColor = (modality: string) => {
@@ -481,6 +423,49 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
       }
       return newSet;
     });
+  };
+
+  const handleFileUpload = async (studyId: string, file: File) => {
+    if (!currentPatient?.id) return;
+
+    setUploadingStudyId(studyId);
+    try {
+      const formData = new FormData();
+      formData.append('reportFile', file);
+
+      const response = await fetch(
+        `/api/v1/patients/${currentPatient.id}/imaging/${studyId}/upload-report`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const result = await response.json();
+
+      // Update the study in the local state
+      setImagingStudies(prev =>
+        prev.map(study =>
+          study.id === studyId
+            ? { ...study, reportUrl: result.fileUrl }
+            : study
+        )
+      );
+
+      logger.info('Report uploaded successfully:', result.fileUrl);
+    } catch (error) {
+      logger.error('Failed to upload report:', error);
+      alert('Failed to upload report. Please try again.');
+    } finally {
+      setUploadingStudyId(null);
+    }
   };
 
   // Bulk print functionality
@@ -1344,7 +1329,7 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
                         >
                           <Printer size={18} />
                         </button>
-                        {study.reportUrl && (
+                        {study.reportUrl ? (
                           <a
                             href={study.reportUrl}
                             target="_blank"
@@ -1354,6 +1339,29 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
                           >
                             <Download size={18} />
                           </a>
+                        ) : (
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept=".pdf,image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleFileUpload(study.id, file);
+                                }
+                              }}
+                              disabled={uploadingStudyId === study.id}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              title="Upload Report"
+                            />
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors">
+                              {uploadingStudyId === study.id ? (
+                                <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                              ) : (
+                                <Upload size={18} />
+                              )}
+                            </div>
+                          </div>
                         )}
                       </>
                     )}
@@ -1486,130 +1494,98 @@ export default function ViewImaging({ patient }: ViewImagingProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-base font-medium mb-2.5" htmlFor="type-input">
-                    Study Type <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="type-input"
+              <FormGroup
+                title="Study Details"
+                description="Specify the imaging study type and parameters"
+              >
+                <div className="grid grid-cols-2 gap-6">
+                  <SmartFormField
                     type="text"
-                    required
+                    name="studyType"
+                    label="Study Type"
                     value={orderFormData.type}
-                    onChange={(e) => setOrderFormData({ ...orderFormData, type: e.target.value })}
-                    placeholder="e.g., CT Head"
-                    className="input-base px-4 py-3"
-                  />
-                </div>
-                <div>
-                  <label className="block text-base font-medium mb-2.5" htmlFor="modality-select">
-                    Modality <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="modality-select"
+                    onChange={(value) => setOrderFormData({ ...orderFormData, type: value })}
+                    placeholder="e.g., CT Head, MRI Brain"
                     required
+                  />
+                  <SmartFormField
+                    type="select"
+                    name="modality"
+                    label="Modality"
                     value={orderFormData.modality}
-                    onChange={(e) =>
-                      setOrderFormData({
-                        ...orderFormData,
-                        modality: e.target.value as ImagingModality,
-                      })
-                    }
-                    className="input-base px-4 py-3"
-                  >
-                    <option value="CT">CT</option>
-                    <option value="MRI">MRI</option>
-                    <option value="X-Ray">X-Ray</option>
-                    <option value="Ultrasound">Ultrasound</option>
-                    <option value="PET">PET</option>
-                  </select>
+                    onChange={(value) => setOrderFormData({ ...orderFormData, modality: value as ImagingModality })}
+                    options={["CT", "MRI", "X-Ray", "Ultrasound", "PET"]}
+                    required
+                  />
                 </div>
-              </div>
+              </FormGroup>
 
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-base font-medium mb-2.5" htmlFor="body-part-input">
-                    Body Part <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="body-part-input"
+              <FormGroup
+                title="Study Parameters"
+                description="Specify the body part and scheduling details"
+              >
+                <div className="grid grid-cols-2 gap-6">
+                  <SmartFormField
                     type="text"
-                    required
+                    name="bodyPart"
+                    label="Body Part"
                     value={orderFormData.bodyPart}
-                    onChange={(e) =>
-                      setOrderFormData({ ...orderFormData, bodyPart: e.target.value })
-                    }
-                    placeholder="e.g., Head, Chest, Abdomen"
-                    className="input-base px-4 py-3"
-                  />
-                </div>
-                <div>
-                  <label className="block text-base font-medium mb-2.5" htmlFor="date-input">
-                    Study Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="date-input"
-                    type="date"
+                    onChange={(value) => setOrderFormData({ ...orderFormData, bodyPart: value })}
+                    placeholder="e.g., Head, Chest, Abdomen, Spine"
                     required
+                  />
+                  <SmartFormField
+                    type="date"
+                    name="studyDate"
+                    label="Study Date"
                     value={orderFormData.date}
-                    onChange={(e) => setOrderFormData({ ...orderFormData, date: e.target.value })}
+                    onChange={(value) => setOrderFormData({ ...orderFormData, date: value })}
                     max={new Date().toISOString().split("T")[0]}
-                    className="input-base px-4 py-3"
+                    required
                   />
                 </div>
-              </div>
+              </FormGroup>
 
-              <div>
-                <label className="block text-base font-medium mb-2.5" htmlFor="findings-textarea">
-                  Clinical Indication / Findings
-                </label>
-                <textarea
-                  id="findings-textarea"
+              <FormGroup
+                title="Clinical Details"
+                description="Provide clinical indication and any preliminary findings"
+                collapsible
+              >
+                <SmartFormField
+                  type="textarea"
+                  name="findings"
+                  label="Clinical Indication / Findings"
                   value={orderFormData.findings}
-                  onChange={(e) => setOrderFormData({ ...orderFormData, findings: e.target.value })}
+                  onChange={(value) => setOrderFormData({ ...orderFormData, findings: value })}
                   placeholder="Enter clinical indication or preliminary findings..."
                   rows={4}
-                  className="input-base px-4 py-3 resize-none"
                 />
-              </div>
+              </FormGroup>
 
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-base font-medium mb-2.5" htmlFor="status-select">
-                    Status
-                  </label>
-                  <select
-                    id="status-select"
+              <FormGroup
+                title="Order Configuration"
+                description="Set status and optional report URL"
+                collapsible
+              >
+                <div className="grid grid-cols-2 gap-6">
+                  <SmartFormField
+                    type="select"
+                    name="status"
+                    label="Status"
                     value={orderFormData.status}
-                    onChange={(e) =>
-                      setOrderFormData({
-                        ...orderFormData,
-                        status: e.target.value as ImagingStatus,
-                      })
-                    }
-                    className="input-base px-4 py-3"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-base font-medium mb-2.5" htmlFor="report-url-input">
-                    Report URL (Optional)
-                  </label>
-                  <input
-                    id="report-url-input"
-                    type="url"
+                    onChange={(value) => setOrderFormData({ ...orderFormData, status: value as ImagingStatus })}
+                    options={["pending", "completed", "cancelled"]}
+                  />
+                  <SmartFormField
+                    type="text"
+                    name="reportUrl"
+                    label="Report URL"
                     value={orderFormData.reportUrl}
-                    onChange={(e) =>
-                      setOrderFormData({ ...orderFormData, reportUrl: e.target.value })
-                    }
+                    onChange={(value) => setOrderFormData({ ...orderFormData, reportUrl: value })}
                     placeholder="https://..."
-                    className="input-base px-4 py-3"
                   />
                 </div>
-              </div>
+              </FormGroup>
 
               {/* Assign to Radiologist */}
               <UserAssignment
