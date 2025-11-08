@@ -132,10 +132,14 @@ See [FORM_IMPROVEMENTS.md](./FORM_IMPROVEMENTS.md) and [BUILD_MONITORING.md](./B
 
 ### Documentation
 
+**📚 Core Documentation:**
+- **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** - Complete deployment guide (Render + Vercel)
+- **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[docs/BACKEND.md](./docs/BACKEND.md)** - Backend development guide
+
 **Getting Started:**
 - **[QUICK_START.md](./QUICK_START.md)** - Get started in minutes
 - **[README_FULL_STACK.md](./README_FULL_STACK.md)** - Full-stack overview
-- **[BACKEND_READY.md](./BACKEND_READY.md)** - Backend setup guide
 
 **Recent Features:**
 - **[FORM_IMPROVEMENTS.md](./FORM_IMPROVEMENTS.md)** - Enhanced form components and accessibility
@@ -144,7 +148,6 @@ See [FORM_IMPROVEMENTS.md](./FORM_IMPROVEMENTS.md) and [BUILD_MONITORING.md](./B
 **API & Integration:**
 - **[API_ENDPOINTS.md](./API_ENDPOINTS.md)** - Complete API documentation
 - **[INTEGRATION_CHECKLIST.md](./INTEGRATION_CHECKLIST.md)** - Integration checklist
-- **[COMPLETE_SUMMARY.md](./COMPLETE_SUMMARY.md)** - Implementation summary
 
 ### Tech Stack
 
