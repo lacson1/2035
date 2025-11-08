@@ -77,7 +77,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: [
         "'self'",
-        config.cors.origin,
+        ...(Array.isArray(config.cors.origin) ? config.cors.origin : [config.cors.origin]),
         ...(process.env.SENTRY_DSN ? ["https://*.sentry.io"] : []),
       ],
       fontSrc: ["'self'"],
