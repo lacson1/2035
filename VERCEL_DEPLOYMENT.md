@@ -1,91 +1,121 @@
 # Vercel Deployment Guide
 
-## ✅ Frontend Successfully Deployed!
+## Quick Deploy to Vercel
 
-**Production URL:** https://2035-chhqnsp6m-lacs-projects-650efe27.vercel.app
+### Option 1: Deploy via Vercel Dashboard (Recommended)
 
-**Status:** ✅ Ready and Live
+1. **Go to Vercel Dashboard:**
+   - Visit: https://vercel.com
+   - Sign in with GitHub
 
-## 📋 Next Steps
+2. **Import Project:**
+   - Click "Add New..." → "Project"
+   - Select your GitHub repository: `lacson1/2035`
+   - Click "Import"
 
-### 1. Set Environment Variables
+3. **Configure Project:**
+   - **Framework Preset:** Vite
+   - **Root Directory:** `./` (root)
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+   - **Install Command:** `npm install`
 
-Your frontend needs to know where your backend API is located. Set the environment variable in Vercel:
+4. **Environment Variables:**
+   Add these in Vercel Dashboard → Settings → Environment Variables:
+   
+   ```env
+   VITE_API_URL=https://your-backend-url.com
+   ```
+   
+   **Note:** Replace `your-backend-url.com` with your actual backend URL (Railway, Render, or your own server)
 
-```bash
-# Option 1: Using Vercel CLI
-npx vercel env add VITE_API_BASE_URL production
-# When prompted, enter your backend API URL (e.g., https://your-backend.railway.app/api)
+5. **Deploy:**
+   - Click "Deploy"
+   - Wait for build to complete
+   - Your app will be live at: `https://your-project.vercel.app`
 
-# Option 2: Using Vercel Dashboard
-# 1. Go to https://vercel.com/lacs-projects-650efe27/2035/settings/environment-variables
-# 2. Add new variable:
-#    - Key: VITE_API_BASE_URL
-#    - Value: https://your-backend-url.com/api
-#    - Environment: Production, Preview, Development
-# 3. Redeploy after adding the variable
-```
-
-### 2. Deploy Backend Separately
-
-The backend (Express/Node.js) needs to be deployed to a service that supports persistent Node.js servers:
-
-**Recommended Services:**
-- **Railway** (railway.app) - Easy deployment, supports PostgreSQL
-- **Render** (render.com) - Free tier available
-- **Heroku** (heroku.com) - Paid plans
-- **DigitalOcean App Platform** - Good for production
-
-**Backend Deployment Steps:**
-1. Push backend code to a separate repository or branch
-2. Connect to your chosen hosting service
-3. Set environment variables (DATABASE_URL, JWT_SECRET, etc.)
-4. Deploy
-5. Update `VITE_API_BASE_URL` in Vercel with your backend URL
-
-### 3. Redeploy After Environment Variable Changes
-
-After setting environment variables, redeploy:
+### Option 2: Deploy via Vercel CLI
 
 ```bash
-npx vercel --prod
+# Install Vercel CLI
+npm i -g vercel
+
+# Login to Vercel
+vercel login
+
+# Deploy (from project root)
+vercel
+
+# For production deployment
+vercel --prod
 ```
 
-Or trigger a redeploy from the Vercel dashboard.
+## Environment Variables
 
-## 🔍 Useful Vercel Commands
+### Required for Frontend:
+- `VITE_API_URL` - Backend API URL (e.g., `https://your-backend.railway.app` or `https://your-backend.render.com`)
 
-```bash
-# View deployments
-npx vercel ls
+### Optional:
+- `VITE_SENTRY_DSN` - Sentry error tracking (if using)
 
-# View logs
-npx vercel logs
+## Backend Deployment
 
-# Redeploy
-npx vercel --prod
+The frontend needs a backend API. Deploy backend separately:
 
-# View project info
-npx vercel inspect
+### Option A: Railway (Recommended)
+1. Go to https://railway.app
+2. Create new project
+3. Add PostgreSQL database
+4. Deploy backend from GitHub
+5. Set environment variables (see `backend/.env.example`)
+6. Copy backend URL to `VITE_API_URL` in Vercel
 
-# Check environment variables
-npx vercel env ls
+### Option B: Render
+1. Go to https://render.com
+2. Create new Web Service
+3. Connect GitHub repository
+4. Set root directory to `backend`
+5. Set environment variables
+6. Copy backend URL to `VITE_API_URL` in Vercel
 
-# Add environment variable
-npx vercel env add VARIABLE_NAME production
-```
+## Post-Deployment Checklist
 
-## 📝 Notes
+- [ ] Frontend deployed to Vercel
+- [ ] Backend deployed (Railway/Render)
+- [ ] `VITE_API_URL` set in Vercel environment variables
+- [ ] Backend database migrations run
+- [ ] Backend seeded with initial data (if needed)
+- [ ] Test login functionality
+- [ ] Test API connectivity
 
-- The frontend is a static React/Vite app, perfect for Vercel
-- The backend requires a Node.js hosting service (can't run on Vercel serverless functions without significant refactoring)
-- Make sure CORS is configured in your backend to allow requests from your Vercel domain
-- Environment variables set in Vercel will be available at build time for Vite
+## Troubleshooting
 
-## 🚀 Current Deployment Info
+### Build Fails
+- Check build logs in Vercel dashboard
+- Ensure all dependencies are in `package.json`
+- Verify `vercel.json` configuration
 
-- **Project:** lacs-projects-650efe27/2035
-- **Framework:** Vite
-- **Build Command:** `npm run build`
-- **Output Directory:** `dist`
+### API Connection Issues
+- Verify `VITE_API_URL` is set correctly
+- Check backend CORS settings allow Vercel domain
+- Test backend API directly
 
+### Environment Variables Not Working
+- Ensure variables start with `VITE_` prefix
+- Redeploy after adding variables
+- Check variable names match exactly
+
+## Current Status
+
+✅ Code pushed to GitHub: `cursor/run-application-a271` branch
+✅ Vercel configuration ready (`vercel.json`)
+✅ Build passing locally
+✅ All TypeScript errors fixed
+✅ All linting issues resolved
+
+## Next Steps
+
+1. Deploy frontend to Vercel (follow steps above)
+2. Deploy backend to Railway/Render
+3. Set `VITE_API_URL` in Vercel
+4. Test the deployed application
