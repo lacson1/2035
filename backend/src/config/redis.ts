@@ -5,8 +5,8 @@ import { logger } from '../utils/logger';
 let redis: Redis | null = null;
 
 export const createRedisClient = (): Redis | null => {
-  // Skip Redis if URL is not set or is default localhost
-  if (!config.redis.url || config.redis.url === 'redis://localhost:6379') {
+  // Skip Redis if URL is not set or empty
+  if (!config.redis.url || config.redis.url.trim() === '') {
     logger.info('ℹ️  Redis not configured, skipping connection');
     return null;
   }

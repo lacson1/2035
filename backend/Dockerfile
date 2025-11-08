@@ -42,8 +42,9 @@ RUN npm ci --only=production && npm cache clean --force
 # Install Prisma CLI globally for migrations (install in production stage)
 RUN npm install -g prisma@^5.7.1
 
-# Copy Prisma schema and regenerate Prisma Client for Debian (glibc) platform
+# Copy Prisma schema to regenerate Prisma Client for Debian (glibc) platform
 COPY --from=builder /app/prisma ./prisma
+# Regenerate Prisma Client for Debian platform (ensures correct binary, not Alpine/musl)
 RUN npx prisma generate
 
 # Copy built files from builder
