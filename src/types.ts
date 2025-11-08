@@ -10,7 +10,7 @@ export interface Medication {
   expiryDate?: string;
 }
 
-export type UserRole = 
+export type UserRole =
   | "admin"
   | "physician"
   | "nurse"
@@ -24,10 +24,9 @@ export type UserRole =
   | "radiologist"
   | "therapist"
   | "social_worker"
-  | "care_coordinator"
-  | "read_only";
+  | "care_coordinator";
 
-export type Permission = 
+export type Permission =
   | "view_patients"
   | "edit_patients"
   | "delete_patients"
@@ -81,7 +80,7 @@ export interface User {
 }
 
 export type ConsultationType = "general" | "specialty";
-export type SpecialtyType = 
+export type SpecialtyType =
   | "cardiology"
   | "endocrinology"
   | "neurology"
@@ -197,6 +196,7 @@ export interface ImagingStudy {
   findings: string;
   status: "completed" | "pending" | "cancelled";
   reportUrl?: string;
+  orderingPhysicianId?: string;
 }
 
 export type LabStatus = "ordered" | "in_progress" | "completed" | "cancelled" | "pending_review";
@@ -386,7 +386,7 @@ export interface Vaccination {
   verifiedDate?: string;
 }
 
-export type HubId = 
+export type HubId =
   | "mental-health"
   | "msk"
   | "gynae"

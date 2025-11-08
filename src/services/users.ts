@@ -22,6 +22,13 @@ export interface UserListResponse {
  */
 export const userService = {
   /**
+   * Get list of providers (available to all authenticated users for assignment)
+   */
+  async getProviders(params?: { role?: string; search?: string }): Promise<ApiResponse<User[]>> {
+    return apiClient.get<User[]>('/v1/users/providers', params as Record<string, string>);
+  },
+
+  /**
    * Get list of users (admin only)
    */
   async getUsers(params?: UserListParams): Promise<ApiResponse<UserListResponse>> {

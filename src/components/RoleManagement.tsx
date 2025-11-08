@@ -16,9 +16,11 @@ import {
   type Permission,
 } from '../services/roleService';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function RoleManagement() {
   const { user } = useAuth();
+  const toast = useToast();
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +118,7 @@ export default function RoleManagement() {
   const handleDeleteRole = async (role: Role) => {
     if (!confirm(`Are you sure you want to delete the role "${role.name}"?`)) return;
     if (role.isSystem) {
-      alert('System roles cannot be deleted');
+      toast.warning('System roles cannot be deleted');
       return;
     }
 

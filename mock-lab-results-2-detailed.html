@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Lab Results: Detailed View</title>
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1.5rem', letterSpacing: '-0.005em' }],
+            'sm': ['0.875rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+            'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+            'lg': ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '-0.015em' }],
+            'xl': ['1.25rem', { lineHeight: '1.4rem', letterSpacing: '-0.015em' }],
+            '2xl': ['1.5rem', { lineHeight: '1.3rem', letterSpacing: '-0.02em' }],
+          },
+          colors: {
+            primary: {
+              50: '#f0fdfa', 500: '#14b8a6', 600: '#0d9488',
+            },
+            success: {
+              50: '#ecfdf5', 500: '#10b981', 600: '#059669',
+            },
+            warning: {
+              50: '#fffbeb', 500: '#f59e0b', 600: '#d97706',
+            },
+            destructive: {
+              50: '#fff1f2', 500: '#f43f5e', 600: '#e11d48',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      letter-spacing: -0.01em;
+      line-height: 1.5;
+    }
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl font-bold" style="letter-spacing: -0.015em; line-height: 1.3;">
+              Lab Results - Detailed View
+            </h1>
+            <p class="text-sm text-gray-600 mt-1" style="letter-spacing: -0.01em;">
+              John Anderson • MRN: 12345678
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+              Print
+            </button>
+            <button class="px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors">
+              Export PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+      <!-- Test Header -->
+      <div class="card mb-6">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="text-2xl font-bold mb-2" style="letter-spacing: -0.02em; line-height: 1.3;">
+              Comprehensive Metabolic Panel
+            </h2>
+            <div class="flex flex-wrap gap-4 text-sm text-gray-600">
+              <span><strong class="font-semibold text-gray-700">Collected:</strong> December 10, 2024 at 9:30 AM</span>
+              <span><strong class="font-semibold text-gray-700">Reported:</strong> December 10, 2024 at 2:15 PM</span>
+              <span><strong class="font-semibold text-gray-700">Status:</strong> <span class="text-success-600 font-medium">Final</span></span>
+            </div>
+            <div class="mt-3">
+              <span class="px-3 py-1 text-xs font-medium bg-warning-50 text-warning-600 rounded-lg border border-warning-200">
+                2 Abnormal Results
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left Column -->
+        <div class="space-y-6">
+          <!-- Glucose -->
+          <div class="card">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em;">
+                  Glucose
+                </h3>
+                <p class="text-xs text-gray-500">Fasting blood glucose level</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                Normal
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-2">
+              <span class="text-2xl font-bold text-gray-900" style="letter-spacing: -0.02em;">95</span>
+              <span class="text-sm text-gray-500">mg/dL</span>
+            </div>
+            <div class="text-xs text-gray-600 mb-3">
+              Reference Range: <span class="font-medium">70 - 100 mg/dL</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-success-500" style="width: 50%;"></div>
+            </div>
+          </div>
+
+          <!-- Creatinine (Abnormal) -->
+          <div class="card bg-warning-50/30 border-warning-200">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em;">
+                  Creatinine
+                </h3>
+                <p class="text-xs text-gray-500">Kidney function marker</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-warning-50 text-warning-600 rounded-lg border border-warning-200">
+                High
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-2">
+              <span class="text-2xl font-bold text-warning-600" style="letter-spacing: -0.02em;">1.4</span>
+              <span class="text-sm text-gray-500">mg/dL</span>
+            </div>
+            <div class="text-xs text-gray-600 mb-3">
+              Reference Range: <span class="font-medium">0.6 - 1.2 mg/dL</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-warning-500" style="width: 75%;"></div>
+            </div>
+            <div class="mt-3 p-2 bg-warning-50 rounded-lg border border-warning-200">
+              <p class="text-xs text-warning-700 font-medium" style="letter-spacing: -0.005em;">
+                ⚠ Elevated creatinine may indicate kidney dysfunction. Recommend follow-up.
+              </p>
+            </div>
+          </div>
+
+          <!-- BUN -->
+          <div class="card">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em;">
+                  Blood Urea Nitrogen (BUN)
+                </h3>
+                <p class="text-xs text-gray-500">Kidney function marker</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                Normal
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-2">
+              <span class="text-2xl font-bold text-gray-900" style="letter-spacing: -0.02em;">18</span>
+              <span class="text-sm text-gray-500">mg/dL</span>
+            </div>
+            <div class="text-xs text-gray-600 mb-3">
+              Reference Range: <span class="font-medium">7 - 20 mg/dL</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-success-500" style="width: 55%;"></div>
+            </div>
+          </div>
+
+          <!-- Sodium -->
+          <div class="card">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em;">
+                  Sodium
+                </h3>
+                <p class="text-xs text-gray-500">Electrolyte balance</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                Normal
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-2">
+              <span class="text-2xl font-bold text-gray-900" style="letter-spacing: -0.02em;">140</span>
+              <span class="text-sm text-gray-500">mEq/L</span>
+            </div>
+            <div class="text-xs text-gray-600 mb-3">
+              Reference Range: <span class="font-medium">136 - 145 mEq/L</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-success-500" style="width: 80%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="space-y-6">
+          <!-- Potassium -->
+          <div class="card">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em;">
+                  Potassium
+                </h3>
+                <p class="text-xs text-gray-500">Electrolyte balance</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                Normal
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-2">
+              <span class="text-2xl font-bold text-gray-900" style="letter-spacing: -0.02em;">4.2</span>
+              <span class="text-sm text-gray-500">mEq/L</span>
+            </div>
+            <div class="text-xs text-gray-600 mb-3">
+              Reference Range: <span class="font-medium">3.5 - 5.0 mEq/L</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-success-500" style="width: 47%;"></div>
+            </div>
+          </div>
+
+          <!-- Chloride -->
+          <div class="card">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em;">
+                  Chloride
+                </h3>
+                <p class="text-xs text-gray-500">Electrolyte balance</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                Normal
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-2">
+              <span class="text-2xl font-bold text-gray-900" style="letter-spacing: -0.02em;">102</span>
+              <span class="text-sm text-gray-500">mEq/L</span>
+            </div>
+            <div class="text-xs text-gray-600 mb-3">
+              Reference Range: <span class="font-medium">98 - 107 mEq/L</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-success-500" style="width: 44%;"></div>
+            </div>
+          </div>
+
+          <!-- CO2 (Abnormal) -->
+          <div class="card bg-warning-50/30 border-warning-200">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em;">
+                  CO2 (Bicarbonate)
+                </h3>
+                <p class="text-xs text-gray-500">Acid-base balance</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-warning-50 text-warning-600 rounded-lg border border-warning-200">
+                Low
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-2">
+              <span class="text-2xl font-bold text-warning-600" style="letter-spacing: -0.02em;">18</span>
+              <span class="text-sm text-gray-500">mEq/L</span>
+            </div>
+            <div class="text-xs text-gray-600 mb-3">
+              Reference Range: <span class="font-medium">22 - 28 mEq/L</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-warning-500" style="width: 33%;"></div>
+            </div>
+            <div class="mt-3 p-2 bg-warning-50 rounded-lg border border-warning-200">
+              <p class="text-xs text-warning-700 font-medium" style="letter-spacing: -0.005em;">
+                ⚠ Low bicarbonate may indicate metabolic acidosis. Clinical correlation recommended.
+              </p>
+            </div>
+          </div>
+
+          <!-- Calcium -->
+          <div class="card">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em;">
+                  Calcium
+                </h3>
+                <p class="text-xs text-gray-500">Bone and muscle function</p>
+              </div>
+              <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                Normal
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-2">
+              <span class="text-2xl font-bold text-gray-900" style="letter-spacing: -0.02em;">9.8</span>
+              <span class="text-sm text-gray-500">mg/dL</span>
+            </div>
+            <div class="text-xs text-gray-600 mb-3">
+              Reference Range: <span class="font-medium">8.5 - 10.5 mg/dL</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-success-500" style="width: 65%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clinical Interpretation -->
+      <div class="card mt-6">
+        <h2 class="text-lg font-semibold mb-4" style="letter-spacing: -0.01em; line-height: 1.4;">
+          Clinical Interpretation
+        </h2>
+        <div class="space-y-3">
+          <div class="p-4 bg-warning-50 rounded-xl border border-warning-200">
+            <p class="text-sm font-medium text-warning-700 mb-2" style="letter-spacing: -0.01em;">
+              Abnormal Findings:
+            </p>
+            <ul class="text-sm text-gray-700 space-y-1 ml-4 list-disc" style="letter-spacing: -0.01em;">
+              <li>Creatinine elevated at 1.4 mg/dL (reference: 0.6-1.2) - suggests possible kidney dysfunction</li>
+              <li>CO2 (Bicarbonate) low at 18 mEq/L (reference: 22-28) - may indicate metabolic acidosis</li>
+            </ul>
+          </div>
+          <div class="p-4 bg-primary-50 rounded-xl border border-primary-200">
+            <p class="text-sm font-medium text-primary-700 mb-2" style="letter-spacing: -0.01em;">
+              Recommendations:
+            </p>
+            <p class="text-sm text-gray-700" style="letter-spacing: -0.01em;">
+              Recommend follow-up renal function panel and urinalysis. Consider repeat metabolic panel in 2-3 weeks 
+              to monitor trends. Patient should maintain adequate hydration. Review medications that may affect 
+              kidney function.
+            </p>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <p class="text-xs text-gray-500" style="letter-spacing: -0.005em;">
+            Reviewed by: <strong class="font-semibold text-gray-700">Dr. Sarah Johnson, MD</strong> • 
+            December 10, 2024 at 2:30 PM
+          </p>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+

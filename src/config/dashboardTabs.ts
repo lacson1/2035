@@ -3,6 +3,7 @@ import {
   Activity,
   Pill,
   Calendar,
+  CalendarCheck,
   FileText,
   Scan,
   Clock,
@@ -63,17 +64,28 @@ import Nutrition from "../components/Nutrition";
 import Vaccinations from "../components/Vaccinations";
 import Billing from "../components/Billing";
 import Hubs from "../components/Hubs";
+import DailySchedule from "../components/DailySchedule";
 
 // Clinical workflow groups organized by care phases:
 // 1. ASSESSMENT: Initial patient evaluation and vital signs
-// 2. ACTIVE CARE: Active treatment and consultation activities
-// 3. PLANNING: Care coordination, scheduling, and documentation
+// 2. ACTIVE CARE: Active treatment, consultation, medications, and vaccinations
+// 3. PLANNING: Care coordination, scheduling, documentation, and nutrition
 // 4. DIAGNOSTICS: Imaging, labs, and diagnostic results
 // 5. ADVANCED: Future-focused care (longevity, microbiome, genomics)
 // 6. ADMINISTRATIVE: System and user management
 
 export const dashboardTabs: DashboardTab[] = [
   // ASSESSMENT GROUP - First phase of patient encounter
+  {
+    id: "daily-schedule",
+    label: "My Schedule",
+    icon: CalendarCheck,
+    component: DailySchedule,
+    requiresPatient: false,
+    permission: "view_appointments",
+    workflowGroup: "assessment",
+    order: 0.5,
+  },
   {
     id: "overview",
     label: "Overview",
@@ -117,6 +129,16 @@ export const dashboardTabs: DashboardTab[] = [
     order: 4,
   },
   {
+    id: "vaccinations",
+    label: "Vaccinations",
+    icon: Syringe,
+    component: Vaccinations,
+    requiresPatient: true,
+    permission: "view_patients",
+    workflowGroup: "active-care",
+    order: 5,
+  },
+  {
     id: "medication-calculators",
     label: "Med Calculators",
     icon: Calculator,
@@ -124,7 +146,7 @@ export const dashboardTabs: DashboardTab[] = [
     requiresPatient: false,
     permission: "view_medications",
     workflowGroup: "active-care",
-    order: 5,
+    order: 6,
   },
 
   // PLANNING GROUP - Care coordination and documentation
@@ -136,7 +158,17 @@ export const dashboardTabs: DashboardTab[] = [
     requiresPatient: true,
     permission: "view_notes",
     workflowGroup: "planning",
-    order: 6,
+    order: 7,
+  },
+  {
+    id: "surgical-notes",
+    label: "Surgical Notes",
+    icon: Scissors,
+    component: SurgicalNotes,
+    requiresPatient: true,
+    permission: "view_notes",
+    workflowGroup: "planning",
+    order: 8,
   },
   {
     id: "appointments",
@@ -146,7 +178,7 @@ export const dashboardTabs: DashboardTab[] = [
     requiresPatient: true,
     permission: "view_appointments",
     workflowGroup: "planning",
-    order: 7,
+    order: 9,
   },
   {
     id: "timeline",
@@ -156,7 +188,7 @@ export const dashboardTabs: DashboardTab[] = [
     requiresPatient: true,
     permission: "view_patients",
     workflowGroup: "planning",
-    order: 8,
+    order: 10,
   },
   {
     id: "team",
@@ -166,7 +198,7 @@ export const dashboardTabs: DashboardTab[] = [
     requiresPatient: true,
     permission: "view_patients",
     workflowGroup: "planning",
-    order: 9,
+    order: 11,
   },
   {
     id: "referrals",
@@ -176,7 +208,7 @@ export const dashboardTabs: DashboardTab[] = [
     requiresPatient: true,
     permission: "view_patients",
     workflowGroup: "planning",
-    order: 10,
+    order: 12,
   },
   {
     id: "consents",
@@ -186,17 +218,7 @@ export const dashboardTabs: DashboardTab[] = [
     requiresPatient: true,
     permission: "view_notes",
     workflowGroup: "planning",
-    order: 11,
-  },
-  {
-    id: "surgical-notes",
-    label: "Surgical Notes",
-    icon: Scissors,
-    component: SurgicalNotes,
-    requiresPatient: true,
-    permission: "view_notes",
-    workflowGroup: "active-care",
-    order: 12,
+    order: 13,
   },
   {
     id: "nutrition",
@@ -205,17 +227,7 @@ export const dashboardTabs: DashboardTab[] = [
     component: Nutrition,
     requiresPatient: true,
     permission: "view_patients",
-    workflowGroup: "active-care",
-    order: 13,
-  },
-  {
-    id: "vaccinations",
-    label: "Vaccinations",
-    icon: Syringe,
-    component: Vaccinations,
-    requiresPatient: true,
-    permission: "view_patients",
-    workflowGroup: "assessment",
+    workflowGroup: "planning",
     order: 14,
   },
 

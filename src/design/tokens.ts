@@ -96,61 +96,62 @@ export const designTokens = {
 /**
  * Color system for consistent use across the app
  * Calm, professional healthcare industry palette
+ * Uses Tailwind color classes defined in tailwind.config.js
  */
 export const colors = {
-  // Primary actions (main CTAs, primary buttons) - Soft teal/cyan
+  // Primary actions (main CTAs, primary buttons) - Teal
   primary: {
-    bg: 'bg-teal-500',
-    hover: 'hover:bg-teal-600',
-    text: 'text-teal-600 dark:text-teal-400',
-    border: 'border-teal-500',
-    light: 'bg-teal-50 dark:bg-teal-900/20',
-    borderLight: 'border-teal-200 dark:border-teal-800',
+    bg: 'bg-primary-500',
+    hover: 'hover:bg-primary-600',
+    text: 'text-primary-600 dark:text-primary-400',
+    border: 'border-primary-500',
+    light: 'bg-primary-50 dark:bg-primary-900/20',
+    borderLight: 'border-primary-200 dark:border-primary-800',
   },
-  // Success actions (add, save, confirm) - Muted sage green
+  // Success actions (add, save, confirm) - Emerald
   success: {
-    bg: 'bg-emerald-500',
-    hover: 'hover:bg-emerald-600',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    border: 'border-emerald-500',
-    light: 'bg-emerald-50 dark:bg-emerald-900/20',
-    borderLight: 'border-emerald-200 dark:border-emerald-800',
+    bg: 'bg-success-500',
+    hover: 'hover:bg-success-600',
+    text: 'text-success-600 dark:text-success-400',
+    border: 'border-success-500',
+    light: 'bg-success-50 dark:bg-success-900/20',
+    borderLight: 'border-success-200 dark:border-success-800',
   },
-  // Special features (premium, advanced, templates) - Soft lavender
+  // Special features (premium, advanced, templates) - Violet
   special: {
-    bg: 'bg-violet-500',
-    hover: 'hover:bg-violet-600',
-    text: 'text-violet-600 dark:text-violet-400',
-    border: 'border-violet-500',
-    light: 'bg-violet-50 dark:bg-violet-900/20',
-    borderLight: 'border-violet-200 dark:border-violet-800',
+    bg: 'bg-special-500',
+    hover: 'hover:bg-special-600',
+    text: 'text-special-600 dark:text-special-400',
+    border: 'border-special-500',
+    light: 'bg-special-50 dark:bg-special-900/20',
+    borderLight: 'border-special-200 dark:border-special-800',
   },
-  // Advanced features (settings, tools) - Soft slate blue
+  // Advanced features (settings, tools) - Slate
   advanced: {
-    bg: 'bg-slate-500',
-    hover: 'hover:bg-slate-600',
-    text: 'text-slate-600 dark:text-slate-400',
-    border: 'border-slate-500',
-    light: 'bg-slate-50 dark:bg-slate-900/20',
-    borderLight: 'border-slate-200 dark:border-slate-800',
+    bg: 'bg-advanced-500',
+    hover: 'hover:bg-advanced-600',
+    text: 'text-advanced-600 dark:text-advanced-400',
+    border: 'border-advanced-500',
+    light: 'bg-advanced-50 dark:bg-advanced-900/20',
+    borderLight: 'border-advanced-200 dark:border-advanced-800',
   },
-  // Destructive actions (delete, remove, cancel) - Muted coral/salmon
+  // Destructive actions (delete, remove, cancel) - Rose
   destructive: {
-    bg: 'bg-rose-500',
-    hover: 'hover:bg-rose-600',
-    text: 'text-rose-600 dark:text-rose-400',
-    border: 'border-rose-500',
-    light: 'bg-rose-50 dark:bg-rose-900/20',
-    borderLight: 'border-rose-200 dark:border-rose-800',
+    bg: 'bg-destructive-500',
+    hover: 'hover:bg-destructive-600',
+    text: 'text-destructive-600 dark:text-destructive-400',
+    border: 'border-destructive-500',
+    light: 'bg-destructive-50 dark:bg-destructive-900/20',
+    borderLight: 'border-destructive-200 dark:border-destructive-800',
   },
-  // Warning actions - Soft amber
+  // Warning actions - Amber
   warning: {
-    bg: 'bg-amber-500',
-    hover: 'hover:bg-amber-600',
-    text: 'text-amber-600 dark:text-amber-400',
-    border: 'border-amber-500',
-    light: 'bg-amber-50 dark:bg-amber-900/20',
-    borderLight: 'border-amber-200 dark:border-amber-800',
+    bg: 'bg-warning-500',
+    hover: 'hover:bg-warning-600',
+    text: 'text-warning-600 dark:text-warning-400',
+    border: 'border-warning-500',
+    light: 'bg-warning-50 dark:bg-warning-900/20',
+    borderLight: 'border-warning-200 dark:border-warning-800',
   },
 } as const;
 
@@ -181,7 +182,7 @@ export const componentClasses = {
 
   // Input Fields
   input: {
-    base: 'w-full px-4 py-2.5 text-base border rounded-xl dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors font-sans',
+    base: 'w-full px-4 py-2.5 text-base border rounded-xl dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors font-sans',
     error: 'border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500',
     disabled: 'opacity-50 cursor-not-allowed',
   },

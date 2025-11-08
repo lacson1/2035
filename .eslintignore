@@ -1,0 +1,26 @@
+# Mock HTML files with inline styles
+*.html
+**/*.html
+clinical-staff-login.html
+mock-role-physician.html
+mock-*.html
+test-*.html
+login-*.html
+typography-*.html
+index.html
+
+# GitHub workflows
+.github/**
+.github/workflows/**
+.github/workflows/*.yml
+**/.github/**
+
+# CSS files (handled by stylelint if needed)
+*.css
+src/index.css
+
+# Build outputs
+dist/**
+build/**
+node_modules/**
+

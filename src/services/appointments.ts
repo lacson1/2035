@@ -70,5 +70,22 @@ export const appointmentService = {
   async deleteAppointment(patientId: string, appointmentId: string): Promise<ApiResponse<void>> {
     return apiClient.delete<void>(`/v1/patients/${patientId}/appointments/${appointmentId}`);
   },
+
+  /**
+   * Get appointments for a provider (doctor)
+   */
+  async getProviderAppointments(providerId: string, filters?: {
+    from?: string;
+    to?: string;
+    status?: 'scheduled' | 'completed' | 'cancelled';
+  }): Promise<ApiResponse<Appointment[]>> {
+    const params = new URLSearchParams();
+    params.append('providerId', providerId);
+    if (filters?.from) params.append('from', filters.from);
+    if (filters?.to) params.append('to', filters.to);
+    if (filters?.status) params.append('status', filters.status);
+    
+    return apiClient.get<Appointment[]>(`/v1/appointments?${params.toString()}`);
+  },
 };
 

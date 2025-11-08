@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Imaging: Viewer & Report</title>
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1.5rem', letterSpacing: '-0.005em' }],
+            'sm': ['0.875rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+            'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+            'lg': ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '-0.015em' }],
+            'xl': ['1.25rem', { lineHeight: '1.4rem', letterSpacing: '-0.015em' }],
+            '2xl': ['1.5rem', { lineHeight: '1.3rem', letterSpacing: '-0.02em' }],
+          },
+          colors: {
+            primary: {
+              50: '#f0fdfa', 500: '#14b8a6', 600: '#0d9488',
+            },
+            success: {
+              50: '#ecfdf5', 500: '#10b981', 600: '#059669',
+            },
+            warning: {
+              50: '#fffbeb', 500: '#f59e0b', 600: '#d97706',
+            },
+            destructive: {
+              50: '#fff1f2', 500: '#f43f5e', 600: '#e11d48',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      letter-spacing: -0.01em;
+      line-height: 1.5;
+    }
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    .image-viewer {
+      background: #1a1a1a;
+      border-radius: 0.5rem;
+      min-height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      color: white;
+    }
+    .dicom-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 1rem;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      color: white;
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl font-bold" style="letter-spacing: -0.015em; line-height: 1.3;">
+              CT Chest with Contrast
+            </h1>
+            <p class="text-sm text-gray-600 mt-1" style="letter-spacing: -0.01em;">
+              Accession #: CT-2024-12345 • December 10, 2024 at 2:30 PM
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+              Print
+            </button>
+            <button class="px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors">
+              Export DICOM
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Image Viewer Section -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Viewer Controls -->
+          <div class="card">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold" style="letter-spacing: -0.01em; line-height: 1.4;">
+                Image Viewer
+              </h2>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                  Image 1 of 45
+                </span>
+                <button class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+                  Previous
+                </button>
+                <button class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+                  Next
+                </button>
+              </div>
+            </div>
+            
+            <!-- DICOM Image Viewer -->
+            <div class="image-viewer">
+              <div class="dicom-overlay">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="font-medium">JOHN ANDERSON</p>
+                    <p class="text-xs opacity-80">MRN: 12345678 • DOB: 03/15/1985</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-medium">CT CHEST W/CONTRAST</p>
+                    <p class="text-xs opacity-80">12/10/2024 14:30</p>
+                  </div>
+                </div>
+              </div>
+              <div class="text-center">
+                <div class="text-6xl mb-4">🫁</div>
+                <p class="text-sm opacity-70">DICOM Image Viewer</p>
+                <p class="text-xs opacity-50 mt-2">Slice 23/45 • Window: Lung (1500/-600)</p>
+              </div>
+            </div>
+
+            <!-- Viewer Tools -->
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                Zoom
+              </button>
+              <button class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                Pan
+              </button>
+              <button class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                Measure
+              </button>
+              <button class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                Window/Level
+              </button>
+              <button class="px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100">
+                Annotations
+              </button>
+            </div>
+          </div>
+
+          <!-- Series Thumbnails -->
+          <div class="card">
+            <h3 class="text-base font-semibold mb-4" style="letter-spacing: -0.01em;">
+              Series Thumbnails
+            </h3>
+            <div class="grid grid-cols-5 gap-2">
+              <div class="aspect-square bg-gray-800 rounded border-2 border-primary-500 flex items-center justify-center text-white text-xs">
+                1
+              </div>
+              <div class="aspect-square bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-white text-xs opacity-70">
+                2
+              </div>
+              <div class="aspect-square bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-white text-xs opacity-70">
+                3
+              </div>
+              <div class="aspect-square bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-white text-xs opacity-70">
+                4
+              </div>
+              <div class="aspect-square bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-white text-xs opacity-70">
+                5
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Sidebar -->
+        <div class="space-y-6">
+          <!-- Study Info -->
+          <div class="card">
+            <h2 class="text-lg font-semibold mb-4" style="letter-spacing: -0.01em; line-height: 1.4;">
+              Study Information
+            </h2>
+            <div class="space-y-3">
+              <div>
+                <p class="text-xs font-medium text-gray-500 mb-1">Accession Number</p>
+                <p class="text-sm font-medium text-gray-900" style="letter-spacing: -0.01em;">CT-2024-12345</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-500 mb-1">Modality</p>
+                <p class="text-sm font-medium text-gray-900" style="letter-spacing: -0.01em;">CT</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-500 mb-1">Body Part</p>
+                <p class="text-sm font-medium text-gray-900" style="letter-spacing: -0.01em;">Chest</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-500 mb-1">Study Date</p>
+                <p class="text-sm font-medium text-gray-900" style="letter-spacing: -0.01em;">December 10, 2024</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-500 mb-1">Ordering Physician</p>
+                <p class="text-sm font-medium text-gray-900" style="letter-spacing: -0.01em;">Dr. Sarah Johnson</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-500 mb-1">Reading Radiologist</p>
+                <p class="text-sm font-medium text-gray-900" style="letter-spacing: -0.01em;">Dr. Michael Chen</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-gray-500 mb-1">Status</p>
+                <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                  Final Report
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Clinical Report -->
+          <div class="card">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold" style="letter-spacing: -0.01em; line-height: 1.4;">
+                Radiology Report
+              </h2>
+              <span class="px-2 py-1 text-xs font-medium bg-primary-50 text-primary-600 rounded-lg">
+                Final
+              </span>
+            </div>
+
+            <!-- Clinical History -->
+            <div class="mb-4 pb-4 border-b border-gray-200">
+              <h3 class="text-sm font-semibold text-gray-700 mb-2" style="letter-spacing: -0.01em;">
+                Clinical History
+              </h3>
+              <p class="text-sm text-gray-600" style="letter-spacing: -0.01em;">
+                45-year-old male with persistent cough and chest pain. Rule out pneumonia. History of smoking.
+              </p>
+            </div>
+
+            <!-- Technique -->
+            <div class="mb-4 pb-4 border-b border-gray-200">
+              <h3 class="text-sm font-semibold text-gray-700 mb-2" style="letter-spacing: -0.01em;">
+                Technique
+              </h3>
+              <p class="text-sm text-gray-600" style="letter-spacing: -0.01em;">
+                CT chest performed with intravenous contrast (100 mL Omnipaque 350). Images acquired in axial plane 
+                with 1.25 mm slice thickness. Multiplanar reconstructions performed.
+              </p>
+            </div>
+
+            <!-- Findings -->
+            <div class="mb-4 pb-4 border-b border-gray-200">
+              <h3 class="text-sm font-semibold text-gray-700 mb-2" style="letter-spacing: -0.01em;">
+                Findings
+              </h3>
+              <div class="space-y-2 text-sm text-gray-700" style="letter-spacing: -0.01em;">
+                <p><strong class="font-semibold">Lungs:</strong> No focal consolidation, pleural effusion, or pneumothorax. 
+                Lungs are clear bilaterally. No significant mediastinal or hilar lymphadenopathy.</p>
+                <p><strong class="font-semibold">Heart:</strong> Heart size is normal. No pericardial effusion.</p>
+                <p><strong class="font-semibold">Mediastinum:</strong> Unremarkable. No mediastinal mass.</p>
+                <p><strong class="font-semibold">Bones:</strong> No acute fracture. Mild degenerative changes in the thoracic spine.</p>
+              </div>
+            </div>
+
+            <!-- Impression -->
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-gray-700 mb-2" style="letter-spacing: -0.01em;">
+                Impression
+              </h3>
+              <div class="p-3 bg-success-50 rounded-lg border border-success-200">
+                <p class="text-sm text-success-700 font-medium" style="letter-spacing: -0.01em;">
+                  No acute cardiopulmonary abnormalities. Lungs are clear bilaterally. No evidence of pneumonia, 
+                  pleural effusion, or pneumothorax. Recommend clinical correlation.
+                </p>
+              </div>
+            </div>
+
+            <!-- Report Footer -->
+            <div class="pt-4 border-t border-gray-200">
+              <p class="text-xs text-gray-500 mb-1" style="letter-spacing: -0.005em;">
+                Dictated by: <strong class="font-semibold text-gray-700">Dr. Michael Chen, MD</strong>
+              </p>
+              <p class="text-xs text-gray-500" style="letter-spacing: -0.005em;">
+                Report Date: December 10, 2024 at 4:15 PM
+              </p>
+            </div>
+          </div>
+
+          <!-- Measurements -->
+          <div class="card">
+            <h2 class="text-lg font-semibold mb-4" style="letter-spacing: -0.01em; line-height: 1.4;">
+              Measurements
+            </h2>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                <span class="text-sm text-gray-700" style="letter-spacing: -0.01em;">Aortic Diameter</span>
+                <span class="text-sm font-semibold text-gray-900" style="letter-spacing: -0.01em;">3.2 cm</span>
+              </div>
+              <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                <span class="text-sm text-gray-700" style="letter-spacing: -0.01em;">Pulmonary Artery</span>
+                <span class="text-sm font-semibold text-gray-900" style="letter-spacing: -0.01em;">2.8 cm</span>
+              </div>
+              <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                <span class="text-sm text-gray-700" style="letter-spacing: -0.01em;">Cardiac Size</span>
+                <span class="text-sm font-semibold text-gray-900" style="letter-spacing: -0.01em;">Normal</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+

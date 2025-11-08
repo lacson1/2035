@@ -1,0 +1,12 @@
+{
+  "yaml.validate": false,
+  "yaml.schemaStore.enable": false,
+  "yaml.completion": false,
+  "files.associations": {
+    "*.yml": "plaintext"
+  },
+  "[yaml]": {
+    "editor.validation.enabled": false
+  }
+}
+

@@ -111,36 +111,38 @@ export default function OverviewSummaryCards({ patient }: OverviewSummaryCardsPr
     tabId: string;
     itemRenderer: (item: any) => React.ReactNode;
   }) => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Icon className="text-teal-600 dark:text-teal-400" size={20} />
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+    <div className="card hover:shadow-lg transition-all duration-300 animate-slide-up">
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-1.5">
+          <div className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-900/20">
+            <Icon className="text-teal-600 dark:text-teal-400" size={16} />
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
         </div>
         <button
           onClick={() => setActiveTab(tabId)}
-          className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
+          className="text-[10px] text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium transition-colors"
         >
-          View All
+          View All →
         </button>
       </div>
       
-      <div className="flex items-center gap-4 mb-3">
+      <div className="flex items-center gap-3 mb-2.5">
         <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{count}</div>
         {pending !== undefined && pending > 0 && (
-          <div className="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400">
-            <AlertCircle size={14} />
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-[10px] text-amber-700 dark:text-amber-300 font-medium">
+            <AlertCircle size={12} />
             <span>{pending} pending</span>
           </div>
         )}
       </div>
 
       {items.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {items.map((item, idx) => (
             <div
               key={item.id || idx}
-              className="text-xs text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="text-[10px] text-gray-600 dark:text-gray-400 p-2 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700/50 dark:to-gray-800/50 rounded-lg cursor-pointer hover:from-teal-50 hover:to-teal-50/50 dark:hover:from-teal-900/20 dark:hover:to-teal-900/10 transition-all duration-200 border border-transparent hover:border-teal-200/50 dark:hover:border-teal-700/50"
               onClick={() => setActiveTab(tabId)}
             >
               {itemRenderer(item)}
@@ -148,13 +150,13 @@ export default function OverviewSummaryCards({ patient }: OverviewSummaryCardsPr
           ))}
         </div>
       ) : (
-        <p className="text-xs text-gray-500 dark:text-gray-400">No items yet</p>
+        <p className="text-[10px] text-gray-500 dark:text-gray-400 italic">No items yet</p>
       )}
     </div>
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
       {/* Referrals Card */}
       <SummaryCard
         title="Referrals"
@@ -166,14 +168,14 @@ export default function OverviewSummaryCards({ patient }: OverviewSummaryCardsPr
         itemRenderer={(ref: Referral) => (
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+              <p className="font-medium text-xs text-gray-900 dark:text-gray-100 truncate">
                 {typeof ref.specialty === 'string' ? ref.specialty : String(ref.specialty)}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">
                 {new Date(ref.date).toLocaleDateString()}
               </p>
             </div>
-            <span className={`text-xs font-medium ${getStatusColor(ref.status)}`}>
+            <span className={`text-[10px] font-medium ${getStatusColor(ref.status)}`}>
               {ref.status}
             </span>
           </div>
@@ -191,16 +193,16 @@ export default function OverviewSummaryCards({ patient }: OverviewSummaryCardsPr
         itemRenderer={(consent: Consent) => (
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+              <p className="font-medium text-xs text-gray-900 dark:text-gray-100 truncate">
                 {consent.title}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">
                 {new Date(consent.date).toLocaleDateString()}
               </p>
             </div>
-            <span className={`text-xs font-medium ${getStatusColor(consent.status)}`}>
+            <span className={`text-[10px] font-medium ${getStatusColor(consent.status)}`}>
               {consent.status === "signed" ? (
-                <CheckCircle size={14} className="text-green-600 dark:text-green-400" />
+                <CheckCircle size={12} className="text-green-600 dark:text-green-400" />
               ) : (
                 consent.status
               )}
@@ -219,14 +221,14 @@ export default function OverviewSummaryCards({ patient }: OverviewSummaryCardsPr
         itemRenderer={(note: SurgicalNote) => (
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+              <p className="font-medium text-xs text-gray-900 dark:text-gray-100 truncate">
                 {note.procedureName}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">
                 {new Date(note.date).toLocaleDateString()}
               </p>
             </div>
-            <span className={`text-xs font-medium ${getStatusColor(note.status)}`}>
+            <span className={`text-[10px] font-medium ${getStatusColor(note.status)}`}>
               {note.status}
             </span>
           </div>
@@ -242,10 +244,10 @@ export default function OverviewSummaryCards({ patient }: OverviewSummaryCardsPr
         tabId="nutrition"
         itemRenderer={(entry: NutritionEntry) => (
           <div>
-            <p className="font-medium text-gray-900 dark:text-gray-100 capitalize">
+            <p className="font-medium text-xs text-gray-900 dark:text-gray-100 capitalize">
               {entry.type.replace("_", " ")}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">
               {new Date(entry.date).toLocaleDateString()}
               {entry.dietitian && ` • ${entry.dietitian}`}
             </p>
@@ -264,18 +266,18 @@ export default function OverviewSummaryCards({ patient }: OverviewSummaryCardsPr
         itemRenderer={(vax: Vaccination) => (
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+              <p className="font-medium text-xs text-gray-900 dark:text-gray-100 truncate">
                 {vax.vaccineName}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">
                 {new Date(vax.date).toLocaleDateString()}
                 {vax.doseNumber && ` • Dose ${vax.doseNumber}`}
               </p>
             </div>
             {vax.verified ? (
-              <CheckCircle size={14} className="text-green-600 dark:text-green-400" />
+              <CheckCircle size={12} className="text-green-600 dark:text-green-400" />
             ) : (
-              <Clock size={14} className="text-yellow-600 dark:text-yellow-400" />
+              <Clock size={12} className="text-yellow-600 dark:text-yellow-400" />
             )}
           </div>
         )}

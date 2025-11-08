@@ -76,7 +76,7 @@ export interface InvoiceWithRelations extends Invoice {
  */
 function calculateInvoiceTotals(
   items: CreateInvoiceItemData[],
-  currency: string = 'USD'
+  currency: string = 'NGN'
 ): {
   subtotal: Decimal;
   taxAmount: Decimal;
@@ -155,7 +155,7 @@ export class BillingService {
       // Create default settings
       settings = await prisma.billingSettings.create({
         data: {
-          defaultCurrency: 'USD',
+          defaultCurrency: 'NGN',
           invoicePrefix: 'INV',
           invoiceNumber: 1,
           paymentTerms: 30,
@@ -176,7 +176,7 @@ export class BillingService {
       settings = await prisma.billingSettings.create({
         data: {
           ...data,
-          defaultCurrency: data.defaultCurrency || 'USD',
+          defaultCurrency: data.defaultCurrency || 'NGN',
           invoicePrefix: data.invoicePrefix || 'INV',
           invoiceNumber: data.invoiceNumber || 1,
           paymentTerms: data.paymentTerms || 30,

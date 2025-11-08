@@ -78,9 +78,16 @@ export default function PatientListPagination({
 
       <div className="flex items-center gap-1">
         <button
-          onClick={() => onPageChange(currentPage - 1)}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (currentPage > 1) {
+              onPageChange(currentPage - 1);
+            }
+          }}
           disabled={currentPage === 1}
-          className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label="Previous page"
         >
           <ChevronLeft size={16} />
@@ -92,8 +99,13 @@ export default function PatientListPagination({
               <span className="px-2 text-xs text-gray-500">...</span>
             ) : (
               <button
-                onClick={() => onPageChange(page as number)}
-                className={`px-2 py-1 text-xs rounded ${
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onPageChange(page as number);
+                }}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
                   currentPage === page
                     ? "bg-teal-500 text-white"
                     : "hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -106,9 +118,16 @@ export default function PatientListPagination({
         ))}
 
         <button
-          onClick={() => onPageChange(currentPage + 1)}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (currentPage < totalPages) {
+              onPageChange(currentPage + 1);
+            }
+          }}
           disabled={currentPage === totalPages}
-          className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label="Next page"
         >
           <ChevronRight size={16} />

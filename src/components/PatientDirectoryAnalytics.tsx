@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { 
-  Users, 
   AlertTriangle, 
   Activity, 
   Calendar,
@@ -24,27 +23,27 @@ interface AnalyticsCardProps {
 
 const AnalyticsCard = ({ title, value, icon, trend, color }: AnalyticsCardProps) => {
   const colorClasses = {
-    blue: "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400",
-    red: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400",
-    green: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400",
-    purple: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400",
-    orange: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400",
+    blue: "bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 text-primary-600 dark:text-primary-400",
+    red: "bg-destructive-50 dark:bg-destructive-900/20 border-destructive-200 dark:border-destructive-800 text-destructive-600 dark:text-destructive-400",
+    green: "bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800 text-success-600 dark:text-success-400",
+    purple: "bg-special-50 dark:bg-special-900/20 border-special-200 dark:border-special-800 text-special-600 dark:text-special-400",
+    orange: "bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800 text-warning-600 dark:text-warning-400",
   };
 
   return (
-    <div className={`p-4 rounded-xl border ${colorClasses[color]} transition-all hover:shadow-md`}>
+    <div className={`p-3 rounded-xl border ${colorClasses[color]} transition-all duration-200 hover:shadow-md hover:scale-[1.02]`}>
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-white/50 dark:bg-gray-800/50">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="p-1.5 rounded-lg bg-white/50 dark:bg-gray-800/50 flex-shrink-0">
             {icon}
           </div>
-          <div>
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-0.5 truncate">{title}</p>
+            <p className="text-xl font-bold">{value}</p>
           </div>
         </div>
         {trend && (
-          <span className="text-xs font-medium opacity-75">{trend}</span>
+          <span className="text-xs font-medium opacity-75 ml-2 flex-shrink-0">{trend}</span>
         )}
       </div>
     </div>
@@ -106,18 +105,12 @@ export default function PatientDirectoryAnalytics({ patients }: PatientDirectory
   }
 
   return (
-    <div className="mb-5">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-        <Activity size={16} />
-        Dashboard Analytics
+    <div>
+      <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-2 uppercase tracking-wide">
+        <Activity size={14} />
+        Overview
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <AnalyticsCard
-          title="Total Patients"
-          value={analytics.totalPatients}
-          icon={<Users size={18} />}
-          color="blue"
-        />
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         <AnalyticsCard
           title="High Risk"
           value={analytics.highRiskPatients}

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typography & Color System Showcase</title>
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1.5rem', letterSpacing: '-0.005em' }],
+            'sm': ['0.875rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+            'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+            'lg': ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '-0.015em' }],
+            'xl': ['1.25rem', { lineHeight: '1.4rem', letterSpacing: '-0.015em' }],
+            '2xl': ['1.5rem', { lineHeight: '1.3rem', letterSpacing: '-0.02em' }],
+            '3xl': ['1.875rem', { lineHeight: '1.2rem', letterSpacing: '-0.025em' }],
+            '4xl': ['2.25rem', { lineHeight: '1.2rem', letterSpacing: '-0.025em' }],
+          },
+          colors: {
+            primary: {
+              50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4',
+              400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e',
+              800: '#115e59', 900: '#134e4a', 950: '#042f2e',
+            },
+            success: {
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+              400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+              800: '#065f46', 900: '#064e3b', 950: '#022c22',
+            },
+            warning: {
+              50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+              400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309',
+              800: '#92400e', 900: '#78350f', 950: '#451a03',
+            },
+            destructive: {
+              50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af',
+              400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c',
+              800: '#9f1239', 900: '#881337', 950: '#4c0519',
+            },
+            special: {
+              50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd',
+              400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9',
+              800: '#5b21b6', 900: '#4c1d95', 950: '#2e1065',
+            },
+            advanced: {
+              50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+              400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+              800: '#1e293b', 900: '#0f172a', 950: '#020617',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      letter-spacing: -0.01em;
+      line-height: 1.5;
+    }
+    .btn-primary {
+      padding: 0.625rem 1rem;
+      background-color: rgb(20 184 166);
+      color: white;
+      border-radius: 0.75rem;
+      transition: all 200ms;
+      font-size: 0.875rem;
+      font-weight: 500;
+      min-height: 44px;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    .btn-primary:hover {
+      background-color: rgb(13 148 136);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    .btn-success {
+      padding: 0.625rem 1rem;
+      background-color: rgb(16 185 129);
+      color: white;
+      border-radius: 0.75rem;
+      transition: all 200ms;
+      font-size: 0.875rem;
+      font-weight: 500;
+      min-height: 44px;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    .btn-success:hover {
+      background-color: rgb(5 150 105);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    .btn-warning {
+      padding: 0.625rem 1rem;
+      background-color: rgb(245 158 11);
+      color: white;
+      border-radius: 0.75rem;
+      transition: all 200ms;
+      font-size: 0.875rem;
+      font-weight: 500;
+      min-height: 44px;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    .btn-warning:hover {
+      background-color: rgb(217 119 6);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    .btn-destructive {
+      padding: 0.625rem 1rem;
+      background-color: rgb(244 63 94);
+      color: white;
+      border-radius: 0.75rem;
+      transition: all 200ms;
+      font-size: 0.875rem;
+      font-weight: 500;
+      min-height: 44px;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    .btn-destructive:hover {
+      background-color: rgb(225 29 72);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    .input-base {
+      width: 100%;
+      padding: 0.625rem 1rem;
+      font-size: 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.75rem;
+      transition: all 200ms;
+    }
+    .input-base:focus {
+      outline: none;
+      border-color: rgb(20 184 166);
+      box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 p-8">
+  <div class="max-w-6xl mx-auto space-y-12">
+    
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <h1 class="text-3xl font-bold mb-2" style="letter-spacing: -0.02em; line-height: 1.2;">
+        Typography & Color System Showcase
+      </h1>
+      <p class="text-base text-gray-600" style="letter-spacing: -0.01em;">
+        Consistent Inter font and color palette across the application
+      </p>
+    </div>
+
+    <!-- Typography Hierarchy -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Typography Hierarchy
+      </h2>
+      <div class="space-y-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight" style="letter-spacing: -0.02em; line-height: 1.2;">
+            Heading 1 (H1) - Page Title
+          </h1>
+          <p class="text-xs text-gray-500 mt-1">text-2xl md:text-3xl | font-bold | 30px/24px</p>
+        </div>
+        <div>
+          <h2 class="text-xl md:text-2xl font-bold tracking-tight" style="letter-spacing: -0.015em; line-height: 1.3;">
+            Heading 2 (H2) - Section Title
+          </h2>
+          <p class="text-xs text-gray-500 mt-1">text-xl md:text-2xl | font-bold | 24px/20px</p>
+        </div>
+        <div>
+          <h3 class="text-lg md:text-xl font-semibold tracking-tight" style="letter-spacing: -0.01em; line-height: 1.4;">
+            Heading 3 (H3) - Subsection
+          </h3>
+          <p class="text-xs text-gray-500 mt-1">text-lg md:text-xl | font-semibold | 20px/18px</p>
+        </div>
+        <div>
+          <h4 class="text-base md:text-lg font-semibold tracking-tight" style="letter-spacing: -0.01em; line-height: 1.5;">
+            Heading 4 (H4) - Card Title
+          </h4>
+          <p class="text-xs text-gray-500 mt-1">text-base md:text-lg | font-semibold | 18px/16px</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Font Sizes -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Font Sizes
+      </h2>
+      <div class="space-y-3">
+        <div class="flex items-baseline gap-4">
+          <span class="text-4xl font-bold" style="letter-spacing: -0.025em; line-height: 1.2;">4xl</span>
+          <span class="text-sm text-gray-500">2.25rem (36px)</span>
+        </div>
+        <div class="flex items-baseline gap-4">
+          <span class="text-3xl font-bold" style="letter-spacing: -0.025em; line-height: 1.2;">3xl</span>
+          <span class="text-sm text-gray-500">1.875rem (30px)</span>
+        </div>
+        <div class="flex items-baseline gap-4">
+          <span class="text-2xl font-bold" style="letter-spacing: -0.02em; line-height: 1.3;">2xl</span>
+          <span class="text-sm text-gray-500">1.5rem (24px)</span>
+        </div>
+        <div class="flex items-baseline gap-4">
+          <span class="text-xl font-normal" style="letter-spacing: -0.015em; line-height: 1.4;">xl</span>
+          <span class="text-sm text-gray-500">1.25rem (20px)</span>
+        </div>
+        <div class="flex items-baseline gap-4">
+          <span class="text-lg font-normal" style="letter-spacing: -0.015em; line-height: 1.5;">lg</span>
+          <span class="text-sm text-gray-500">1.125rem (18px)</span>
+        </div>
+        <div class="flex items-baseline gap-4">
+          <span class="text-base font-normal" style="letter-spacing: -0.01em; line-height: 1.5;">base</span>
+          <span class="text-sm text-gray-500">1rem (16px) - Default body text</span>
+        </div>
+        <div class="flex items-baseline gap-4">
+          <span class="text-sm font-normal" style="letter-spacing: -0.01em; line-height: 1.5;">sm</span>
+          <span class="text-sm text-gray-500">0.875rem (14px)</span>
+        </div>
+        <div class="flex items-baseline gap-4">
+          <span class="text-xs font-normal" style="letter-spacing: -0.005em; line-height: 1.5;">xs</span>
+          <span class="text-sm text-gray-500">0.75rem (12px)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Font Weights -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Font Weights (Inter)
+      </h2>
+      <div class="space-y-2">
+        <div class="text-lg font-light">Light (300) - Light weight text</div>
+        <div class="text-lg font-normal">Normal (400) - Default body text</div>
+        <div class="text-lg font-medium">Medium (500) - Buttons, emphasized text</div>
+        <div class="text-lg font-semibold">Semibold (600) - Headings, labels</div>
+        <div class="text-lg font-bold">Bold (700) - Page titles, important headings</div>
+        <div class="text-lg font-extrabold">Extrabold (800) - Special emphasis</div>
+      </div>
+    </section>
+
+    <!-- Color Palette -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Color Palette
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Primary -->
+        <div>
+          <h3 class="text-lg font-semibold mb-3">Primary (Teal)</h3>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-primary-500"></div>
+              <div>
+                <div class="font-medium">primary-500</div>
+                <div class="text-xs text-gray-500">#14b8a6</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-primary-600"></div>
+              <div>
+                <div class="font-medium">primary-600</div>
+                <div class="text-xs text-gray-500">#0d9488</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-primary-50 border border-primary-200"></div>
+              <div>
+                <div class="font-medium">primary-50</div>
+                <div class="text-xs text-gray-500">Light background</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success -->
+        <div>
+          <h3 class="text-lg font-semibold mb-3">Success (Emerald)</h3>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-success-500"></div>
+              <div>
+                <div class="font-medium">success-500</div>
+                <div class="text-xs text-gray-500">#10b981</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-success-600"></div>
+              <div>
+                <div class="font-medium">success-600</div>
+                <div class="text-xs text-gray-500">#059669</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-success-50 border border-success-200"></div>
+              <div>
+                <div class="font-medium">success-50</div>
+                <div class="text-xs text-gray-500">Light background</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warning -->
+        <div>
+          <h3 class="text-lg font-semibold mb-3">Warning (Amber)</h3>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-warning-500"></div>
+              <div>
+                <div class="font-medium">warning-500</div>
+                <div class="text-xs text-gray-500">#f59e0b</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-warning-600"></div>
+              <div>
+                <div class="font-medium">warning-600</div>
+                <div class="text-xs text-gray-500">#d97706</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-warning-50 border border-warning-200"></div>
+              <div>
+                <div class="font-medium">warning-50</div>
+                <div class="text-xs text-gray-500">Light background</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Destructive -->
+        <div>
+          <h3 class="text-lg font-semibold mb-3">Destructive (Rose)</h3>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-destructive-500"></div>
+              <div>
+                <div class="font-medium">destructive-500</div>
+                <div class="text-xs text-gray-500">#f43f5e</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-destructive-600"></div>
+              <div>
+                <div class="font-medium">destructive-600</div>
+                <div class="text-xs text-gray-500">#e11d48</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-destructive-50 border border-destructive-200"></div>
+              <div>
+                <div class="font-medium">destructive-50</div>
+                <div class="text-xs text-gray-500">Light background</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Special -->
+        <div>
+          <h3 class="text-lg font-semibold mb-3">Special (Violet)</h3>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-special-500"></div>
+              <div>
+                <div class="font-medium">special-500</div>
+                <div class="text-xs text-gray-500">#8b5cf6</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-special-600"></div>
+              <div>
+                <div class="font-medium">special-600</div>
+                <div class="text-xs text-gray-500">#7c3aed</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-special-50 border border-special-200"></div>
+              <div>
+                <div class="font-medium">special-50</div>
+                <div class="text-xs text-gray-500">Light background</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advanced -->
+        <div>
+          <h3 class="text-lg font-semibold mb-3">Advanced (Slate)</h3>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-advanced-500"></div>
+              <div>
+                <div class="font-medium">advanced-500</div>
+                <div class="text-xs text-gray-500">#64748b</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-advanced-600"></div>
+              <div>
+                <div class="font-medium">advanced-600</div>
+                <div class="text-xs text-gray-500">#475569</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-12 h-12 rounded-lg bg-advanced-50 border border-advanced-200"></div>
+              <div>
+                <div class="font-medium">advanced-50</div>
+                <div class="text-xs text-gray-500">Light background</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Buttons -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Button Styles
+      </h2>
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-sm font-medium text-gray-500 mb-2">Primary Actions</h3>
+          <div class="flex flex-wrap gap-3">
+            <button class="btn-primary">Primary Button</button>
+            <button class="btn-success">Success Button</button>
+            <button class="btn-warning">Warning Button</button>
+            <button class="btn-destructive">Destructive Button</button>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-500 mb-2">Secondary</h3>
+          <button class="px-4 py-2.5 bg-gray-100 text-gray-900 rounded-xl border border-gray-200 hover:bg-gray-200 transition-all duration-200 text-sm font-medium min-h-[44px]">
+            Secondary Button
+          </button>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-500 mb-2">Disabled States</h3>
+          <div class="flex flex-wrap gap-3">
+            <button class="btn-primary opacity-50 cursor-not-allowed">Disabled Primary</button>
+            <button class="btn-success opacity-50 cursor-not-allowed">Disabled Success</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Form Elements -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Form Elements
+      </h2>
+      <div class="space-y-4 max-w-md">
+        <div>
+          <label class="block text-sm font-medium mb-2 text-gray-700">Input Label</label>
+          <input type="text" class="input-base" placeholder="Enter text here...">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2 text-gray-700">Textarea</label>
+          <textarea class="input-base" rows="3" placeholder="Enter multiple lines..."></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2 text-gray-700">Select</label>
+          <select class="input-base">
+            <option>Option 1</option>
+            <option>Option 2</option>
+            <option>Option 3</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Text Colors -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Text Colors
+      </h2>
+      <div class="space-y-2">
+        <div class="text-lg" style="color: rgb(13 148 136);">Primary Text - rgb(13 148 136)</div>
+        <div class="text-lg" style="color: rgb(5 150 105);">Success Text - rgb(5 150 105)</div>
+        <div class="text-lg" style="color: rgb(217 119 6);">Warning Text - rgb(217 119 6)</div>
+        <div class="text-lg" style="color: rgb(225 29 72);">Destructive Text - rgb(225 29 72)</div>
+        <div class="text-lg text-gray-700">Body Text - text-gray-700</div>
+        <div class="text-lg text-gray-500">Secondary Text - text-gray-500</div>
+        <a href="#" class="text-lg block" style="color: rgb(13 148 136);">Link Text - Primary Color</a>
+      </div>
+    </section>
+
+    <!-- Cards -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Card Components
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="card">
+          <h3 class="text-lg font-semibold mb-2">Standard Card</h3>
+          <p class="text-sm text-gray-600">This is a standard card with consistent padding, border radius, and shadow.</p>
+        </div>
+        <div class="card bg-primary-50 border-primary-200">
+          <h3 class="text-lg font-semibold mb-2">Primary Card</h3>
+          <p class="text-sm text-gray-600">Card with primary light background.</p>
+        </div>
+        <div class="card bg-success-50 border-success-200">
+          <h3 class="text-lg font-semibold mb-2">Success Card</h3>
+          <p class="text-sm text-gray-600">Card with success light background.</p>
+        </div>
+        <div class="card bg-warning-50 border-warning-200">
+          <h3 class="text-lg font-semibold mb-2">Warning Card</h3>
+          <p class="text-sm text-gray-600">Card with warning light background.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Body Text Example -->
+    <section class="card">
+      <h2 class="text-2xl font-bold mb-6" style="letter-spacing: -0.015em; line-height: 1.3;">
+        Body Text Example
+      </h2>
+      <div class="space-y-4 text-base text-gray-700" style="letter-spacing: -0.01em; line-height: 1.5;">
+        <p>
+          This is body text using the Inter font family. The default size is 1rem (16px) with a line height of 1.5rem (24px) and letter spacing of -0.01em for optimal readability.
+        </p>
+        <p>
+          The consistent typography system ensures that all text elements across the application maintain visual harmony. Headings use progressively larger sizes with tighter letter spacing, while body text maintains comfortable reading spacing.
+        </p>
+        <p>
+          All text elements inherit the Inter font family, which provides excellent readability at all sizes and weights. The font is loaded from Google Fonts with weights 300 through 800, ensuring consistent rendering across all devices.
+        </p>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
+

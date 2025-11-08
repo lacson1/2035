@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:watch": "tsc --watch & vite build --watch",
+    "build:analyze": "npm run build && npx vite-bundle-visualizer",
+    "build:check": "tsc --noEmit && npm run build",
+    "build:monitor": "./scripts/monitor-build.sh",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest",

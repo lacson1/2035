@@ -13,8 +13,12 @@ import {
   Mail,
   MapPin,
   Copy,
-  Check
+  Check,
+  Edit2
 } from "lucide-react";
+import EditPatientModal from "../EditPatientModal";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import PatientRiskIndicator from "../PatientRiskIndicator";
 
 const workflowGroupIcons: Record<string, typeof ClipboardCheck> = {
   assessment: ClipboardCheck,
@@ -25,10 +29,10 @@ const workflowGroupIcons: Record<string, typeof ClipboardCheck> = {
 };
 
 const workflowGroupColors: Record<string, string> = {
-  assessment: "text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20",
+  assessment: "text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20",
   "active-care": "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20",
   planning: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20",
-  diagnostics: "text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20",
+  diagnostics: "text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20",
   advanced: "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20",
 };
 
@@ -39,10 +43,15 @@ export default function DashboardHeader() {
     nextPatient, 
     previousPatient, 
     getCurrentPatientIndex, 
-    getTotalPatients 
+    getTotalPatients,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setActiveTab,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setShouldEditPatient
   } = useDashboard();
   
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   // Get current workflow context
   const currentTab = getTabById(activeTab);
@@ -99,74 +108,153 @@ export default function DashboardHeader() {
   }
 
   return (
-    <header className="mt-12 md:mt-0 mb-6">
-      <div className="flex flex-col gap-4">
-        {/* Patient Name and Navigation Row */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-3">
+    <header className="mt-12 md:mt-0 mb-4">
+      {/* Professional Patient Banner */}
+      <div className="bg-sky-100 dark:bg-gray-800 rounded-lg border border-sky-300 dark:border-gray-700 shadow-sm group">
+        <div className="p-4">
+          {/* Top Row: Name, Navigation, Edit */}
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
               {/* Patient Navigation */}
               {canNavigate && (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={previousPatient}
-                    className="p-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Previous patient"
-                    title="Previous patient (←)"
-                  >
-                    <ChevronLeft size={16} className="text-gray-600 dark:text-gray-400" />
-                  </button>
-                  <button
-                    onClick={nextPatient}
-                    className="p-2 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Next patient"
-                    title="Next patient (→)"
-                  >
-                    <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
-                  </button>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg font-sans">
-                    {patientPosition} / {totalPatients}
+                <div className="flex flex-col items-center gap-1 pt-1">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={previousPatient}
+                      className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-gray-200 dark:border-gray-600 hover:border-teal-300 dark:hover:border-teal-700 transition-all duration-200"
+                      aria-label="Previous patient"
+                      title="Previous patient (←)"
+                    >
+                      <ChevronLeft size={14} className="text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <button
+                      onClick={nextPatient}
+                      className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-gray-200 dark:border-gray-600 hover:border-teal-300 dark:hover:border-teal-700 transition-all duration-200"
+                      aria-label="Next patient"
+                      title="Next patient (→)"
+                    >
+                      <ChevronRight size={14} className="text-gray-600 dark:text-gray-400" />
+                    </button>
+                  </div>
+                  <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
+                    {patientPosition}/{totalPatients}
                   </span>
                 </div>
               )}
               
-              {/* Patient Name - Large and Prominent */}
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight font-sans">
-                {selectedPatient.name}
-              </h1>
-            </div>
-            
-            {/* Status Tags Row - Better Spacing and Typography */}
-            {WorkflowIcon && workflowLabel && (
-              <div className="flex items-center flex-wrap gap-2 mb-3">
-                {/* Workflow Badge */}
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold font-sans shadow-sm border ${workflowColor}`}>
-                  <WorkflowIcon size={14} />
-                  <span>{workflowLabel}</span>
+              {/* Patient Name */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                    {selectedPatient.name}
+                  </h1>
+                  <div className="flex items-center gap-2 ml-auto">
+                    {selectedPatient.risk !== undefined && (
+                      <div
+                        className={`
+                          w-3 h-3 rounded-full shadow-sm border-2 border-white dark:border-gray-800
+                          ${selectedPatient.risk >= 80 ? 'bg-red-500 animate-pulse' : 
+                            selectedPatient.risk >= 60 ? 'bg-orange-500' : 
+                            selectedPatient.risk >= 40 ? 'bg-yellow-500' : 
+                            'bg-green-500'}
+                        `}
+                        title={`Risk Level: ${selectedPatient.risk}%`}
+                      />
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsEditModalOpen(true);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-white/60 dark:hover:bg-gray-700/60 rounded transition-all duration-200"
+                      style={{ pointerEvents: 'auto', visibility: 'visible' }}
+                      title="Edit patient details"
+                      type="button"
+                    >
+                      <Edit2 size={12} />
+                      Edit
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Patient Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2">
+                  {/* Hospital Number */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Hospital No:</span>
+                    <div className="flex items-center gap-1.5 group">
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">
+                        {selectedPatient.id.slice(0, 8).toUpperCase()}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(selectedPatient.id).then(() => {
+                            setCopiedField('hospitalNumber');
+                            setTimeout(() => setCopiedField(null), 2000);
+                          });
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                        title="Copy hospital number"
+                      >
+                        {copiedField === 'hospitalNumber' ? (
+                          <Check size={12} className="text-green-600 dark:text-green-400" />
+                        ) : (
+                          <Copy size={12} className="text-gray-400 dark:text-gray-500" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Demographics */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Age:</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{selectedPatient.age} years</span>
+                  </div>
+                  
+                  {/* Gender */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Gender:</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{selectedPatient.gender}</span>
+                  </div>
+                  
+                  {/* Date of Birth */}
+                  {selectedPatient.dob && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">DOB:</span>
+                      <span className="text-sm text-gray-900 dark:text-gray-100">
+                        {new Date(selectedPatient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-            
-            {/* Demographics - Clean Typography */}
-            <div className="mb-3">
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-sans">
-                {selectedPatient.age} years old • {selectedPatient.gender}
-                {selectedPatient.dob && ` • DOB: ${new Date(selectedPatient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
-              </p>
             </div>
             
-            {/* Contact Information - Well Organized */}
-            {(selectedPatient.address || selectedPatient.email || selectedPatient.phone) && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-gray-600 dark:text-gray-400 font-sans">
+            {/* Workflow Badge */}
+            {WorkflowIcon && workflowLabel && (
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${workflowColor} shadow-sm`}>
+                <WorkflowIcon size={14} />
+                <span>{workflowLabel}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Contact Information Row */}
+          {(selectedPatient.phone || selectedPatient.email || selectedPatient.address) && (
+            <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                 {selectedPatient.phone && (
                   <div className="flex items-center gap-2 group">
+                    <Phone size={14} className="text-gray-400 dark:text-gray-500" />
                     <a
                       href={`tel:${selectedPatient.phone.replace(/\s/g, '')}`}
-                      className="flex items-center gap-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer"
+                      className="text-sm text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 font-medium transition-colors"
                       title={`Call ${selectedPatient.phone}`}
                     >
-                      <Phone size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors" />
-                      <span className="font-medium">{selectedPatient.phone}</span>
+                      {selectedPatient.phone}
                     </a>
                     <button
                       onClick={(e) => {
@@ -179,27 +267,26 @@ export default function DashboardHeader() {
                           });
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                      title="Copy phone number"
-                      aria-label="Copy phone number"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                      title="Copy phone"
                     >
                       {copiedField === 'phone' ? (
-                        <Check size={14} className="text-green-600 dark:text-green-400" />
+                        <Check size={12} className="text-green-600 dark:text-green-400" />
                       ) : (
-                        <Copy size={14} className="text-gray-400 dark:text-gray-500" />
+                        <Copy size={12} className="text-gray-400 dark:text-gray-500" />
                       )}
                     </button>
                   </div>
                 )}
                 {selectedPatient.email && (
-                  <div className="flex items-center gap-2 truncate group">
+                  <div className="flex items-center gap-2 group min-w-0">
+                    <Mail size={14} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
                     <a
                       href={`mailto:${selectedPatient.email}`}
-                      className="flex items-center gap-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer min-w-0"
+                      className="text-sm text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 font-medium truncate transition-colors"
                       title={`Email ${selectedPatient.email}`}
                     >
-                      <Mail size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors flex-shrink-0" />
-                      <span className="font-medium truncate">{selectedPatient.email}</span>
+                      {selectedPatient.email}
                     </a>
                     <button
                       onClick={(e) => {
@@ -212,29 +299,28 @@ export default function DashboardHeader() {
                           });
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex-shrink-0"
-                      title="Copy email address"
-                      aria-label="Copy email address"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex-shrink-0"
+                      title="Copy email"
                     >
                       {copiedField === 'email' ? (
-                        <Check size={14} className="text-green-600 dark:text-green-400" />
+                        <Check size={12} className="text-green-600 dark:text-green-400" />
                       ) : (
-                        <Copy size={14} className="text-gray-400 dark:text-gray-500" />
+                        <Copy size={12} className="text-gray-400 dark:text-gray-500" />
                       )}
                     </button>
                   </div>
                 )}
                 {selectedPatient.address && (
-                  <div className="flex items-center gap-2 truncate group">
+                  <div className="flex items-center gap-2 group min-w-0">
+                    <MapPin size={14} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
                     <a
                       href={`https://maps.google.com/?q=${encodeURIComponent(selectedPatient.address)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 hover:text-teal-600 dark:hover:text-teal-400 transition-colors cursor-pointer min-w-0"
+                      className="text-sm text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 font-medium truncate transition-colors"
                       title={`Open ${selectedPatient.address} in maps`}
                     >
-                      <MapPin size={16} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors flex-shrink-0" />
-                      <span className="font-medium truncate">{selectedPatient.address}</span>
+                      {selectedPatient.address}
                     </a>
                     <button
                       onClick={(e) => {
@@ -247,23 +333,29 @@ export default function DashboardHeader() {
                           });
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex-shrink-0"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex-shrink-0"
                       title="Copy address"
-                      aria-label="Copy address"
                     >
                       {copiedField === 'address' ? (
-                        <Check size={14} className="text-green-600 dark:text-green-400" />
+                        <Check size={12} className="text-green-600 dark:text-green-400" />
                       ) : (
-                        <Copy size={14} className="text-gray-400 dark:text-gray-500" />
+                        <Copy size={12} className="text-gray-400 dark:text-gray-500" />
                       )}
                     </button>
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Edit Patient Modal */}
+      <EditPatientModal
+        patient={selectedPatient}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
     </header>
   );
 }

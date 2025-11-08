@@ -2,6 +2,7 @@ import rateLimit from 'express-rate-limit';
 import { Request, Response } from 'express';
 import { config } from '../config/env';
 import { getRedisClient } from '../config/redis';
+import { RATE_LIMIT } from '../config/constants';
 
 /**
  * Create a rate limiter with Redis store if available, otherwise memory store
@@ -36,23 +37,28 @@ const createRateLimiter = (windowMs: number, maxRequests: number, message?: stri
 
 /**
  * General API rate limiter
- * 100 requests per minute per IP
+ * Development: 1000 requests per minute per IP (lenient for React StrictMode)
+ * Production: 100 requests per minute per IP
  */
 export const apiRateLimiter = createRateLimiter(
   config.rateLimit.windowMs,
-  config.rateLimit.maxRequests,
+  config.nodeEnv === 'production' 
+    ? config.rateLimit.maxRequests 
+    : RATE_LIMIT.API_MAX_REQUESTS_DEV,
   'Too many API requests. Please slow down.'
 );
 
 /**
  * Strict rate limiter for authentication endpoints
- * Development: 50 attempts per 15 minutes per IP
+ * Development: 500 attempts per 5 minutes per IP (very lenient for testing)
  * Production: 5 attempts per 15 minutes per IP
  */
 export const authRateLimiter = createRateLimiter(
-  15 * 60 * 1000, // 15 minutes
-  config.nodeEnv === 'production' ? 5 : 50, // 5 requests in production, 50 in development
-  'Too many login attempts. Please try again in 15 minutes.'
+  config.nodeEnv === 'production' ? RATE_LIMIT.AUTH_WINDOW_MS_PROD : RATE_LIMIT.AUTH_WINDOW_MS_DEV,
+  config.nodeEnv === 'production' ? RATE_LIMIT.AUTH_MAX_REQUESTS_PROD : RATE_LIMIT.AUTH_MAX_REQUESTS_DEV,
+  config.nodeEnv === 'production' 
+    ? 'Too many login attempts. Please try again in 15 minutes.'
+    : 'Too many login attempts. Please try again in 5 minutes.'
 );
 
 /**
@@ -60,8 +66,8 @@ export const authRateLimiter = createRateLimiter(
  * 20 requests per minute per IP
  */
 export const writeRateLimiter = createRateLimiter(
-  60 * 1000, // 1 minute
-  20, // 20 requests
+  RATE_LIMIT.WRITE_WINDOW_MS,
+  RATE_LIMIT.WRITE_MAX_REQUESTS,
   'Too many write requests. Please slow down.'
 );
 
@@ -70,8 +76,8 @@ export const writeRateLimiter = createRateLimiter(
  * 200 requests per minute per IP
  */
 export const readRateLimiter = createRateLimiter(
-  60 * 1000, // 1 minute
-  200, // 200 requests
+  RATE_LIMIT.READ_WINDOW_MS,
+  RATE_LIMIT.READ_MAX_REQUESTS,
   'Too many read requests. Please slow down.'
 );
 

@@ -3,6 +3,7 @@ import { NotFoundError, ValidationError } from '../utils/errors';
 import { PaginationParams, PaginatedResponse } from '../types';
 import { Patient, Medication, Appointment, ClinicalNote, ImagingStudy } from '@prisma/client';
 import { cacheService } from './cache.service';
+import { CACHE_TTL } from '../config/constants';
 
 export interface PatientListParams extends PaginationParams {
   search?: string;
@@ -111,7 +112,7 @@ export class PatientsService {
     };
 
     // Cache for 5 minutes (patient lists change frequently)
-    await cacheService.set(cacheKey, result, 300);
+    await cacheService.set(cacheKey, result, CACHE_TTL.PATIENT_LIST);
 
     return result;
   }
@@ -137,6 +138,28 @@ export class PatientsService {
         imagingStudies: {
           orderBy: { date: 'desc' },
         },
+        // Temporarily commented out until Prisma Client is regenerated
+        // referrals: {
+        //   orderBy: { date: 'desc' },
+        //   include: {
+        //     referringPhysician: {
+        //       select: {
+        //         id: true,
+        //         firstName: true,
+        //         lastName: true,
+        //         specialty: true,
+        //       },
+        //     },
+        //     referredToProvider: {
+        //       select: {
+        //         id: true,
+        //         firstName: true,
+        //         lastName: true,
+        //         specialty: true,
+        //       },
+        //     },
+        //   },
+        // },
         timelineEvents: {
           orderBy: { date: 'desc' },
           take: 50,
@@ -167,7 +190,7 @@ export class PatientsService {
     const result = patient as any;
 
     // Cache for 10 minutes (individual patient data changes less frequently)
-    await cacheService.set(cacheKey, result, 600);
+    await cacheService.set(cacheKey, result, CACHE_TTL.PATIENT_DETAIL);
 
     return result;
   }

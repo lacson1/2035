@@ -8,7 +8,7 @@
  * For now, kept as minimal reference data.
  */
 
-export type UserRole = 
+export type UserRole =
   | 'admin'
   | 'physician'
   | 'nurse'
@@ -22,10 +22,9 @@ export type UserRole =
   | 'radiologist'
   | 'therapist'
   | 'social_worker'
-  | 'care_coordinator'
-  | 'read_only';
+  | 'care_coordinator';
 
-export type Permission = 
+export type Permission =
   | 'patients:read'
   | 'patients:write'
   | 'patients:delete'
@@ -116,16 +115,6 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'patients:read',
     'appointments:read', 'appointments:write',
   ],
-  read_only: [
-    'patients:read',
-    'medications:read',
-    'appointments:read',
-    'clinical_notes:read',
-    'imaging:read',
-    'billing:read',
-    'users:read',
-    'settings:read',
-  ],
 };
 
 // Role display names
@@ -144,7 +133,6 @@ const roleNames: Record<UserRole, string> = {
   therapist: "Therapist",
   social_worker: "Social Worker",
   care_coordinator: "Care Coordinator",
-  read_only: "Read Only",
 };
 
 // Permission mapping from types.ts format to roles.ts format
@@ -173,17 +161,27 @@ export function getAllRoles(): UserRole[] {
   return Object.keys(rolePermissions) as UserRole[];
 }
 
-export function getRoleName(role: UserRole): string {
-  return roleNames[role] || role;
+export function getRoleName(role: UserRole | string): string {
+  // Handle legacy read_only role - treat as admin
+  if (role === 'read_only') {
+    return 'Administrator';
+  }
+  return roleNames[role as UserRole] || role;
 }
 
-export function getRolePermissions(role: UserRole): Permission[] {
-  return rolePermissions[role] || [];
+export function getRolePermissions(role: UserRole | string): Permission[] {
+  // Handle legacy read_only role - treat as admin with full access
+  if (role === 'read_only') {
+    return rolePermissions['admin'] || [];
+  }
+  return rolePermissions[role as UserRole] || [];
 }
 
 // Support both permission formats (types.ts format and roles.ts format)
-export function hasPermission(role: UserRole, permission: string | Permission): boolean {
-  const rolePerms = rolePermissions[role] || [];
+export function hasPermission(role: UserRole | string, permission: string | Permission): boolean {
+  // Handle legacy read_only role - treat as admin with full access
+  const effectiveRole = role === 'read_only' ? 'admin' : (role as UserRole);
+  const rolePerms = rolePermissions[effectiveRole] || [];
   
   // Check direct match (roles.ts format)
   if (rolePerms.includes(permission as Permission)) {

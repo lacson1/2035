@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logger } from "../utils/logger";
 import { 
   Plus, 
   X, 
@@ -43,7 +44,7 @@ export default function DashboardShortcuts() {
           .filter((s): s is Shortcut => s !== undefined);
         setShortcuts(savedShortcuts);
       } catch (e) {
-        console.error("Failed to load shortcuts:", e);
+        logger.error("Failed to load shortcuts:", e);
       }
     }
   }, []);

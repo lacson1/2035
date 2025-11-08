@@ -1,14 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
 import { auditService } from '../services/audit.service';
-import { UnauthorizedError } from '../utils/errors';
+import { UnauthorizedError, ValidationError } from '../utils/errors';
 import prisma from '../config/database';
+import { logger } from '../utils/logger';
 
 export class AuthController {
   async login(req: Request, res: Response, next: NextFunction) {
     const ipAddress = req.ip || req.headers['x-forwarded-for'] as string;
     const userAgent = req.headers['user-agent'];
-    
+
     try {
       const { email, password } = req.body;
 
@@ -38,8 +39,25 @@ export class AuthController {
         true
       );
 
+      // Set refresh token as httpOnly cookie (CSRF protection via SameSite)
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('refreshToken', result.tokens.refreshToken, {
+        httpOnly: true,
+        secure: isProduction, // HTTPS only in production
+        sameSite: 'strict', // CSRF protection
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/api/v1/auth',
+      });
+
+      // Return only access token (refresh token is in httpOnly cookie)
       res.json({
-        data: result,
+        data: {
+          tokens: {
+            accessToken: result.tokens.accessToken,
+            // Don't return refreshToken - it's in httpOnly cookie
+          },
+          user: result.user,
+        },
       });
     } catch (error) {
       // Log failed login attempt
@@ -68,6 +86,9 @@ export class AuthController {
 
       const { accessToken } = await authService.refreshToken(refreshToken);
 
+      // Optionally refresh the refresh token cookie (rotate)
+      // For now, we'll keep the same refresh token until it expires
+      
       res.json({
         data: { accessToken },
       });
@@ -92,9 +113,7 @@ export class AuthController {
           });
         } catch (error) {
           // Continue with logout even if session deletion fails
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Failed to delete session:', error);
-          }
+          logger.warn('Failed to delete session', error);
         }
       } else if (userId) {
         // If no refresh token provided but user ID exists, delete all sessions for user
@@ -105,9 +124,7 @@ export class AuthController {
           });
         } catch (error) {
           // Continue with logout even if session deletion fails
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Failed to delete user sessions:', error);
-          }
+          logger.warn('Failed to delete user sessions', error);
         }
       }
       // Log logout
@@ -121,7 +138,12 @@ export class AuthController {
           true
         );
       }
-      
+
+      // Clear refresh token cookie
+      res.clearCookie('refreshToken', {
+        path: '/api/v1/auth',
+      });
+
       res.json({
         message: 'Logged out successfully',
       });
@@ -133,7 +155,7 @@ export class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
     const ipAddress = req.ip || req.headers['x-forwarded-for'] as string;
     const userAgent = req.headers['user-agent'];
-    
+
     try {
       const { email, password, firstName, lastName, username } = req.body;
 
@@ -170,8 +192,25 @@ export class AuthController {
         true
       );
 
+      // Set refresh token as httpOnly cookie (CSRF protection via SameSite)
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('refreshToken', result.tokens.refreshToken, {
+        httpOnly: true,
+        secure: isProduction, // HTTPS only in production
+        sameSite: 'strict', // CSRF protection
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/api/v1/auth',
+      });
+
+      // Return only access token (refresh token is in httpOnly cookie)
       res.status(201).json({
-        data: result,
+        data: {
+          tokens: {
+            accessToken: result.tokens.accessToken,
+            // Don't return refreshToken - it's in httpOnly cookie
+          },
+          user: result.user,
+        },
         message: 'Account created successfully',
       });
     } catch (error) {
@@ -222,6 +261,67 @@ export class AuthController {
 
       res.json({
         data: user,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateMe(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError('Not authenticated');
+      }
+
+      const { firstName, lastName, email, phone, specialty, department, avatarUrl } = req.body;
+
+      // Build update data object
+      const updateData: any = {};
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (email !== undefined) {
+        // Check if email is already taken by another user
+        const existingUser = await prisma.user.findFirst({
+          where: {
+            email,
+            NOT: { id: req.user.userId },
+          },
+        });
+        if (existingUser) {
+          throw new ValidationError('Email already in use', { email: ['Email is already registered'] });
+        }
+        updateData.email = email;
+      }
+      if (phone !== undefined) updateData.phone = phone;
+      if (specialty !== undefined) updateData.specialty = specialty;
+      if (department !== undefined) updateData.department = department;
+      if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+
+      // Update user
+      const updatedUser = await prisma.user.update({
+        where: { id: req.user.userId },
+        data: updateData,
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          specialty: true,
+          department: true,
+          phone: true,
+          avatarUrl: true,
+          isActive: true,
+          lastLogin: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      res.json({
+        data: updatedUser,
+        message: 'Profile updated successfully',
       });
     } catch (error) {
       next(error);

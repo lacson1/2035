@@ -18,6 +18,8 @@ import { ApiError } from "../services/api";
 import { useDashboard } from "../context/DashboardContext";
 import PrintPreview from "./PrintPreview";
 import { openPrintWindow } from "../utils/popupHandler";
+import { logger } from "../utils/logger";
+import { getOrganizationHeader, getOrganizationFooter, getOrganizationDetails } from "../utils/organization";
 
 interface InvoiceListProps {
   onSelectInvoice: (invoice: Invoice) => void;
@@ -73,7 +75,7 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
       invoice.patient?.name?.toLowerCase().includes(query) ||
       invoice.patient?.email?.toLowerCase().includes(query)
     );
-  });
+  }).sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
 
   const getStatusColor = (status: Invoice["status"]) => {
     switch (status) {
@@ -256,9 +258,17 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (currentPage > 1) {
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                  }
+                }}
                 disabled={currentPage === 1}
                 className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
               >
                 <ChevronLeft size={16} />
               </button>
@@ -266,9 +276,17 @@ function InvoiceList({ onSelectInvoice, onCreateInvoice }: InvoiceListProps) {
                 Page {currentPage} of {totalPages}
               </span>
               <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (currentPage < totalPages) {
+                    setCurrentPage((p) => Math.min(totalPages, p + 1));
+                  }
+                }}
                 disabled={currentPage === totalPages}
                 className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
               >
                 <ChevronRight size={16} />
               </button>
@@ -316,9 +334,13 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
   };
 
   const handlePrint = () => {
+    const orgHeader = getOrganizationHeader();
+    const orgFooter = getOrganizationFooter();
+    const orgDetails = getOrganizationDetails();
 
     const issueDate = new Date(invoice.issueDate).toLocaleDateString();
     const dueDate = invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A';
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const currentDate = new Date().toLocaleString();
     
     const itemsHtml = invoice.items && invoice.items.length > 0
@@ -352,7 +374,10 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
         <head>
           <title>Invoice ${invoice.invoiceNumber}</title>
           <style>
-            @page { margin: 0.75in; size: letter; }
+            @page { 
+              margin: 0.75in; 
+              size: letter; 
+            }
             body { 
               font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
               line-height: 1.6; 
@@ -361,28 +386,59 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
               margin: 0 auto; 
               padding: 0; 
             }
-            .header { 
-              border-bottom: 3px solid #2563eb; 
-              padding-bottom: 20px; 
-              margin-bottom: 30px; 
-              text-align: center; 
+            .org-header {
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+              text-align: center;
             }
-            .header h1 { 
-              margin: 0; 
-              font-size: 24px; 
-              color: #1e40af; 
+            .org-name {
+              font-size: 22px;
               font-weight: 700;
+              color: #1e40af;
+              margin: 0 0 5px 0;
             }
-            .header h2 { 
-              margin: 8px 0 0 0; 
-              font-size: 18px; 
-              color: #4b5563; 
+            .org-type {
+              font-size: 14px;
+              color: #4b5563;
+              margin: 0 0 8px 0;
               font-weight: 500;
             }
-            .invoice-number {
+            .org-details {
+              font-size: 11px;
+              color: #6b7280;
+              line-height: 1.5;
+              margin: 0;
+            }
+            .org-additional {
+              font-size: 10px;
+              color: #6b7280;
+              margin-top: 6px;
+              line-height: 1.4;
+            }
+            .document-header {
+              text-align: center;
+              margin: 25px 0;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .document-header h1 {
+              margin: 0;
+              font-size: 20px;
+              color: #1e40af;
+              font-weight: 600;
+            }
+            .document-header h2 {
+              margin: 8px 0 0 0;
               font-size: 16px;
+              color: #4b5563;
+              font-weight: normal;
+            }
+            .invoice-number {
+              font-size: 14px;
               color: #6b7280;
               margin-top: 5px;
+              font-weight: 500;
             }
             .info-grid { 
               display: grid; 
@@ -487,10 +543,22 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="org-header">
+            <div class="org-name">${orgHeader.split('\n')[0]}</div>
+            <div class="org-type">${orgHeader.split('\n')[1] || ''}</div>
+            <div class="org-details">${orgHeader.split('\n').slice(2).join('<br>')}</div>
+            ${orgDetails.website || orgDetails.licenseNumber || orgDetails.taxId ? `
+            <div class="org-additional">
+              ${orgDetails.website ? `<div>Website: ${orgDetails.website}</div>` : ''}
+              ${orgDetails.licenseNumber ? `<div>License: ${orgDetails.licenseNumber}</div>` : ''}
+              ${orgDetails.taxId ? `<div>Tax ID: ${orgDetails.taxId}</div>` : ''}
+            </div>
+            ` : ''}
+          </div>
+
+          <div class="document-header">
             <h1>INVOICE</h1>
-            <h2>Bluequee2.0</h2>
-            <div class="invoice-number">${invoice.invoiceNumber}</div>
+            <div class="invoice-number">Invoice #${invoice.invoiceNumber}</div>
           </div>
 
           <div class="info-grid">
@@ -582,8 +650,10 @@ function InvoiceDetail({ invoice, onClose, onPayment }: InvoiceDetailProps) {
           ` : ''}
 
           <div class="footer">
-            <div>Generated: ${currentDate}</div>
-            <div style="margin-top: 5px;">Bluequee2.0 - Electronic Health Record System</div>
+            <div>Generated: ${new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</div>
+            <div style="margin-top: 5px;">${orgFooter}</div>
+            ${orgDetails.licenseNumber ? `<div style="margin-top: 5px; font-size: 10px;">License Number: ${orgDetails.licenseNumber}</div>` : ''}
+            ${orgDetails.taxId ? `<div style="margin-top: 2px; font-size: 10px;">Tax ID: ${orgDetails.taxId}</div>` : ''}
             <div style="margin-top: 5px; font-size: 10px;">This is an official invoice document. Please retain for your records.</div>
             <div style="margin-top: 5px; font-size: 10px;">Confidential Medical Document - For Authorized Personnel Only</div>
           </div>
@@ -867,7 +937,7 @@ interface CreateInvoiceFormProps {
 function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
   const { patients } = useDashboard();
   const [patientId, setPatientId] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("NGN");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -1029,8 +1099,8 @@ function CreateInvoiceForm({ onClose, onSuccess }: CreateInvoiceFormProps) {
               onChange={(e) => setCurrency(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
-              <option value="USD">USD ($)</option>
               <option value="NGN">NGN (₦)</option>
+              <option value="USD">USD ($)</option>
               <option value="EUR">EUR (€)</option>
               <option value="GBP">GBP (£)</option>
             </select>
@@ -1254,9 +1324,9 @@ export default function Billing() {
       // The invoice will be reloaded automatically
     } catch (error) {
       if (error instanceof ApiError) {
-        console.error("Payment error:", error.message);
+        logger.error("Payment error:", error.message);
       } else {
-        console.error("Payment error:", error);
+        logger.error("Payment error:", error);
       }
     }
   };

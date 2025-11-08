@@ -1,7 +1,10 @@
 import { useState, useMemo, memo, useEffect } from "react";
 import { Activity, Heart, Thermometer, Gauge, TrendingUp, TrendingDown, Minus, Plus, X } from "lucide-react";
+import { logger } from "../utils/logger";
 import { Patient } from "../types";
 import { useDashboard } from "../context/DashboardContext";
+import { useToast } from "../context/ToastContext";
+import { vitalsService, Vital } from "../services/vitals";
 import {
   getMeasurementSystem,
   convertTemperatureForDisplay,
@@ -22,19 +25,19 @@ interface VitalReading {
   heartRate: number;
   temperature: number;
   oxygen: number;
+  id?: string;
+  notes?: string;
 }
 
-// Generate sample historical data based on patient's current BP
+// Vitals component - displays only recorded vitals (no synthetic data)
 function Vitals({ patient }: VitalsProps) {
   const { updatePatient } = useDashboard();
+  const toast = useToast();
   const [selectedMetric, setSelectedMetric] = useState<"bp" | "hr" | "temp" | "o2">("bp");
   const [showAddForm, setShowAddForm] = useState(false);
   const [measurementSystem, setMeasurementSystem] = useState(() => getMeasurementSystem());
-  const [recordedVitals, setRecordedVitals] = useState<VitalReading[]>(() => {
-    // Load recorded vitals from localStorage for this patient
-    const stored = localStorage.getItem(`patient_vitals_${patient.id}`);
-    return stored ? JSON.parse(stored) : [];
-  });
+  const [recordedVitals, setRecordedVitals] = useState<VitalReading[]>([]);
+  const [, setIsLoadingVitals] = useState(false);
   
   // Listen for measurement system changes
   useEffect(() => {
@@ -67,61 +70,72 @@ function Vitals({ patient }: VitalsProps) {
     notes: "",
   });
   
-  // Reload recorded vitals when patient changes
+  // Load vitals from API when patient changes
   useEffect(() => {
-    const stored = localStorage.getItem(`patient_vitals_${patient.id}`);
-    setRecordedVitals(stored ? JSON.parse(stored) : []);
+    const loadVitals = async () => {
+      if (!patient?.id) {
+        setRecordedVitals([]);
+        return;
+      }
+
+      setIsLoadingVitals(true);
+      try {
+        const response = await vitalsService.getPatientVitals(patient.id);
+        if (response.data) {
+          // Transform API data to VitalReading format
+          const transformedVitals: VitalReading[] = response.data.map((vital: Vital) => {
+            // Normalize date format - handle both ISO strings and date-only strings
+            let dateStr = vital.date;
+            if (dateStr.includes('T')) {
+              dateStr = dateStr.split('T')[0];
+            }
+            return {
+              id: vital.id,
+              date: dateStr,
+              systolic: vital.systolic || 120,
+              diastolic: vital.diastolic || 80,
+              heartRate: vital.heartRate || 72,
+              temperature: vital.temperature || 37.0,
+              oxygen: vital.oxygen || 98,
+              notes: vital.notes,
+            };
+          });
+          setRecordedVitals(transformedVitals);
+        }
+      } catch (error) {
+        logger.error("Failed to load vitals:", error);
+        // Fallback to localStorage if API fails
+        const stored = localStorage.getItem(`patient_vitals_${patient.id}`);
+        if (stored) {
+          setRecordedVitals(JSON.parse(stored));
+        }
+      } finally {
+        setIsLoadingVitals(false);
+      }
+    };
+
+    loadVitals();
   }, [patient.id]);
   
-  // Save recorded vitals to localStorage when they change
-  useEffect(() => {
-    if (recordedVitals.length > 0) {
-      localStorage.setItem(`patient_vitals_${patient.id}`, JSON.stringify(recordedVitals));
-    }
-  }, [recordedVitals, patient.id]);
+  // Safely parse blood pressure with fallback
+  const bpString = patient.bp || "120/80";
+  const bpParts = bpString.split("/").map(Number);
+  // Variables parsed but not used directly - used via historicalData instead
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_systolic, _diastolic] = [
+    isNaN(bpParts[0]) ? 120 : bpParts[0],
+    isNaN(bpParts[1]) ? 80 : bpParts[1]
+  ];
   
-  const [systolic, diastolic] = patient.bp.split("/").map(Number);
-  
-  // Generate historical data (last 30 days)
-  const generateHistoricalData = (): VitalReading[] => {
-    const data: VitalReading[] = [];
-    const baseSystolic = systolic;
-    const baseDiastolic = diastolic;
-    
-    // Start from 30 days ago, but don't generate data for dates that have recorded vitals
-    const recordedDates = new Set(recordedVitals.map(v => v.date));
-    
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split("T")[0];
-      
-      // Skip if we have a recorded vital for this date
-      if (!recordedDates.has(dateStr)) {
-        data.push({
-          date: dateStr,
-          systolic: baseSystolic + Math.floor(Math.random() * 10) - 5,
-          diastolic: baseDiastolic + Math.floor(Math.random() * 8) - 4,
-          heartRate: 65 + Math.floor(Math.random() * 20),
-          temperature: 36.8 + (Math.random() * 0.4), // Store in Celsius (UK standard)
-          oxygen: 96 + Math.floor(Math.random() * 4),
-        });
-      }
-    }
-    return data;
-  };
-
-  // Merge generated historical data with recorded vitals, sorted by date
+  // Use only recorded vitals (no synthetic data generation)
   const historicalData = useMemo(() => {
-    const generated = generateHistoricalData();
-    const combined = [...generated, ...recordedVitals];
     // Sort by date, most recent first
-    return combined.sort((a, b) => {
+    return [...recordedVitals].sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
       return dateB - dateA;
     }).reverse(); // Reverse to get oldest first for display
-  }, [recordedVitals, systolic, diastolic]);
+  }, [recordedVitals]);
 
   const getTrend = (values: number[]) => {
     if (values.length < 2) return "stable";
@@ -204,7 +218,12 @@ function Vitals({ patient }: VitalsProps) {
   const latest = useMemo(() => {
     if (historicalData.length === 0) {
       // Fallback to patient's current BP if no data
-      const [systolic, diastolic] = patient.bp.split("/").map(Number);
+      const bpString = patient.bp || "120/80";
+      const bpParts = bpString.split("/").map(Number);
+      const [systolic, diastolic] = [
+        isNaN(bpParts[0]) ? 120 : bpParts[0],
+        isNaN(bpParts[1]) ? 80 : bpParts[1]
+      ];
       return {
         date: new Date().toISOString().split("T")[0],
         systolic,
@@ -240,7 +259,7 @@ function Vitals({ patient }: VitalsProps) {
     
     if (isNaN(systolicNum) || isNaN(diastolicNum) || isNaN(heartRateNum) || 
         isNaN(temperatureInput) || isNaN(oxygenNum)) {
-      alert("Please fill in all required vital sign fields with valid numbers.");
+      toast.warning("Please fill in all required vital sign fields with valid numbers.");
       return;
     }
     
@@ -248,43 +267,100 @@ function Vitals({ patient }: VitalsProps) {
     const temperatureCelsius = convertTemperatureForStorage(temperatureInput, measurementSystem);
     
     // Create new vital reading (temperature stored in Celsius)
-    const newVital: VitalReading = {
-      date: formData.date,
+    // Ensure date is in ISO format (YYYY-MM-DD) for API
+    const dateForAPI = formData.date.includes('T') 
+      ? formData.date.split('T')[0] 
+      : formData.date;
+    
+    const newVitalData = {
+      date: dateForAPI,
+      time: formData.time || undefined,
       systolic: systolicNum,
       diastolic: diastolicNum,
       heartRate: heartRateNum,
       temperature: temperatureCelsius,
       oxygen: oxygenNum,
+      notes: formData.notes || undefined,
     };
     
-    // Add to recorded vitals (remove any existing reading for the same date)
-    setRecordedVitals(prev => {
-      const filtered = prev.filter(v => v.date !== formData.date);
-      return [...filtered, newVital].sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return dateB - dateA;
-      });
-    });
-    
-    // Update patient's BP with the latest reading
-    const newBP = `${systolicNum}/${diastolicNum}`;
-    updatePatient(patient.id, (p) => ({
-      ...p,
-      bp: newBP,
-    }));
-    
-    // Try to save to API if authenticated
     try {
-      const { patientService } = await import("../services/patients");
-      await patientService.updatePatient(patient.id, {
-        bp: newBP,
-      });
-    } catch (apiError) {
-      // API save failed, but continue with local update
-      if (import.meta.env.DEV) {
-        console.warn('Failed to save vitals to API, using local update only:', apiError);
+      // Save to API
+      logger.info('Creating vital:', { patientId: patient.id, data: newVitalData });
+      const response = await vitalsService.createVital(patient.id, newVitalData);
+      
+      if (response.data) {
+        // Normalize date format - handle both ISO strings and date-only strings
+        let dateStr = response.data.date;
+        if (typeof dateStr === 'string' && dateStr.includes('T')) {
+          dateStr = dateStr.split('T')[0];
+        }
+        
+        // Transform API response to VitalReading format
+        const newVital: VitalReading = {
+          id: response.data.id,
+          date: dateStr,
+          systolic: response.data.systolic || systolicNum,
+          diastolic: response.data.diastolic || diastolicNum,
+          heartRate: response.data.heartRate || heartRateNum,
+          temperature: response.data.temperature || temperatureCelsius,
+          oxygen: response.data.oxygen || oxygenNum,
+          notes: response.data.notes,
+        };
+        
+        // Add to recorded vitals (remove any existing reading for the same date)
+        setRecordedVitals(prev => {
+          const filtered = prev.filter(v => v.date !== formData.date);
+          return [...filtered, newVital].sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            return dateB - dateA;
+          });
+        });
+        
+        // Update patient's BP with the latest reading
+        const newBP = `${systolicNum}/${diastolicNum}`;
+        updatePatient(patient.id, (p) => ({
+          ...p,
+          bp: newBP,
+        }));
+        
+        // Also update patient's BP in backend
+        try {
+          const { patientService } = await import("../services/patients");
+          await patientService.updatePatient(patient.id, {
+            bp: newBP,
+          });
+        } catch (bpError) {
+          logger.warn('Failed to update patient BP:', bpError);
+        }
+        
+        toast.success("Vital signs recorded successfully");
       }
+    } catch (apiError: any) {
+      logger.error('Failed to save vitals to API:', apiError);
+      const errorMessage = apiError?.response?.data?.message || 
+                          apiError?.response?.data?.error ||
+                          apiError?.message || 
+                          apiError?.error ||
+                          "Failed to save vital signs. Please try again.";
+      const errorDetails = apiError?.response?.data;
+      console.error('Vitals API Error Details:', {
+        message: errorMessage,
+        status: apiError?.response?.status,
+        data: errorDetails,
+        stack: errorDetails?.stack,
+        name: errorDetails?.name,
+        fullError: apiError
+      });
+      
+      // Show detailed error in development
+      const detailedError = process.env.NODE_ENV === 'development' && errorDetails?.error
+        ? `${errorMessage}\n\nDetails: ${errorDetails.error}`
+        : errorMessage;
+      
+      toast.error(detailedError);
+      // Don't update local state if API fails - user can retry
+      return;
     }
     
     // Reset form and close modal

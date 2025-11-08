@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Activity,
   Plus,
@@ -21,6 +21,10 @@ import FormAutocomplete from "./FormAutocomplete";
 import { commonProcedures, commonDiagnoses, commonSymptoms, anesthesiaTypes, operatingRooms, getPatientHistorySuggestions } from "../utils/formHelpers";
 import PrintPreview from "./PrintPreview";
 import { openPrintWindow } from "../utils/popupHandler";
+import { getOrganizationFooter, getOrganizationDetails } from "../utils/organization";
+import { surgicalNotesService } from "../services/surgical-notes";
+import { useToast } from "../context/ToastContext";
+import { logger } from "../utils/logger";
 
 interface SurgicalNotesProps {
   patient?: Patient;
@@ -29,6 +33,7 @@ interface SurgicalNotesProps {
 export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
   const { selectedPatient, addTimelineEvent } = useDashboard();
   const currentPatient = patient || selectedPatient;
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | SurgicalStatus>("all");
   const [typeFilter, setTypeFilter] = useState<"all" | SurgicalProcedureType>("all");
@@ -36,11 +41,67 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
   const [selectedNote, setSelectedNote] = useState<SurgicalNote | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { users } = useUsers();
-  const [surgicalNotes, setSurgicalNotes] = useState<SurgicalNote[]>(
-    currentPatient?.surgicalNotes || []
-  );
+  const [surgicalNotes, setSurgicalNotes] = useState<SurgicalNote[]>([]);
+
+  // Load surgical notes from API when patient changes
+  useEffect(() => {
+    const loadSurgicalNotes = async () => {
+      if (!currentPatient?.id) {
+        setSurgicalNotes([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await surgicalNotesService.getPatientSurgicalNotes(currentPatient.id);
+        if (response.data) {
+          const transformedNotes: SurgicalNote[] = response.data.map((note: any) => ({
+            id: note.id,
+            date: typeof note.date === 'string' ? note.date.split('T')[0] : note.date,
+            procedureName: note.procedureName,
+            procedureType: note.procedureType,
+            status: note.status,
+            surgeon: note.surgeon ? `${note.surgeon.firstName} ${note.surgeon.lastName}` : note.surgeonName,
+            surgeonId: note.surgeonId || note.surgeon?.id,
+            assistantSurgeons: note.assistantSurgeons || [],
+            anesthesiologist: note.anesthesiologist ? `${note.anesthesiologist.firstName} ${note.anesthesiologist.lastName}` : note.anesthesiologistName,
+            anesthesiologistId: note.anesthesiologistId || note.anesthesiologist?.id,
+            anesthesiaType: note.anesthesiaType,
+            indication: note.indication,
+            preoperativeDiagnosis: note.preoperativeDiagnosis,
+            postoperativeDiagnosis: note.postoperativeDiagnosis,
+            procedureDescription: note.procedureDescription,
+            findings: note.findings,
+            complications: note.complications,
+            estimatedBloodLoss: note.estimatedBloodLoss,
+            specimens: note.specimens || [],
+            drains: note.drains,
+            postOpInstructions: note.postOpInstructions,
+            recoveryNotes: note.recoveryNotes,
+            followUpDate: note.followUpDate ? (typeof note.followUpDate === 'string' ? note.followUpDate.split('T')[0] : note.followUpDate) : undefined,
+            operatingRoom: note.operatingRoom,
+            duration: note.duration,
+            startTime: note.startTime,
+            endTime: note.endTime,
+          }));
+          setSurgicalNotes(transformedNotes);
+        }
+      } catch (error) {
+        logger.error("Failed to load surgical notes:", error);
+        toast.error("Failed to load surgical notes");
+        if (currentPatient?.surgicalNotes) {
+          setSurgicalNotes(currentPatient.surgicalNotes);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSurgicalNotes();
+  }, [currentPatient?.id, toast]);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -77,7 +138,7 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
     const matchesStatus = statusFilter === "all" || note.status === statusFilter;
     const matchesType = typeFilter === "all" || note.procedureType === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
-  });
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const getStatusColor = (status: SurgicalStatus) => {
     switch (status) {
@@ -111,13 +172,20 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
     }
   };
 
-  const handleAddSurgicalNote = (e: React.FormEvent) => {
+  const handleAddSurgicalNote = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentPatient?.id) {
+      toast.error("No patient selected");
+      return;
+    }
+
     const surgeon = formData.surgeonId ? users.find(u => u.id === formData.surgeonId) : null;
     const anesthesiologist = formData.anesthesiologistId ? users.find(u => u.id === formData.anesthesiologistId) : null;
     
-    const newNote: SurgicalNote = {
-      id: `surg-${Date.now()}`,
+    // Optimistic update
+    const tempNote: SurgicalNote = {
+      id: `temp-${Date.now()}`,
       date: formData.date,
       procedureName: formData.procedureName,
       procedureType: formData.procedureType,
@@ -145,14 +213,83 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
       endTime: formData.endTime || undefined,
     };
 
-    setSurgicalNotes([...surgicalNotes, newNote]);
-    addTimelineEvent(currentPatient.id, {
-      date: newNote.date,
-      type: "surgery",
-      title: newNote.procedureName,
-      description: `Status: ${newNote.status} | Type: ${newNote.procedureType}`,
-      icon: "scalpel",
-    });
+    setSurgicalNotes([tempNote, ...surgicalNotes]);
+
+    try {
+      const response = await surgicalNotesService.createSurgicalNote(currentPatient.id, {
+        date: formData.date,
+        procedureName: formData.procedureName,
+        procedureType: formData.procedureType,
+        status: formData.status,
+        surgeonId: formData.surgeonId || undefined,
+        anesthesiologistId: formData.anesthesiologistId || undefined,
+        anesthesiaType: formData.anesthesiaType || undefined,
+        indication: formData.indication,
+        preoperativeDiagnosis: formData.preoperativeDiagnosis,
+        postoperativeDiagnosis: formData.postoperativeDiagnosis || undefined,
+        procedureDescription: formData.procedureDescription,
+        findings: formData.findings || undefined,
+        complications: formData.complications || undefined,
+        estimatedBloodLoss: formData.estimatedBloodLoss || undefined,
+        specimens: formData.specimens.length > 0 ? formData.specimens : undefined,
+        drains: formData.drains || undefined,
+        postOpInstructions: formData.postOpInstructions || undefined,
+        recoveryNotes: formData.recoveryNotes || undefined,
+        followUpDate: formData.followUpDate || undefined,
+        operatingRoom: formData.operatingRoom || undefined,
+        duration: formData.duration ? parseInt(formData.duration) : undefined,
+        startTime: formData.startTime || undefined,
+        endTime: formData.endTime || undefined,
+      });
+
+      if (response.data) {
+        const realNote: SurgicalNote = {
+          id: response.data.id,
+          date: typeof response.data.date === 'string' ? response.data.date.split('T')[0] : response.data.date,
+          procedureName: response.data.procedureName,
+          procedureType: response.data.procedureType,
+          status: response.data.status,
+          surgeon: response.data.surgeon ? (typeof response.data.surgeon === 'string' ? response.data.surgeon : `${(response.data.surgeon as any).firstName} ${(response.data.surgeon as any).lastName}`) : undefined,
+          surgeonId: response.data.surgeonId || (response.data.surgeon && typeof response.data.surgeon !== 'string' ? (response.data.surgeon as any).id : undefined),
+          assistantSurgeons: response.data.assistantSurgeons || [],
+          anesthesiologist: response.data.anesthesiologist ? (typeof response.data.anesthesiologist === 'string' ? response.data.anesthesiologist : `${(response.data.anesthesiologist as any).firstName} ${(response.data.anesthesiologist as any).lastName}`) : undefined,
+          anesthesiologistId: response.data.anesthesiologistId || (response.data.anesthesiologist && typeof response.data.anesthesiologist !== 'string' ? (response.data.anesthesiologist as any).id : undefined),
+          anesthesiaType: response.data.anesthesiaType,
+          indication: response.data.indication,
+          preoperativeDiagnosis: response.data.preoperativeDiagnosis,
+          postoperativeDiagnosis: response.data.postoperativeDiagnosis,
+          procedureDescription: response.data.procedureDescription,
+          findings: response.data.findings,
+          complications: response.data.complications,
+          estimatedBloodLoss: response.data.estimatedBloodLoss,
+          specimens: response.data.specimens || [],
+          drains: response.data.drains,
+          postOpInstructions: response.data.postOpInstructions,
+          recoveryNotes: response.data.recoveryNotes,
+          followUpDate: response.data.followUpDate ? (typeof response.data.followUpDate === 'string' ? response.data.followUpDate.split('T')[0] : response.data.followUpDate) : undefined,
+          operatingRoom: response.data.operatingRoom,
+          duration: response.data.duration,
+          startTime: response.data.startTime,
+          endTime: response.data.endTime,
+        };
+        setSurgicalNotes(prev => prev.map(n => n.id === tempNote.id ? realNote : n));
+        
+        addTimelineEvent(currentPatient.id, {
+          date: realNote.date,
+          type: "surgery",
+          title: realNote.procedureName,
+          description: `Status: ${realNote.status} | Type: ${realNote.procedureType}`,
+          icon: "scalpel",
+        });
+        
+        toast.success("Surgical note created successfully");
+      }
+    } catch (error) {
+      setSurgicalNotes(prev => prev.filter(n => n.id !== tempNote.id));
+      logger.error("Failed to create surgical note:", error);
+      toast.error("Failed to create surgical note");
+      return;
+    }
 
     setFormData({
       date: new Date().toISOString().split("T")[0],
@@ -189,6 +326,9 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
   };
 
   const handlePrint = (note: SurgicalNote) => {
+    const orgDetails = getOrganizationDetails();
+    const orgFooter = getOrganizationFooter();
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -197,8 +337,48 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
           <style>
             @page { margin: 1in; size: letter; }
             body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
-            .header h1 { margin: 0; font-size: 24px; color: #1e40af; }
+            .org-header {
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+              text-align: center;
+            }
+            .org-name {
+              font-size: 22px;
+              font-weight: 700;
+              color: #1e40af;
+              margin: 0 0 5px 0;
+            }
+            .org-type {
+              font-size: 14px;
+              color: #4b5563;
+              margin: 0 0 8px 0;
+              font-weight: 500;
+            }
+            .org-details {
+              font-size: 11px;
+              color: #6b7280;
+              line-height: 1.5;
+              margin: 0;
+            }
+            .document-header {
+              text-align: center;
+              margin: 25px 0;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .document-header h1 {
+              margin: 0;
+              font-size: 20px;
+              color: #1e40af;
+              font-weight: 600;
+            }
+            .document-header h2 {
+              margin: 8px 0 0 0;
+              font-size: 16px;
+              color: #4b5563;
+              font-weight: normal;
+            }
             .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
             .info-item { padding: 10px; background: #f9fafb; border-radius: 4px; }
             .info-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
@@ -210,7 +390,16 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="org-header">
+            <div class="org-name">${orgDetails.name}</div>
+            <div class="org-type">${orgDetails.type}</div>
+            <div class="org-details">
+              ${orgDetails.address}, ${orgDetails.city}, ${orgDetails.state} ${orgDetails.zipCode}<br>
+              Phone: ${orgDetails.phone}${orgDetails.fax ? ` | Fax: ${orgDetails.fax}` : ""}${orgDetails.email ? ` | Email: ${orgDetails.email}` : ""}
+            </div>
+          </div>
+
+          <div class="document-header">
             <h1>SURGICAL NOTE</h1>
             <h2>${note.procedureName}</h2>
           </div>
@@ -321,8 +510,9 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
           </div>
           ` : ""}
           <div class="footer">
+            ${orgFooter}<br>
             Generated: ${new Date().toLocaleString()}<br>
-            Bluequee2.0 - Electronic Health Record System
+            This is an official surgical note document. Confidential medical information.
           </div>
         </body>
       </html>
@@ -410,7 +600,17 @@ export default function SurgicalNotes({ patient }: SurgicalNotesProps) {
 
       {/* Surgical Notes List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {filteredNotes.length === 0 ? (
+        {isLoading ? (
+          <div className="p-4">
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filteredNotes.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <Activity size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <p className="text-lg font-medium mb-2">No Surgical Notes Found</p>

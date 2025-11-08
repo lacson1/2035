@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { Sun, Moon, Users, Menu, Info } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
+import { useKeyboardShortcuts, KeyboardShortcut } from "../hooks/useKeyboardShortcuts";
 import DashboardHeader from "../components/DashboardLayout/DashboardHeader";
 import TabContent from "../components/DashboardLayout/TabContent";
 import UserSelector from "../components/UserSelector";
 import LeftSidebar from "../components/DashboardLayout/LeftSidebar";
 import RightSidebar from "../components/DashboardLayout/RightSidebar";
 import DashboardShortcuts from "../components/DashboardShortcuts";
+import KeyboardShortcutsModal from "../components/KeyboardShortcutsModal";
+import QuickActionsBar from "../components/QuickActionsBar";
 
 interface WorkspacePageProps {
   darkMode: boolean;
@@ -19,9 +22,16 @@ export default function WorkspacePage({
   onToggleDarkMode, 
   onNavigateToPatients 
 }: WorkspacePageProps) {
-  const { selectedPatient } = useDashboard();
+  const { selectedPatient, setActiveTab } = useDashboard();
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true); // Always start open
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(true); // Always start open
+  const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('rightSidebarOpen');
+      return saved !== null ? saved === 'true' : true; // Default to open
+    } catch {
+      return true;
+    }
+  });
   const [leftSidebarMinimized, setLeftSidebarMinimized] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('sidebarMinimized');
@@ -30,25 +40,116 @@ export default function WorkspacePage({
       return false;
     }
   });
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
-  // Handle window resize - on desktop, sidebars should be visible
+  // Define keyboard shortcuts
+  const shortcuts: KeyboardShortcut[] = [
+    {
+      key: "?",
+      action: () => setShowKeyboardShortcuts(true),
+      description: "Show keyboard shortcuts",
+      category: "Help",
+    },
+    {
+      key: "Escape",
+      action: () => {
+        setShowKeyboardShortcuts(false);
+        // Close any open modals
+        const event = new CustomEvent("close-modals");
+        window.dispatchEvent(event);
+      },
+      description: "Close modals/shortcuts",
+      category: "Navigation",
+    },
+    {
+      key: "v",
+      action: () => setActiveTab("vitals"),
+      description: "Open Vitals tab",
+      category: "Navigation",
+    },
+    {
+      key: "c",
+      action: () => setActiveTab("consultation"),
+      description: "Open Consultation tab",
+      category: "Navigation",
+    },
+    {
+      key: "m",
+      action: () => setActiveTab("medications"),
+      description: "Open Medications tab",
+      category: "Navigation",
+    },
+    {
+      key: "n",
+      ctrl: true,
+      action: () => setActiveTab("notes"),
+      description: "New Note (Ctrl+N)",
+      category: "Documentation",
+    },
+    {
+      key: "p",
+      ctrl: true,
+      action: () => setActiveTab("medications"),
+      description: "Prescribe (Ctrl+P)",
+      category: "Medication",
+    },
+    {
+      key: "l",
+      ctrl: true,
+      action: () => setActiveTab("labs"),
+      description: "Order Labs (Ctrl+L)",
+      category: "Diagnostics",
+    },
+    {
+      key: "a",
+      ctrl: true,
+      action: () => setActiveTab("appointments"),
+      description: "Schedule Appointment (Ctrl+A)",
+      category: "Scheduling",
+    },
+    {
+      key: "n",
+      action: () => setActiveTab("notes"),
+      description: "Open Clinical Notes tab",
+      category: "Navigation",
+    },
+    {
+      key: "o",
+      action: () => setActiveTab("overview"),
+      description: "Open Overview tab",
+      category: "Navigation",
+    },
+  ];
+
+  useKeyboardShortcuts(shortcuts);
+
+  // Save right sidebar state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('rightSidebarOpen', rightSidebarOpen.toString());
+    } catch {
+      // Ignore errors
+    }
+  }, [rightSidebarOpen]);
+
+  // Handle window resize - on mobile, close sidebars if needed
   useEffect(() => {
     const handleResize = () => {
       const isDesktop = window.innerWidth >= 768;
-      if (isDesktop) {
-        // On desktop, ensure sidebars are open
-        setLeftSidebarOpen(true);
-        setRightSidebarOpen(true);
+      if (!isDesktop) {
+        // On mobile, close sidebars if they were open
+        // But don't force them open on desktop - let user control it
+        if (window.innerWidth < 768) {
+          setLeftSidebarOpen(false);
+          setRightSidebarOpen(false);
+        }
       }
     };
     
     // Set initial state based on screen size
     if (typeof window !== 'undefined') {
       const isDesktop = window.innerWidth >= 768;
-      if (isDesktop) {
-        setLeftSidebarOpen(true);
-        setRightSidebarOpen(true);
-      } else {
+      if (!isDesktop) {
         // On mobile, start closed
         setLeftSidebarOpen(false);
         setRightSidebarOpen(false);
@@ -158,6 +259,16 @@ export default function WorkspacePage({
       <RightSidebar 
         isOpen={rightSidebarOpen}
         onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}
+      />
+
+      {/* Quick Actions Bar */}
+      <QuickActionsBar patient={selectedPatient} position="bottom" />
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+        shortcuts={shortcuts}
       />
     </div>
   );

@@ -25,7 +25,10 @@ export default function UserAssignment({
 }: UserAssignmentProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const { users } = useUsers();
+  const { users, isLoading, error } = useUsers({ 
+    allowForAssignment: true,
+    roles: allowedRoles
+  });
 
   // Filter users by allowed roles and active status
   const availableUsers = useMemo(() => {
@@ -50,12 +53,17 @@ export default function UserAssignment({
       const nameB = `${b.firstName} ${b.lastName}`;
       return nameA.localeCompare(nameB);
     });
-  }, [allowedRoles, searchTerm]);
+  }, [users, allowedRoles, searchTerm]);
 
   const assignedUser = useMemo(() => {
     if (!assignedTo) return null;
-    return users.find((u) => u.id === assignedTo);
-  }, [assignedTo]);
+    const user = users.find((u) => u.id === assignedTo);
+    // Ensure user has required string properties
+    if (user && typeof user.firstName === 'string' && typeof user.lastName === 'string') {
+      return user;
+    }
+    return null;
+  }, [assignedTo, users]);
 
   const handleSelect = (userId: string) => {
     onAssign(userId);
@@ -94,13 +102,13 @@ export default function UserAssignment({
             <CheckCircle className="text-teal-600 dark:text-teal-400" size={16} />
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {assignedUser.firstName} {assignedUser.lastName}
+                {String(assignedUser.firstName || '')} {String(assignedUser.lastName || '')}
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className={`text-xs px-2 py-0.5 rounded ${getRoleBadgeColor(assignedUser.role)}`}>
                   {getRoleName(assignedUser.role)}
                 </span>
-                {assignedUser.specialty && (
+                {assignedUser.specialty && typeof assignedUser.specialty === 'string' && (
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     {assignedUser.specialty}
                   </span>
@@ -130,7 +138,7 @@ export default function UserAssignment({
           >
             <span className={assignedUser ? "text-gray-900 dark:text-gray-100" : "text-gray-500"}>
               {assignedUser
-                ? `${assignedUser.firstName} ${assignedUser.lastName}`
+                ? `${String(assignedUser.firstName || '')} ${String(assignedUser.lastName || '')}`
                 : placeholder}
             </span>
             <UserPlus size={18} className="text-gray-400" />
@@ -161,7 +169,20 @@ export default function UserAssignment({
                   />
                 </div>
                 <div className="overflow-y-auto max-h-48">
-                  {availableUsers.length > 0 ? (
+                  {isLoading ? (
+                    <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                      Loading users...
+                    </div>
+                  ) : error ? (
+                    <div className="px-3 py-4 text-center">
+                      <p className="text-sm text-red-600 dark:text-red-400 font-medium mb-1">
+                        Failed to load users
+                      </p>
+                      <p className="text-xs text-red-500 dark:text-red-500">
+                        {error.message || 'Please try again or contact support'}
+                      </p>
+                    </div>
+                  ) : availableUsers.length > 0 ? (
                     <div className="py-1">
                       {availableUsers.map((user) => (
                         <button
@@ -178,7 +199,7 @@ export default function UserAssignment({
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {user.firstName} {user.lastName}
+                                {String(user.firstName || '')} {String(user.lastName || '')}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span
@@ -186,7 +207,7 @@ export default function UserAssignment({
                                 >
                                   {getRoleName(user.role)}
                                 </span>
-                                {user.specialty && (
+                                {user.specialty && typeof user.specialty === 'string' && (
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
                                     {user.specialty}
                                   </span>

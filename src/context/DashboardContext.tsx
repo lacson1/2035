@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { Patient, Appointment, ClinicalNote, Medication } from "../types";
 import { patientService } from "../services/patients";
 import { useAuth } from "./AuthContext";
+import { logger } from "../utils/logger";
 
 interface DashboardContextType {
   patients: Patient[];
@@ -9,8 +10,10 @@ interface DashboardContextType {
   activeTab: string;
   isLoading: boolean;
   error: string | null;
+  shouldEditPatient: boolean;
   setSelectedPatient: (patient: Patient) => void;
   setActiveTab: (tab: string) => void;
+  setShouldEditPatient: (shouldEdit: boolean) => void;
   updatePatient: (patientId: string, updater: (patient: Patient) => Patient) => void;
   addAppointment: (patientId: string, appointment: Appointment) => void;
   addClinicalNote: (patientId: string, note: ClinicalNote) => void;
@@ -37,6 +40,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shouldEditPatient, setShouldEditPatient] = useState(false);
   const { isAuthenticated } = useAuth();
 
   // Load patients from API when authenticated
@@ -56,9 +60,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const response = await patientService.getPatients({ page: 1, limit: 100 });
       
       // Debug logging in development
-      if (import.meta.env.DEV) {
-        console.log('Patients API response:', response);
-      }
+      logger.debug('Patients API response:', response);
       
       if (response.data?.patients && response.data.patients.length > 0) {
         setPatients(response.data.patients);
@@ -75,7 +77,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch (error: any) {
       // API failed - show error message
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
-      console.error('Failed to load patients from API:', error);
+      logger.error('Failed to load patients from API:', error);
       
       // More specific error messages
       if (error?.status === 401) {
@@ -111,10 +113,9 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (updatedPatient && updatedPatient !== selectedPatient) {
         setSelectedPatientState(updatedPatient);
       }
-    } else if (patients.length > 0 && !selectedPatient?.id) {
-      // If no patient selected and we have patients, select the first one
-      setSelectedPatientState(patients[0]);
     }
+    // Removed auto-selection of first patient - let user choose explicitly
+    // This prevents unexpected navigation when patient list loads
   }, [patients, selectedPatient]);
 
   // Update patient in the list
@@ -273,8 +274,10 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             activeTab,
             isLoading,
             error,
+            shouldEditPatient,
             setSelectedPatient,
             setActiveTab,
+            setShouldEditPatient,
             updatePatient,
             addAppointment,
             addClinicalNote,

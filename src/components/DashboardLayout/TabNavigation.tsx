@@ -16,8 +16,8 @@ import {
 const workflowGroupConfig: Record<string, { icon: typeof ClipboardCheck; color: string; bgColor: string }> = {
   assessment: {
     icon: ClipboardCheck,
-    color: "text-teal-600 dark:text-teal-400",
-    bgColor: "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800",
+    color: "text-primary-600 dark:text-primary-400",
+    bgColor: "bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800",
   },
   "active-care": {
     icon: Heart,
@@ -31,8 +31,8 @@ const workflowGroupConfig: Record<string, { icon: typeof ClipboardCheck; color: 
   },
   diagnostics: {
     icon: Scan,
-    color: "text-teal-600 dark:text-teal-400",
-    bgColor: "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800",
+    color: "text-primary-600 dark:text-primary-400",
+    bgColor: "bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800",
   },
   advanced: {
     icon: Sparkles,
@@ -91,9 +91,11 @@ export default function TabNavigation() {
 
         return (
           <div key={group} className="space-y-0.5">
-            {/* Workflow Group Header - Compact */}
-            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg border ${config?.bgColor || "bg-gray-50 dark:bg-gray-800"} backdrop-blur-sm shadow-sm`}>
-              <GroupIcon size={10} className={config?.color || "text-gray-600"} />
+            {/* Workflow Group Header - Enhanced */}
+            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${config?.bgColor || "bg-gray-50 dark:bg-gray-800"} backdrop-blur-sm shadow-md hover:shadow-lg transition-shadow duration-200`}>
+              <div className="p-0.5 rounded bg-white/50 dark:bg-gray-800/50">
+                <GroupIcon size={10} className={config?.color || "text-gray-600"} />
+              </div>
               <span className={`text-[9px] font-semibold uppercase tracking-wide ${config?.color || "text-gray-600 dark:text-gray-400"}`}>
                 {label}
               </span>
@@ -107,11 +109,11 @@ export default function TabNavigation() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 min-h-[36px] ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 min-h-[36px] ${
                       activeTab === tab.id
-                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md hover:shadow-lg scale-105"
-                        : "bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:scale-105 active:scale-95"
-                    } transform`}
+                        ? "bg-gradient-to-r from-primary-600 via-primary-600 to-success-600 text-white shadow-lg hover:shadow-xl scale-105 ring-2 ring-primary-200 dark:ring-primary-800"
+                        : "bg-white/80 dark:bg-gray-800/80 hover:bg-gradient-to-r hover:from-primary-50 hover:to-success-50 dark:hover:from-primary-900/20 dark:hover:to-success-900/20 text-gray-700 dark:text-gray-300 hover:scale-105 active:scale-95 border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700"
+                    } transform shadow-sm hover:shadow-md`}
                     title={tab.label}
                   >
                     <Icon size={12} />

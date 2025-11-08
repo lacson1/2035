@@ -144,37 +144,82 @@ export function searchMedications(query: string): DrugInfo[] {
     .slice(0, 10); // Limit to 10 results
 }
 
-// Get drug interactions
+export interface DrugInteraction {
+  severity: "critical" | "moderate" | "minor";
+  message: string;
+  drugs: string[];
+  alternatives?: string[];
+}
+
+// Get drug interactions with severity levels
 export function checkDrugInteractions(
   currentMedications: string[],
   newMedication: string
-): string[] {
-  const interactions: string[] = [];
+): DrugInteraction[] {
+  const interactions: DrugInteraction[] = [];
   const newMed = medicationDatabase.find(
     (d) => d.name.toLowerCase() === newMedication.toLowerCase()
   );
   
-  if (!newMed || !newMed.interactions) return interactions;
-  
-  currentMedications.forEach((currentMed) => {
-    const medName = currentMed.toLowerCase();
-    newMed.interactions?.forEach((interaction) => {
-      if (medName.includes(interaction.toLowerCase())) {
-        interactions.push(`${newMed.name} interacts with ${currentMed}`);
-      }
-    });
-  });
-  
   // Check for known dangerous combinations
   const allMeds = [...currentMedications, newMedication].map((m) => m.toLowerCase());
+  
+  // Critical interactions
   if (allMeds.some((m) => m.includes("warfarin")) && allMeds.some((m) => m.includes("aspirin"))) {
-    interactions.push("Warfarin + Aspirin: Increased bleeding risk");
+    interactions.push({
+      severity: "critical",
+      message: "Warfarin + Aspirin: Significantly increased bleeding risk",
+      drugs: ["Warfarin", "Aspirin"],
+      alternatives: ["Consider alternative antiplatelet or adjust warfarin dose"],
+    });
   }
   if (allMeds.some((m) => m.includes("warfarin")) && allMeds.some((m) => m.includes("ibuprofen"))) {
-    interactions.push("Warfarin + Ibuprofen: Increased bleeding risk");
+    interactions.push({
+      severity: "critical",
+      message: "Warfarin + Ibuprofen: Significantly increased bleeding risk",
+      drugs: ["Warfarin", "Ibuprofen"],
+      alternatives: ["Consider acetaminophen or adjust warfarin dose"],
+    });
+  }
+  
+  // High severity interactions
+  if (
+    allMeds.some((m) => m.includes("lisinopril") || m.includes("enalapril") || m.includes("ramipril")) &&
+    allMeds.some((m) => m.includes("potassium"))
+  ) {
+    interactions.push({
+      severity: "moderate",
+      message: "ACE Inhibitor + Potassium: Risk of hyperkalemia",
+      drugs: ["ACE Inhibitor", "Potassium"],
+      alternatives: ["Monitor potassium levels closely"],
+    });
+  }
+  
+  // Check database interactions
+  if (newMed && newMed.interactions) {
+    currentMedications.forEach((currentMed) => {
+      const medName = currentMed.toLowerCase();
+      newMed.interactions?.forEach((interaction) => {
+        if (medName.includes(interaction.toLowerCase())) {
+          interactions.push({
+            severity: "moderate",
+            message: `${newMed.name} interacts with ${currentMed}`,
+            drugs: [newMed.name, currentMed],
+          });
+        }
+      });
+    });
   }
   
   return interactions;
+}
+
+// Legacy function for backward compatibility
+export function checkDrugInteractionsLegacy(
+  currentMedications: string[],
+  newMedication: string
+): string[] {
+  return checkDrugInteractions(currentMedications, newMedication).map(i => i.message);
 }
 
 // Get suggested dosage based on medication name

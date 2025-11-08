@@ -1,6 +1,8 @@
 import { useState, memo, useEffect, useRef } from "react";
 import { Plus, Pill, AlertTriangle, Clock, Calendar, X, Edit2, Archive, Search, CheckCircle, Info, Printer } from "lucide-react";
 import { Patient, Medication } from "../types";
+import { logger } from "../utils/logger";
+import { useToast } from "../context/ToastContext";
 import { getActiveMedications } from "../utils/patientUtils";
 import UserAssignment from "./UserAssignment";
 import { getOrganizationHeader, getOrganizationFooter } from "../utils/organization";
@@ -13,7 +15,11 @@ import {
   getSuggestedFrequency,
   getMedicationWarnings,
   type DrugInfo,
+  type DrugInteraction,
 } from "../utils/medicationDatabase";
+import CriticalAlertModal from "./CriticalAlertModal";
+import { checkAllergyAlerts } from "../utils/alertSystem";
+import { Alert } from "../utils/alertSystem";
 
 interface MedicationListProps {
   patient: Patient;
@@ -22,6 +28,7 @@ interface MedicationListProps {
 
 
 function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState<string | null>(null);
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
@@ -50,8 +57,10 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
   const [selectedDrug, setSelectedDrug] = useState<DrugInfo | null>(null);
   const [doseSuggestions, setDoseSuggestions] = useState<string[]>([]);
   const [frequencySuggestions, setFrequencySuggestions] = useState<string[]>([]);
-  const [formInteractions, setFormInteractions] = useState<string[]>([]);
+  const [formInteractions, setFormInteractions] = useState<DrugInteraction[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [criticalAlert, setCriticalAlert] = useState<Alert | null>(null);
+  const [allergyAlerts, setAllergyAlerts] = useState<Alert[]>([]);
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -95,6 +104,42 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
       const currentMedNames = getActiveMedications(patient).map(m => m.name);
       const drugInteractions = checkDrugInteractions(currentMedNames, selectedDrug.name);
       setFormInteractions(drugInteractions);
+      
+      // Check for allergies
+      const newMed: Medication = {
+        name: selectedDrug.name,
+        status: "Active",
+        started: new Date().toISOString().split("T")[0],
+      };
+      const allergyAlertsList = checkAllergyAlerts(patient, newMed);
+      setAllergyAlerts(allergyAlertsList);
+      
+      // Show critical alert if critical interaction or allergy
+      const criticalInteraction = drugInteractions.find(i => i.severity === "critical");
+      const criticalAllergy = allergyAlertsList.find(a => a.severity === "critical");
+      
+      if (criticalInteraction) {
+        const alert: Alert = {
+          id: `interaction-${Date.now()}`,
+          patientId: patient.id,
+          type: "drug-interaction",
+          severity: "critical",
+          title: "Critical Drug Interaction",
+          message: criticalInteraction.message,
+          acknowledged: false,
+          createdAt: new Date(),
+          actionRequired: true,
+          relatedData: {
+            medications: criticalInteraction.drugs,
+            alternatives: criticalInteraction.alternatives,
+          },
+        };
+        setCriticalAlert(alert);
+      } else if (criticalAllergy) {
+        setCriticalAlert(criticalAllergy);
+      } else {
+        setCriticalAlert(null);
+      }
     } else {
       setDoseSuggestions([]);
       setFrequencySuggestions([]);
@@ -126,6 +171,12 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
 
   const handleAddMedication = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for critical interactions or allergies before adding
+    if (criticalAlert && criticalAlert.actionRequired) {
+      toast.error("Cannot add medication: Critical alert must be acknowledged");
+      return;
+    }
     
     // Calculate expiry date for repeat prescriptions
     let expiryDate: string | undefined;
@@ -169,9 +220,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
       });
     } catch (apiError) {
       // API save failed, but continue with local update
-      if (import.meta.env.DEV) {
-        console.warn('Failed to save medication to API, using local update only:', apiError);
-      }
+      logger.warn('Failed to save medication to API, using local update only:', apiError);
     }
 
     setFormData({ 
@@ -248,15 +297,30 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
     }
   };
 
-  const activeMeds = getActiveMedications(patient);
+  const activeMeds = getActiveMedications(patient).sort((a, b) => {
+    // Sort by start date, most recent first
+    const dateA = a.started ? new Date(a.started).getTime() : 0;
+    const dateB = b.started ? new Date(b.started).getTime() : 0;
+    return dateB - dateA;
+  });
   const repeatPrescriptions = activeMeds.filter((m) => m.prescriptionType === "repeat");
   const acutePrescriptions = activeMeds.filter((m) => m.prescriptionType === "acute" || !m.prescriptionType);
-  const discontinuedMeds = patient.medications.filter((m) => m.status === "Discontinued");
-  const archivedMeds = patient.medications.filter((m) => m.status === "Archived" || m.status === "Historical");
+  const discontinuedMeds = patient.medications.filter((m) => m.status === "Discontinued").sort((a, b) => {
+    // Sort by start date, most recent first
+    const dateA = a.started ? new Date(a.started).getTime() : 0;
+    const dateB = b.started ? new Date(b.started).getTime() : 0;
+    return dateB - dateA;
+  });
+  const archivedMeds = patient.medications.filter((m) => m.status === "Archived" || m.status === "Historical").sort((a, b) => {
+    // Sort by start date, most recent first
+    const dateA = a.started ? new Date(a.started).getTime() : 0;
+    const dateB = b.started ? new Date(b.started).getTime() : 0;
+    return dateB - dateA;
+  });
 
   const handleRefill = (med: Medication) => {
     if (med.refillsRemaining === undefined || med.refillsRemaining <= 0) {
-      alert("No refills remaining for this prescription.");
+      toast.warning("No refills remaining for this prescription.");
       return;
     }
 
@@ -283,7 +347,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
 
   const handlePrintPrescription = () => {
     try {
-      console.log('Print prescription clicked');
+      logger.debug('Print prescription clicked');
       
       const orgHeader = getOrganizationHeader();
       const orgFooter = getOrganizationFooter();
@@ -347,7 +411,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
             
             return medHtml;
           } catch (error) {
-            console.error('Error processing medication:', med, error);
+            logger.error('Error processing medication:', med, error);
             return `<div class="medication-item"><div class="medication-name">℞ ${med.name || 'Unknown Medication'}</div></div>`;
           }
         }).join('');
@@ -578,8 +642,8 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
         title: `Prescription - ${patientName}`
       });
     } catch (error) {
-      console.error('Error generating prescription print:', error);
-      alert('An error occurred while generating the prescription. Please check the browser console for details.');
+      logger.error('Error generating prescription print:', error);
+      toast.error('An error occurred while generating the prescription. Please check the browser console for details.');
     }
   };
 
@@ -597,7 +661,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
       for (let j = i + 1; j < medNames.length; j++) {
         const interactions1 = checkDrugInteractions([medNames[i]], medNames[j]);
         const interactions2 = checkDrugInteractions([medNames[j]], medNames[i]);
-        interactions.push(...interactions1, ...interactions2);
+        interactions.push(...interactions1.map(i => i.message), ...interactions2.map(i => i.message));
       }
     }
 
@@ -642,7 +706,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
             )}
             <button
               onClick={() => setOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 text-sm font-medium"
+              className="btn-primary flex items-center gap-2"
             >
               <Plus size={16} /> Add Medication
             </button>
@@ -682,7 +746,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                             </div>
                             {med.refillsRemaining !== undefined && (
                               <div className="flex items-center gap-1">
-                                <span className="px-2 py-0.5 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 rounded text-xs font-semibold">
+                                <span className="px-2 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 rounded text-xs font-semibold">
                                   Refills: {med.refillsRemaining} / {med.refillsAuthorized || 0}
                                 </span>
                               </div>
@@ -907,7 +971,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     onFocus={() => formData.name.length >= 2 && setShowSuggestions(true)}
                     placeholder="Start typing medication name (e.g., Metformin, Lisinopril)..."
-                    className="w-full pl-10 pr-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                    className="input-base pl-10"
                   />
                   {selectedDrug && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -924,7 +988,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                         key={idx}
                         type="button"
                         onClick={() => handleDrugSelect(drug)}
-                        className="w-full px-4 py-3 text-left hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                        className="w-full px-4 py-3 text-left hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -932,7 +996,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                             {drug.genericName && (
                               <div className="text-xs text-gray-500 dark:text-gray-400">{drug.genericName}</div>
                             )}
-                            <div className="text-xs text-teal-600 dark:text-teal-400 mt-1">{drug.category}</div>
+                            <div className="text-xs text-primary-600 dark:text-primary-400 mt-1">{drug.category}</div>
                           </div>
                           <Pill className="text-blue-500 ml-2" size={18} />
                         </div>
@@ -944,15 +1008,15 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
 
               {/* Drug Info Card */}
               {selectedDrug && (
-                <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
+                <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-4">
                   <div className="flex items-start gap-2">
-                    <Info className="text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" size={18} />
+                    <Info className="text-primary-600 dark:text-primary-400 flex-shrink-0 mt-0.5" size={18} />
                     <div className="flex-1">
-                      <div className="font-semibold text-teal-900 dark:text-blue-100 mb-1">{selectedDrug.name}</div>
+                      <div className="font-semibold text-primary-900 dark:text-primary-100 mb-1">{selectedDrug.name}</div>
                       {selectedDrug.genericName && (
-                        <div className="text-sm text-teal-700 dark:text-teal-300 mb-2">Generic: {selectedDrug.genericName}</div>
+                        <div className="text-sm text-primary-700 dark:text-primary-300 mb-2">Generic: {selectedDrug.genericName}</div>
                       )}
-                      <div className="text-xs text-teal-600 dark:text-teal-400">{selectedDrug.category}</div>
+                      <div className="text-xs text-primary-600 dark:text-primary-400">{selectedDrug.category}</div>
                     </div>
                   </div>
                 </div>
@@ -960,21 +1024,67 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
 
               {/* Interactions Alert */}
               {formInteractions.length > 0 && (
-                <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-800 rounded-lg p-4">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
-                    <div className="flex-1">
-                      <div className="font-semibold text-red-800 dark:text-red-200 mb-2">Drug Interactions Detected</div>
-                      <ul className="space-y-1 text-sm text-red-700 dark:text-red-300">
-                        {formInteractions.map((interaction, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-red-500">⚠</span>
-                            <span>{interaction}</span>
-                          </li>
-                        ))}
-                      </ul>
+                <div className="space-y-2">
+                  {formInteractions.map((interaction, idx) => {
+                    const severityColors = {
+                      critical: "bg-red-50 dark:bg-red-900/20 border-red-500 text-red-900 dark:text-red-100",
+                      moderate: "bg-orange-50 dark:bg-orange-900/20 border-orange-500 text-orange-900 dark:text-orange-100",
+                      minor: "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500 text-yellow-900 dark:text-yellow-100",
+                    };
+                    return (
+                      <div
+                        key={idx}
+                        className={`border-2 rounded-lg p-4 ${severityColors[interaction.severity]}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle
+                            className={`flex-shrink-0 mt-0.5 ${
+                              interaction.severity === "critical" ? "animate-pulse" : ""
+                            }`}
+                            size={20}
+                          />
+                          <div className="flex-1">
+                            <div className="font-semibold mb-1 capitalize">
+                              {interaction.severity} Interaction
+                            </div>
+                            <div className="text-sm mb-2">{interaction.message}</div>
+                            {interaction.alternatives && interaction.alternatives.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-current/20">
+                                <div className="text-xs font-medium mb-1">Alternatives:</div>
+                                <ul className="text-xs space-y-1">
+                                  {interaction.alternatives.map((alt, altIdx) => (
+                                    <li key={altIdx}>• {alt}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Allergy Alerts */}
+              {allergyAlerts.length > 0 && (
+                <div className="space-y-2">
+                  {allergyAlerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-lg p-4"
+                    >
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5 animate-pulse" size={20} />
+                        <div className="flex-1">
+                          <div className="font-semibold text-red-800 dark:text-red-200 mb-1">
+                            {alert.title}
+                          </div>
+                          <div className="text-sm text-red-700 dark:text-red-300">{alert.message}</div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
               )}
 
@@ -1027,7 +1137,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                           key={idx}
                           type="button"
                           onClick={() => setFormData({ ...formData, dose })}
-                          className="px-2.5 py-1 text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors border border-teal-200 dark:border-teal-800"
+                          className="px-2.5 py-1 text-xs bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors border border-primary-200 dark:border-primary-800"
                         >
                           {dose}
                         </button>
@@ -1078,8 +1188,8 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                           onClick={() => setFormData({ ...formData, frequency: freq })}
                           className={`px-2.5 py-1 text-xs rounded-md transition-colors border ${
                             formData.frequency === freq
-                              ? "bg-teal-500 text-white border-teal-600"
-                              : "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/30"
+                              ? "bg-primary-500 text-white border-primary-600"
+                              : "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/30"
                           }`}
                         >
                           {freq}
@@ -1227,7 +1337,7 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
                 </button>
                 <button
                   type="submit"
-                  disabled={formInteractions.length > 0}
+                  disabled={criticalAlert?.actionRequired || (formInteractions.some(i => i.severity === "critical") && !criticalAlert?.acknowledged)}
                   className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Plus size={18} />
@@ -1344,6 +1454,29 @@ function MedicationList({ patient, onMedicationUpdated }: MedicationListProps) {
           title={printPreview.title}
           onClose={() => setPrintPreview(null)}
           onPrint={handlePrintFromPreview}
+        />
+      )}
+
+      {/* Critical Alert Modal */}
+      {criticalAlert && (
+        <CriticalAlertModal
+          alert={criticalAlert}
+          onAcknowledge={(alertId) => {
+            setCriticalAlert((prev) =>
+              prev && prev.id === alertId
+                ? { ...prev, acknowledged: true, acknowledgedAt: new Date() }
+                : prev
+            );
+            toast.success("Alert acknowledged");
+          }}
+          onDismiss={() => {
+            // For critical alerts, don't allow dismissal without acknowledgment
+            if (criticalAlert.severity === "critical" && !criticalAlert.acknowledged) {
+              toast.warning("Critical alerts must be acknowledged");
+              return;
+            }
+            setCriticalAlert(null);
+          }}
         />
       )}
     </div>

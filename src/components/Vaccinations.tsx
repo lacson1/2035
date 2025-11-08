@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Syringe,
   Plus,
@@ -18,6 +18,10 @@ import { useUser } from "../context/UserContext";
 import { Patient, Vaccination } from "../types";
 import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
+import { getOrganizationFooter, getOrganizationDetails } from "../utils/organization";
+import { vaccinationsService } from "../services/vaccinations";
+import { useToast } from "../context/ToastContext";
+import { logger } from "../utils/logger";
 
 interface VaccinationsProps {
   patient?: Patient;
@@ -27,15 +31,82 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
   const { selectedPatient, addTimelineEvent } = useDashboard();
   const { currentUser } = useUser();
   const currentPatient = patient || selectedPatient;
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedVaccination, setSelectedVaccination] = useState<Vaccination | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { users } = useUsers();
 
-  const [vaccinations, setVaccinations] = useState<Vaccination[]>(
-    currentPatient?.vaccinations || []
-  );
+  const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
+
+  // Load vaccinations from API when patient changes
+  useEffect(() => {
+    const loadVaccinations = async () => {
+      if (!currentPatient?.id) {
+        setVaccinations([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await vaccinationsService.getPatientVaccinations(currentPatient.id);
+        if (response.data) {
+          // Backend returns PaginatedResponse with items array
+          const vaccinationsData = Array.isArray(response.data) 
+            ? response.data 
+            : (response.data as any)?.items || [];
+          const transformedVaccinations: Vaccination[] = vaccinationsData.map((vax: any) => {
+            // Helper to safely extract user name
+            const getUserName = (user: any): string | undefined => {
+              if (!user) return undefined;
+              if (typeof user === 'string') return user;
+              if (typeof user === 'object' && user.firstName && user.lastName) {
+                return `${user.firstName} ${user.lastName}`;
+              }
+              return undefined;
+            };
+
+            return {
+              id: vax.id,
+              vaccineName: vax.vaccineName,
+              vaccineCode: vax.vaccineCode,
+              date: typeof vax.date === 'string' ? vax.date.split('T')[0] : vax.date,
+              administeredBy: getUserName(vax.administeredBy) || getUserName(vax.administeredByUser),
+              administeredById: vax.administeredById || vax.administeredByUser?.id,
+              location: vax.location,
+              route: vax.route,
+              site: vax.site,
+              lotNumber: vax.lotNumber,
+              manufacturer: vax.manufacturer,
+              expirationDate: vax.expirationDate ? (typeof vax.expirationDate === 'string' ? vax.expirationDate.split('T')[0] : vax.expirationDate) : undefined,
+              doseNumber: vax.doseNumber,
+              totalDoses: vax.totalDoses,
+              nextDoseDate: vax.nextDoseDate ? (typeof vax.nextDoseDate === 'string' ? vax.nextDoseDate.split('T')[0] : vax.nextDoseDate) : undefined,
+              adverseReactions: vax.adverseReactions || [],
+              notes: vax.notes,
+              verified: vax.verified || false,
+              verifiedBy: getUserName(vax.verifiedBy) || getUserName(vax.verifiedByUser),
+              verifiedById: vax.verifiedById || vax.verifiedByUser?.id,
+              verifiedDate: vax.verifiedDate ? (typeof vax.verifiedDate === 'string' ? vax.verifiedDate.split('T')[0] : vax.verifiedDate) : undefined,
+            };
+          });
+          setVaccinations(transformedVaccinations);
+        }
+      } catch (error) {
+        logger.error("Failed to load vaccinations:", error);
+        toast.error("Failed to load vaccinations");
+        if (currentPatient?.vaccinations) {
+          setVaccinations(currentPatient.vaccinations);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadVaccinations();
+  }, [currentPatient?.id, toast]);
 
   const [formData, setFormData] = useState({
     vaccineName: "",
@@ -64,12 +135,22 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
     );
   });
 
-  const handleAddVaccination = (e: React.FormEvent) => {
+  const handleAddVaccination = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!currentPatient?.id) {
+      toast.error("No patient selected");
+      return;
+    }
+
     const administeredBy = formData.administeredById ? users.find(u => u.id === formData.administeredById) : null;
 
-    const newVaccination: Vaccination = {
-      id: `vax-${Date.now()}`,
+    // Auto-verify if administered by a healthcare provider
+    const shouldAutoVerify = !!formData.administeredById && !!administeredBy;
+
+    // Optimistic update
+    const tempVaccination: Vaccination = {
+      id: `temp-${Date.now()}`,
       vaccineName: formData.vaccineName,
       vaccineCode: formData.vaccineCode || undefined,
       date: formData.date,
@@ -86,17 +167,90 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
       nextDoseDate: formData.nextDoseDate || undefined,
       adverseReactions: formData.adverseReactions.length > 0 ? formData.adverseReactions : undefined,
       notes: formData.notes || undefined,
-      verified: false,
+      verified: shouldAutoVerify,
+      verifiedBy: shouldAutoVerify && currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined,
+      verifiedById: shouldAutoVerify ? currentUser?.id : undefined,
+      verifiedDate: shouldAutoVerify ? new Date().toISOString().split("T")[0] : undefined,
     };
 
-    setVaccinations([...vaccinations, newVaccination]);
-    addTimelineEvent(currentPatient.id, {
-      date: newVaccination.date,
-      type: "vaccination",
-      title: `${newVaccination.vaccineName} - Dose ${newVaccination.doseNumber || 1}`,
-      description: `Administered by ${newVaccination.administeredBy || "Unknown"}`,
-      icon: "syringe",
-    });
+    setVaccinations([tempVaccination, ...vaccinations]);
+
+    try {
+      const response = await vaccinationsService.createVaccination(currentPatient.id, {
+        vaccineName: formData.vaccineName,
+        vaccineCode: formData.vaccineCode || undefined,
+        date: formData.date,
+        administeredById: formData.administeredById || undefined,
+        location: formData.location || undefined,
+        route: formData.route,
+        site: formData.site || undefined,
+        lotNumber: formData.lotNumber || undefined,
+        manufacturer: formData.manufacturer || undefined,
+        expirationDate: formData.expirationDate || undefined,
+        doseNumber: formData.doseNumber ? parseInt(formData.doseNumber) : undefined,
+        totalDoses: formData.totalDoses ? parseInt(formData.totalDoses) : undefined,
+        nextDoseDate: formData.nextDoseDate || undefined,
+        adverseReactions: formData.adverseReactions.length > 0 ? formData.adverseReactions : undefined,
+        notes: formData.notes || undefined,
+        // Auto-verify if administered by a healthcare provider
+        verified: shouldAutoVerify,
+        verifiedById: shouldAutoVerify ? currentUser?.id : undefined,
+        verifiedDate: shouldAutoVerify ? new Date().toISOString().split("T")[0] : undefined,
+      });
+
+      if (response.data) {
+        // Helper to safely extract user name
+        const getUserName = (user: any): string | undefined => {
+          if (!user) return undefined;
+          if (typeof user === 'string') return user;
+          if (typeof user === 'object' && user.firstName && user.lastName) {
+            return `${user.firstName} ${user.lastName}`;
+          }
+          return undefined;
+        };
+
+        const responseData = response.data as any;
+        const realVaccination: Vaccination = {
+          id: responseData.id,
+          vaccineName: responseData.vaccineName,
+          vaccineCode: responseData.vaccineCode,
+          date: typeof responseData.date === 'string' ? responseData.date.split('T')[0] : responseData.date,
+          administeredBy: getUserName(responseData.administeredBy) || getUserName(responseData.administeredByUser),
+          administeredById: responseData.administeredById || responseData.administeredByUser?.id,
+          location: responseData.location,
+          route: responseData.route,
+          site: responseData.site,
+          lotNumber: responseData.lotNumber,
+          manufacturer: responseData.manufacturer,
+          expirationDate: responseData.expirationDate ? (typeof responseData.expirationDate === 'string' ? responseData.expirationDate.split('T')[0] : responseData.expirationDate) : undefined,
+          doseNumber: responseData.doseNumber,
+          totalDoses: responseData.totalDoses,
+          nextDoseDate: responseData.nextDoseDate ? (typeof responseData.nextDoseDate === 'string' ? responseData.nextDoseDate.split('T')[0] : responseData.nextDoseDate) : undefined,
+          adverseReactions: responseData.adverseReactions || [],
+          notes: responseData.notes,
+          verified: responseData.verified || false,
+          verifiedBy: getUserName(responseData.verifiedBy) || getUserName(responseData.verifiedByUser),
+          verifiedById: responseData.verifiedById || responseData.verifiedByUser?.id,
+          verifiedDate: responseData.verifiedDate ? (typeof responseData.verifiedDate === 'string' ? responseData.verifiedDate.split('T')[0] : responseData.verifiedDate) : undefined,
+        };
+        setVaccinations(prev => prev.map(v => v.id === tempVaccination.id ? realVaccination : v));
+
+        addTimelineEvent(currentPatient.id, {
+          date: realVaccination.date,
+          type: "vaccination",
+          title: `${realVaccination.vaccineName} - Dose ${realVaccination.doseNumber || 1}`,
+          description: `Administered by ${realVaccination.administeredBy || "Unknown"}`,
+          icon: "syringe",
+        });
+
+        toast.success("Vaccination recorded successfully");
+      }
+    } catch (error) {
+      setVaccinations(prev => prev.filter(v => v.id !== tempVaccination.id));
+      logger.error("Failed to create vaccination:", error);
+      toast.error("Failed to create vaccination");
+      return;
+    }
 
     setFormData({
       vaccineName: "",
@@ -119,24 +273,47 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
     setShowAddForm(false);
   };
 
-  const handleVerify = (vaccinationId: string) => {
-    setVaccinations(vaccinations.map(vax => 
-      vax.id === vaccinationId 
-        ? { 
-            ...vax, 
-            verified: true, 
-            verifiedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined,
-            verifiedById: currentUser?.id,
-            verifiedDate: new Date().toISOString().split("T")[0],
-          }
-        : vax
-    ));
-    setShowDetailsModal(false);
+  const handleVerify = async (vaccinationId: string) => {
+    if (!currentPatient?.id) {
+      toast.error("No patient selected");
+      return;
+    }
+
+    const vaccination = vaccinations.find(v => v.id === vaccinationId);
+    if (!vaccination) return;
+
+    // Optimistic update
+    const updatedVaccination = {
+      ...vaccination,
+      verified: true,
+      verifiedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined,
+      verifiedById: currentUser?.id,
+      verifiedDate: new Date().toISOString().split("T")[0],
+    };
+    setVaccinations(vaccinations.map(v => v.id === vaccinationId ? updatedVaccination : v));
+
+    try {
+      await vaccinationsService.updateVaccination(currentPatient.id, vaccinationId, {
+        verified: true,
+        verifiedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined,
+        verifiedById: currentUser?.id,
+        verifiedDate: new Date().toISOString().split("T")[0],
+      });
+      toast.success("Vaccination verified successfully");
+      setShowDetailsModal(false);
+    } catch (error) {
+      setVaccinations(vaccinations);
+      logger.error("Failed to verify vaccination:", error);
+      toast.error("Failed to verify vaccination");
+    }
   };
 
   const handlePrint = (vax: Vaccination) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const orgDetails = getOrganizationDetails();
+    const orgFooter = getOrganizationFooter();
 
     const printContent = `
       <!DOCTYPE html>
@@ -146,8 +323,48 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
           <style>
             @page { margin: 1in; size: letter; }
             body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
-            .header h1 { margin: 0; font-size: 24px; color: #1e40af; }
+            .org-header {
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+              text-align: center;
+            }
+            .org-name {
+              font-size: 22px;
+              font-weight: 700;
+              color: #1e40af;
+              margin: 0 0 5px 0;
+            }
+            .org-type {
+              font-size: 14px;
+              color: #4b5563;
+              margin: 0 0 8px 0;
+              font-weight: 500;
+            }
+            .org-details {
+              font-size: 11px;
+              color: #6b7280;
+              line-height: 1.5;
+              margin: 0;
+            }
+            .document-header {
+              text-align: center;
+              margin: 25px 0;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .document-header h1 {
+              margin: 0;
+              font-size: 20px;
+              color: #1e40af;
+              font-weight: 600;
+            }
+            .document-header h2 {
+              margin: 8px 0 0 0;
+              font-size: 16px;
+              color: #4b5563;
+              font-weight: normal;
+            }
             .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
             .info-item { padding: 10px; background: #f9fafb; border-radius: 4px; }
             .info-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
@@ -160,7 +377,16 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="org-header">
+            <div class="org-name">${orgDetails.name}</div>
+            <div class="org-type">${orgDetails.type}</div>
+            <div class="org-details">
+              ${orgDetails.address}, ${orgDetails.city}, ${orgDetails.state} ${orgDetails.zipCode}<br>
+              Phone: ${orgDetails.phone}${orgDetails.fax ? ` | Fax: ${orgDetails.fax}` : ""}${orgDetails.email ? ` | Email: ${orgDetails.email}` : ""}
+            </div>
+          </div>
+
+          <div class="document-header">
             <h1>VACCINATION RECORD</h1>
             <h2>${vax.vaccineName}</h2>
           </div>
@@ -268,8 +494,9 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
           </div>
           ` : ""}
           <div class="footer">
+            ${orgFooter}<br>
             Generated: ${new Date().toLocaleString()}<br>
-            Bluequee2.0 - Electronic Health Record System
+            This is an official vaccination record. Please present this document as needed.
           </div>
         </body>
       </html>
@@ -330,7 +557,17 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
 
       {/* Vaccinations List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {filteredVaccinations.length === 0 ? (
+        {isLoading ? (
+          <div className="p-4">
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filteredVaccinations.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <Syringe size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <p className="text-lg font-medium mb-2">No Vaccinations Found</p>
@@ -383,7 +620,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                       {vax.administeredBy && (
                         <span className="flex items-center gap-1">
                           <User size={14} />
-                          {vax.administeredBy}
+                          {typeof vax.administeredBy === 'string' ? vax.administeredBy : String(vax.administeredBy || '')}
                         </span>
                       )}
                       {vax.nextDoseDate && (
@@ -442,6 +679,8 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
               <button
                 onClick={() => setShowAddForm(false)}
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                aria-label="Close vaccination form"
+                title="Close"
               >
                 <X size={20} />
               </button>
@@ -474,8 +713,9 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
 
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-base font-medium mb-2.5">Date <span className="text-red-500">*</span></label>
+                  <label htmlFor="vaccination-date" className="block text-base font-medium mb-2.5">Date <span className="text-red-500">*</span></label>
                   <input
+                    id="vaccination-date"
                     type="date"
                     required
                     value={formData.date}
@@ -508,12 +748,14 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
 
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-base font-medium mb-2.5">Route <span className="text-red-500">*</span></label>
+                  <label htmlFor="vaccination-route" className="block text-base font-medium mb-2.5">Route <span className="text-red-500">*</span></label>
                   <select
+                    id="vaccination-route"
                     required
                     value={formData.route}
                     onChange={(e) => setFormData({ ...formData, route: e.target.value as Vaccination["route"] })}
                     className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    aria-label="Vaccination route"
                   >
                     <option value="intramuscular">Intramuscular</option>
                     <option value="subcutaneous">Subcutaneous</option>
@@ -581,8 +823,9 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-medium mb-2.5">Expiration Date</label>
+                  <label htmlFor="vaccination-expiration-date" className="block text-base font-medium mb-2.5">Expiration Date</label>
                   <input
+                    id="vaccination-expiration-date"
                     type="date"
                     value={formData.expirationDate}
                     onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
@@ -592,8 +835,9 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
               </div>
 
               <div>
-                <label className="block text-base font-medium mb-2.5">Next Dose Date</label>
+                <label htmlFor="vaccination-next-dose-date" className="block text-base font-medium mb-2.5">Next Dose Date</label>
                 <input
+                  id="vaccination-next-dose-date"
                   type="date"
                   value={formData.nextDoseDate}
                   onChange={(e) => setFormData({ ...formData, nextDoseDate: e.target.value })}
@@ -603,10 +847,11 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
               </div>
 
               <div>
-                <label className="block text-base font-medium mb-2.5">Adverse Reactions (Optional)</label>
+                <label htmlFor="adverse-reaction-input" className="block text-base font-medium mb-2.5">Adverse Reactions (Optional)</label>
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input
+                      id="adverse-reaction-input"
                       type="text"
                       value={formData.currentReaction}
                       onChange={(e) => setFormData({ ...formData, currentReaction: e.target.value })}
@@ -635,6 +880,7 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                         }
                       }}
                       className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
+                      aria-label="Add adverse reaction"
                     >
                       Add
                     </button>
@@ -656,6 +902,8 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                               });
                             }}
                             className="text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                            aria-label={`Remove adverse reaction: ${reaction}`}
+                            title={`Remove ${reaction}`}
                           >
                             <X size={14} />
                           </button>
@@ -736,6 +984,8 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                 <button
                   onClick={() => setShowDetailsModal(false)}
                   className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  aria-label="Close vaccination details"
+                  title="Close"
                 >
                   <X size={20} />
                 </button>
@@ -828,7 +1078,11 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                   <div className="flex items-center gap-2 text-sm">
                     <User size={16} className="text-gray-400" />
                     <span className="text-gray-600 dark:text-gray-400">Administered By:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{selectedVaccination.administeredBy}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {typeof selectedVaccination.administeredBy === 'string'
+                        ? selectedVaccination.administeredBy
+                        : String(selectedVaccination.administeredBy || '')}
+                    </span>
                   </div>
                 )}
                 {selectedVaccination.location && (
@@ -849,7 +1103,9 @@ export default function Vaccinations({ patient }: VaccinationsProps) {
                   <div className="space-y-1 text-sm">
                     {selectedVaccination.verifiedBy && (
                       <p className="text-gray-700 dark:text-gray-300">
-                        <span className="font-medium">Verified by:</span> {selectedVaccination.verifiedBy}
+                        <span className="font-medium">Verified by:</span> {typeof selectedVaccination.verifiedBy === 'string'
+                          ? selectedVaccination.verifiedBy
+                          : String(selectedVaccination.verifiedBy || '')}
                       </p>
                     )}
                     {selectedVaccination.verifiedDate && (

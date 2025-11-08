@@ -36,7 +36,7 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
     return null;
   }
 
-  // Calculate recent vital trends from patient data
+  // Get recent vitals from patient data (no synthetic generation)
   const recentVitals = useMemo(() => {
     // Safely parse blood pressure, defaulting to normal values if not available
     const bpString = selectedPatient.bp || "120/80";
@@ -44,15 +44,16 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
     const systolic = bpParts[0] || 120;
     const diastolic = bpParts[1] || 80;
     
-    // Generate realistic vitals based on patient data
-    const baseHR = 65 + Math.floor((selectedPatient.age || 45) / 2) + ((selectedPatient.risk || 0) > 50 ? 10 : 0);
+    // Use actual patient data only (no random generation)
+    // Vitals are stored separately, so use defaults here
+    // TODO: Fetch latest vitals from vitals service if needed
     return {
       bp: bpString,
       systolic,
       diastolic,
-      heartRate: Math.max(60, Math.min(100, baseHR)),
-      temperature: 36.8 + (Math.random() * 0.4), // Store in Celsius (UK standard)
-      oxygen: 96 + Math.floor(Math.random() * 4),
+      heartRate: 72, // Default - vitals stored separately
+      temperature: 37.0, // Default - vitals stored separately
+      oxygen: 98, // Default - vitals stored separately
     };
   }, [selectedPatient]);
 
@@ -113,42 +114,43 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
       {/* Sidebar */}
       <aside 
         className={`
-          fixed md:static inset-y-0 right-0 z-50
-          w-64
+          fixed inset-y-0 right-0 z-50
+          w-56
           bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
           border-l border-gray-200/50 dark:border-gray-700/50
-          shadow-xl md:shadow-none
-          transform md:transform-none transition-transform duration-300 ease-in-out
+          shadow-xl
+          transform transition-transform duration-300 ease-in-out
           overflow-y-auto
           flex flex-col
           flex-shrink-0
-          ${isOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
         `}
       >
         {/* Header */}
-        <div className="p-2.5 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
-          <h2 className="text-sm font-semibold flex items-center gap-1.5">
-            <Activity size={16} className="text-teal-600 dark:text-teal-400" />
+        <div className="p-2 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
+          <h2 className="text-xs font-semibold flex items-center gap-1">
+            <Activity size={14} className="text-teal-600 dark:text-teal-400" />
             Patient Info
           </h2>
           <button
             onClick={onToggle}
-            className="md:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Close sidebar"
+            title="Close sidebar"
           >
-            <X size={16} />
+            <X size={14} className="text-gray-600 dark:text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5">
+        <div className="flex-1 overflow-y-auto p-2 space-y-2">
           {/* Current Vitals */}
           <div className="card-compact">
-            <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-              <Heart size={14} className="text-red-600 dark:text-red-400" />
+            <h3 className="text-[10px] font-semibold mb-1.5 flex items-center gap-1">
+              <Heart size={12} className="text-red-600 dark:text-red-400" />
               Current Vitals
             </h3>
-            <div className="space-y-1.5 text-xs">
+            <div className="space-y-1 text-[10px]">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 dark:text-gray-400">Blood Pressure</span>
                 <span className={`font-semibold ${
@@ -201,18 +203,18 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
           {/* Active Medications */}
           {activeMedicationsCount > 0 && (
             <div className="card-compact">
-              <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-                <Pill size={14} className="text-green-600 dark:text-green-400" />
-                Active Medications
+              <h3 className="text-[10px] font-semibold mb-1.5 flex items-center gap-1">
+                <Pill size={12} className="text-green-600 dark:text-green-400" />
+                Medications
               </h3>
-              <div className="text-xl font-bold text-green-700 dark:text-green-400">
+              <div className="text-lg font-bold text-green-700 dark:text-green-400">
                 {activeMedicationsCount}
               </div>
-              <div className="mt-1.5 space-y-0.5">
+              <div className="mt-1 space-y-0.5">
                 {getActiveMedications(selectedPatient)
-                  .slice(0, 3)
+                  .slice(0, 2)
                   .map((med, idx) => (
-                    <div key={idx} className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
+                    <div key={idx} className="text-[9px] text-gray-600 dark:text-gray-400 truncate">
                       • {med.name}
                     </div>
                   ))}
@@ -223,13 +225,13 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
           {/* Allergies */}
           {selectedPatient.allergies && selectedPatient.allergies.length > 0 && (
             <div className="card-compact border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20">
-              <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-                <AlertTriangle size={14} className="text-red-600 dark:text-red-400" />
+              <h3 className="text-[10px] font-semibold mb-1.5 flex items-center gap-1">
+                <AlertTriangle size={12} className="text-red-600 dark:text-red-400" />
                 Allergies
               </h3>
               <div className="space-y-0.5">
                 {selectedPatient.allergies.map((allergy, idx) => (
-                  <div key={idx} className="text-[10px] text-red-700 dark:text-red-300 font-medium">
+                  <div key={idx} className="text-[9px] text-red-700 dark:text-red-300 font-medium">
                     • {allergy}
                   </div>
                 ))}
@@ -240,18 +242,17 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
           {/* Upcoming Appointments */}
           {upcomingAppointments.length > 0 && (
             <div className="card-compact">
-              <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-                <Calendar size={14} className="text-teal-600 dark:text-teal-400" />
+              <h3 className="text-[10px] font-semibold mb-1.5 flex items-center gap-1">
+                <Calendar size={12} className="text-teal-600 dark:text-teal-400" />
                 Upcoming
               </h3>
-              <div className="space-y-1.5">
-                {upcomingAppointments.map((apt, idx) => (
-                  <div key={idx} className="text-[10px]">
-                    <div className="font-medium">{apt.type}</div>
+              <div className="space-y-1">
+                {upcomingAppointments.slice(0, 2).map((apt, idx) => (
+                  <div key={idx} className="text-[9px]">
+                    <div className="font-medium truncate">{apt.type}</div>
                     <div className="text-gray-600 dark:text-gray-400">
-                      {new Date(apt.date).toLocaleDateString()} at {apt.time}
+                      {new Date(apt.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
                     </div>
-                    <div className="text-gray-500 dark:text-gray-500">{apt.provider}</div>
                   </div>
                 ))}
               </div>
@@ -261,20 +262,20 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
           {/* Recent Medical History */}
           {recentHistory.length > 0 && (
             <div className="card-compact">
-              <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-                <FileText size={14} className="text-purple-600 dark:text-purple-400" />
-                Recent History
+              <h3 className="text-[10px] font-semibold mb-1.5 flex items-center gap-1">
+                <FileText size={12} className="text-purple-600 dark:text-purple-400" />
+                Recent
               </h3>
-              <div className="space-y-1.5">
-                {recentHistory.map((item, idx) => {
+              <div className="space-y-1">
+                {recentHistory.slice(0, 3).map((item, idx) => {
                   const Icon = item.icon;
                   return (
-                    <div key={idx} className="flex items-start gap-1.5 text-[10px]">
-                      <Icon size={12} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div key={idx} className="flex items-start gap-1 text-[9px]">
+                      <Icon size={10} className="text-gray-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{item.title}</div>
                         <div className="text-gray-600 dark:text-gray-400">
-                          {new Date(item.date).toLocaleDateString()}
+                          {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
                         </div>
                       </div>
                     </div>
@@ -405,14 +406,15 @@ export default function RightSidebar({ isOpen, onToggle }: RightSidebarProps) {
         </div>
       </aside>
 
-      {/* Toggle Button (when closed) */}
+      {/* Toggle Button (when closed) - shows on all screen sizes */}
       {!isOpen && (
         <button
           onClick={onToggle}
           className="fixed right-0 top-1/2 -translate-y-1/2 z-40 p-1.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-l-xl border-l border-y border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
           aria-label="Open patient info"
+          title="Open patient info sidebar"
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={16} className="text-gray-600 dark:text-gray-400" />
         </button>
       )}
     </>

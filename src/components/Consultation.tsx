@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Stethoscope,
   Calendar,
@@ -16,17 +16,34 @@ import {
   Copy,
   Edit,
   Printer,
+  Eye,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Bold,
+  Italic,
+  List,
+  Type,
+  Search,
+  PlusCircle,
 } from "lucide-react";
 import { Patient, Appointment, ClinicalNote, ConsultationType, SpecialtyType, CustomConsultationTemplate } from "../types";
 import { getSpecialtyTemplate, getAllSpecialties } from "../data/specialtyTemplates";
 import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
 import { useDashboard } from "../context/DashboardContext";
+import { useToast } from "../context/ToastContext";
 import { getOrganizationHeader, getOrganizationFooter } from "../utils/organization";
 import {
   getMeasurementSystem,
   formatTemperature,
 } from "../utils/measurements";
+import { logger } from "../utils/logger";
+import InteractiveNoteEditor from "./InteractiveNoteEditor";
+import SmartNoteActions from "./SmartNoteActions";
+import { processTemplateShortcuts, hasShortcuts } from "../utils/templateShortcuts";
+import TemplateShortcutsHelper from "./TemplateShortcutsHelper";
+import { getPendingTemplate } from "../utils/templateTransfer";
 
 interface ConsultationProps {
   patient: Patient;
@@ -40,11 +57,16 @@ export default function Consultation({
   onConsultationNoteAdded,
 }: ConsultationProps) {
   const { addAppointment, addClinicalNote, updatePatient } = useDashboard();
-  const { users } = useUsers();
+  const { users } = useUsers({ 
+    allowForAssignment: true,
+    roles: ['physician', 'nurse_practitioner', 'physician_assistant', 'nurse']
+  });
+  const toast = useToast();
   const [openSchedule, setOpenSchedule] = useState(false);
   const [openNote, setOpenNote] = useState(false);
   const [filterType, setFilterType] = useState<"all" | ConsultationType>("all");
   const [filterSpecialty, setFilterSpecialty] = useState<"all" | SpecialtyType>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     consultationType: "general" as ConsultationType,
     specialty: "" as SpecialtyType | "",
@@ -83,6 +105,57 @@ export default function Consultation({
   const [, setScheduledConsultationId] = useState<string | null>(null);
   const [autoCreateNote, setAutoCreateNote] = useState(true);
   const [editingNote, setEditingNote] = useState<ClinicalNote | null>(null);
+  const [viewingNote, setViewingNote] = useState<ClinicalNote | null>(null);
+  const [templatePreview, setTemplatePreview] = useState<{ content: string; title: string; specialty?: SpecialtyType } | null>(null);
+  const [editedTemplateContent, setEditedTemplateContent] = useState<string>("");
+  const templateTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [templateCustomization, setTemplateCustomization] = useState<{
+    includeSections: {
+      chiefComplaint: boolean;
+      hpi: boolean;
+      reviewOfSystems: boolean;
+      vitalSigns: boolean;
+      physicalExam: boolean;
+      socialHistory: boolean;
+      familyHistory: boolean;
+      medicationReconciliation: boolean;
+      diagnosisCodes: boolean;
+      assessment: boolean;
+      plan: boolean;
+      patientInstructions: boolean;
+      followUp: boolean;
+    };
+    includeCommonDiagnoses: boolean;
+    includeCommonTests: boolean;
+    includeCommonMedications: boolean;
+  }>({
+    includeSections: {
+      chiefComplaint: true,
+      hpi: true,
+      reviewOfSystems: true,
+      vitalSigns: true,
+      physicalExam: true,
+      socialHistory: true,
+      familyHistory: true,
+      medicationReconciliation: true,
+      diagnosisCodes: true,
+      assessment: true,
+      plan: true,
+      patientInstructions: true,
+      followUp: true,
+    },
+    includeCommonDiagnoses: true,
+    includeCommonTests: true,
+    includeCommonMedications: true,
+  });
+  const [recentTemplates, setRecentTemplates] = useState<SpecialtyType[]>(() => {
+    try {
+      const saved = localStorage.getItem("recentConsultationTemplates");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   
   // Load custom templates from localStorage
   const [customTemplates, setCustomTemplates] = useState<CustomConsultationTemplate[]>(() => {
@@ -107,9 +180,7 @@ export default function Consultation({
         }
       } catch (error) {
         // Ignore errors silently
-        if (import.meta.env.DEV) {
-          console.warn('Failed to load custom templates:', error);
-        }
+        logger.warn('Failed to load custom templates:', error);
       }
     };
     
@@ -122,6 +193,76 @@ export default function Consultation({
       clearInterval(interval);
     };
   }, []);
+
+  // Parse comprehensive note sections from content (moved up for use in useEffect)
+  const parseNoteContent = useMemo(() => {
+    return (content: string) => {
+      const sections = {
+        chiefComplaint: "",
+        vitalSigns: "",
+        hpi: "",
+        reviewOfSystems: "",
+        physicalExam: "",
+        socialHistory: "",
+        familyHistory: "",
+        medicationReconciliation: "",
+        diagnosisCodes: "",
+        assessment: "",
+        plan: "",
+        patientInstructions: "",
+        followUp: "",
+      };
+
+      const patterns: Record<string, RegExp> = {
+        chiefComplaint: /CHIEF COMPLAINT:\s*(.*?)(?=\n(?:HISTORY|REVIEW|VITAL|PHYSICAL|SOCIAL|FAMILY|MEDICATION|DIAGNOSIS|ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        hpi: /HISTORY OF PRESENT ILLNESS:\s*(.*?)(?=\n(?:REVIEW|VITAL|PHYSICAL|SOCIAL|FAMILY|MEDICATION|DIAGNOSIS|ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        reviewOfSystems: /REVIEW OF SYSTEMS:\s*(.*?)(?=\n(?:VITAL|PHYSICAL|SOCIAL|FAMILY|MEDICATION|DIAGNOSIS|ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        vitalSigns: /VITAL SIGNS:\s*(.*?)(?=\n(?:PHYSICAL|SOCIAL|FAMILY|MEDICATION|DIAGNOSIS|ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        physicalExam: /PHYSICAL EXAMINATION:\s*(.*?)(?=\n(?:SOCIAL|FAMILY|MEDICATION|DIAGNOSIS|ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        socialHistory: /SOCIAL HISTORY:\s*(.*?)(?=\n(?:FAMILY|MEDICATION|DIAGNOSIS|ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        familyHistory: /FAMILY HISTORY:\s*(.*?)(?=\n(?:MEDICATION|DIAGNOSIS|ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        medicationReconciliation: /MEDICATION RECONCILIATION:\s*(.*?)(?=\n(?:DIAGNOSIS|ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        diagnosisCodes: /DIAGNOSIS CODES:\s*(.*?)(?=\n(?:ASSESSMENT|PLAN|PATIENT|FOLLOW|$))/is,
+        assessment: /ASSESSMENT:\s*(.*?)(?=\n(?:PLAN|PATIENT|FOLLOW|$))/is,
+        plan: /PLAN:\s*(.*?)(?=\n(?:PATIENT|FOLLOW|$))/is,
+        patientInstructions: /PATIENT INSTRUCTIONS:\s*(.*?)(?=\n(?:FOLLOW|$))/is,
+        followUp: /FOLLOW.?UP:\s*(.*?)$/is,
+      };
+
+      Object.entries(patterns).forEach(([key, pattern]) => {
+        const match = content.match(pattern);
+        if (match) {
+          sections[key as keyof typeof sections] = match[1].trim();
+        }
+      });
+
+      return sections;
+    };
+  }, []);
+
+  // Check for pending template from Hubs component
+  useEffect(() => {
+    const pendingTemplate = getPendingTemplate();
+    if (pendingTemplate) {
+      // Parse the template content
+      const parsed = parseNoteContent(pendingTemplate.content);
+      
+      // Update note data with template content
+      setNoteData({
+        consultationType: pendingTemplate.specialty ? "specialty" : "general",
+        specialty: (pendingTemplate.specialty as SpecialtyType) || "other",
+        title: pendingTemplate.title,
+        content: pendingTemplate.content,
+        ...parsed,
+      });
+      
+      // Open the note modal
+      setOpenNote(true);
+      
+      // Show success message
+      toast.success(`Template "${pendingTemplate.title}" applied successfully`);
+    }
+  }, [patient.id, parseNoteContent, toast]); // Check when patient changes or component mounts
 
   // Auto-populate form with smart defaults
   useEffect(() => {
@@ -197,14 +338,91 @@ export default function Consultation({
   const filteredConsultations = consultations.filter((c) => {
     if (filterType !== "all" && c.consultationType !== filterType) return false;
     if (filterSpecialty !== "all" && c.specialty !== filterSpecialty) return false;
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesProvider = c.provider?.toLowerCase().includes(query);
+      const matchesReason = c.reason?.toLowerCase().includes(query);
+      const matchesNotes = c.notes?.toLowerCase().includes(query);
+      const matchesSpecialty = c.specialty?.toLowerCase().includes(query);
+      if (!matchesProvider && !matchesReason && !matchesNotes && !matchesSpecialty) return false;
+    }
     return true;
+  }).sort((a, b) => {
+    // Sort by date and time, most recent first
+    const dateA = a.date ? new Date(a.date + (a.time ? `T${a.time}` : '')).getTime() : 0;
+    const dateB = b.date ? new Date(b.date + (b.time ? `T${b.time}` : '')).getTime() : 0;
+    return dateB - dateA;
   });
 
   const filteredNotes = consultationNotes.filter((n) => {
     if (filterType !== "all" && n.consultationType !== filterType) return false;
     if (filterSpecialty !== "all" && n.specialty !== filterSpecialty) return false;
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesTitle = n.title?.toLowerCase().includes(query);
+      const matchesContent = n.content?.toLowerCase().includes(query);
+      const matchesAuthor = n.author?.toLowerCase().includes(query);
+      const matchesSpecialty = n.specialty?.toLowerCase().includes(query);
+      if (!matchesTitle && !matchesContent && !matchesAuthor && !matchesSpecialty) return false;
+    }
     return true;
-  });
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Keyboard navigation for viewing notes
+  useEffect(() => {
+    if (!viewingNote || filteredNotes.length <= 1) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const currentIndex = filteredNotes.findIndex(n => n.id === viewingNote.id);
+        if (currentIndex > 0) {
+          setViewingNote(filteredNotes[currentIndex - 1]);
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const currentIndex = filteredNotes.findIndex(n => n.id === viewingNote.id);
+        if (currentIndex < filteredNotes.length - 1) {
+          setViewingNote(filteredNotes[currentIndex + 1]);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setViewingNote(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingNote, filteredNotes]);
+
+  // Handle creating follow-up from note
+  const handleCreateFollowUp = (data: { date?: string; reason: string; notes?: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      reason: data.reason,
+      notes: data.notes || prev.notes,
+      date: data.date || "",
+    }));
+    setOpenSchedule(true);
+  };
+
+  // Handle creating referral from note
+  const handleCreateReferral = (data: { specialty: string; reason: string; priority?: string; notes?: string }) => {
+    // Store referral data in localStorage for Referrals component to pick up
+    localStorage.setItem(`pending_referral_${patient.id}`, JSON.stringify({
+      ...data,
+      date: new Date().toISOString().split("T")[0],
+    }));
+    toast.info(`Referral to ${data.specialty} detected. Navigate to Referrals tab to complete.`, { duration: 5000 });
+  };
 
   const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,16 +454,15 @@ export default function Consultation({
       onConsultationScheduled(newConsultation);
     }
 
-    // Try to save to API if authenticated
+    // Try to save to API if authenticated and provider is assigned
+    if (formData.assignedTo) {
     try {
       const { appointmentService } = await import("../services/appointments");
-      // Note: We need providerId, but we only have provider name
-      // For now, use a placeholder or get from user context
       await appointmentService.createAppointment(patient.id, {
         date: formData.date,
         time: formData.time,
         type: appointmentType,
-        providerId: "current-user-id", // TODO: Get actual provider ID from user context
+          providerId: formData.assignedTo, // Use the selected provider ID
         status: "scheduled",
         consultationType: formData.consultationType,
         specialty: formData.specialty || undefined,
@@ -255,11 +472,15 @@ export default function Consultation({
         referralRequired: formData.referralRequired,
         notes: formData.notes || undefined,
       });
-    } catch (apiError) {
+        toast.success('Consultation scheduled and linked to provider successfully');
+      } catch (apiError: any) {
       // API save failed, but continue with local update
-      if (import.meta.env.DEV) {
-        console.warn('Failed to save appointment to API, using local update only:', apiError);
+        logger.warn('Failed to save consultation to API:', apiError);
+        toast.warning('Consultation saved locally but failed to link to provider. Please try again.');
       }
+    } else if (!formData.provider) {
+      toast.warning('Please select a provider or enter a provider name');
+      return;
     }
 
     // Auto-open note creation if enabled
@@ -372,50 +593,6 @@ export default function Consultation({
     }
   };
 
-  // Parse comprehensive note sections from content
-  const parseNoteContent = (content: string) => {
-    const sections = {
-      chiefComplaint: "",
-      vitalSigns: "",
-      hpi: "",
-      reviewOfSystems: "",
-      physicalExam: "",
-      socialHistory: "",
-      familyHistory: "",
-      medicationReconciliation: "",
-      diagnosisCodes: "",
-      assessment: "",
-      plan: "",
-      patientInstructions: "",
-      followUp: "",
-    };
-
-    // Try to parse structured format
-    const patterns = {
-      chiefComplaint: /CHIEF COMPLAINT:\s*(.*?)(?=\n\n|HISTORY|REVIEW|$)/is,
-      hpi: /HISTORY OF PRESENT ILLNESS:\s*(.*?)(?=\n\n|REVIEW|VITAL|PHYSICAL|ASSESSMENT|$)/is,
-      reviewOfSystems: /REVIEW OF SYSTEMS:\s*(.*?)(?=\n\n|PHYSICAL|VITAL|ASSESSMENT|$)/is,
-      vitalSigns: /VITAL SIGNS:\s*(.*?)(?=\n\n|PHYSICAL|ASSESSMENT|$)/is,
-      physicalExam: /PHYSICAL EXAMINATION:\s*(.*?)(?=\n\n|SOCIAL|FAMILY|ASSESSMENT|$)/is,
-      socialHistory: /SOCIAL HISTORY:\s*(.*?)(?=\n\n|FAMILY|MEDICATION|ASSESSMENT|$)/is,
-      familyHistory: /FAMILY HISTORY:\s*(.*?)(?=\n\n|MEDICATION|ASSESSMENT|$)/is,
-      medicationReconciliation: /MEDICATION RECONCILIATION:\s*(.*?)(?=\n\n|DIAGNOSIS|ASSESSMENT|$)/is,
-      diagnosisCodes: /DIAGNOSIS.*?CODES?:\s*(.*?)(?=\n\n|ASSESSMENT|$)/is,
-      assessment: /ASSESSMENT:\s*(.*?)(?=\n\n|PLAN|$)/is,
-      plan: /PLAN:\s*(.*?)(?=\n\n|INSTRUCTIONS|FOLLOW|$)/is,
-      patientInstructions: /PATIENT INSTRUCTIONS?:\s*(.*?)(?=\n\n|FOLLOW|$)/is,
-      followUp: /FOLLOW.?UP:\s*(.*?)$/is,
-    };
-
-    Object.entries(patterns).forEach(([key, pattern]) => {
-      const match = content.match(pattern);
-      if (match) {
-        sections[key as keyof typeof sections] = match[1].trim();
-      }
-    });
-
-    return sections;
-  };
 
   const combineNoteSections = (): string => {
     const sections = [];
@@ -475,51 +652,229 @@ export default function Consultation({
     return sections.length > 0 ? sections.join('\n\n') : "Note content not yet documented";
   };
 
-  const generateTemplateNote = (specialty: SpecialtyType) => {
+  const generateTemplateNote = (specialty: SpecialtyType, showPreview = false) => {
     const template = getSpecialtyTemplate(specialty);
-    // Template structure changed - use fallback content
-    if (!template) {
-      return `Specialty consultation template for ${specialty} not available.`;
+    const specialtyName = template?.name || specialty.charAt(0).toUpperCase() + specialty.slice(1);
+    const templateData = template?.consultationTemplate;
+    
+    // Build comprehensive template with customizable sections
+    const sections = [];
+    
+    // Chief Complaint
+    if (templateCustomization.includeSections.chiefComplaint) {
+      sections.push("CHIEF COMPLAINT:");
+      if (templateData?.chiefComplaint) {
+        sections.push(templateData.chiefComplaint);
+      } else {
+        sections.push("[To be documented]");
+      }
+      sections.push("");
     }
     
-    // Since consultationTemplate structure doesn't exist in current SpecialtyTemplate interface,
-    // provide a basic template structure
-    const templateContent = `
-CHIEF COMPLAINT:
-[To be documented]
+    // History of Present Illness
+    if (templateCustomization.includeSections.hpi) {
+      sections.push("HISTORY OF PRESENT ILLNESS:");
+      if (templateData?.historyOfPresentIllness) {
+        sections.push(templateData.historyOfPresentIllness);
+        if (patientData.condition) {
+          sections.push(`\nRelevant History: ${patientData.condition}`);
+        }
+      } else {
+        sections.push("[To be documented]");
+        if (patientData.condition) {
+          sections.push(`\nRelevant History: ${patientData.condition}`);
+        }
+      }
+      sections.push("");
+    }
+    
+    // Review of Systems
+    if (templateCustomization.includeSections.reviewOfSystems) {
+      sections.push("REVIEW OF SYSTEMS:");
+      if (templateData?.reviewOfSystems && templateData.reviewOfSystems.length > 0) {
+        sections.push(templateData.reviewOfSystems.map(item => `• ${item}`).join('\n'));
+        sections.push("\n[Additional systems to review as indicated]");
+      } else {
+        sections.push("[To be documented]");
+      }
+      sections.push("");
+    }
+    
+    // Vital Signs
+    if (templateCustomization.includeSections.vitalSigns) {
+      sections.push("VITAL SIGNS:");
+      const vitalSignsParts = [
+        `BP: ${patientData.vitals.bp}`,
+        `HR: ${patientData.vitals.hr} bpm`,
+        `RR: ${patientData.vitals.rr} /min`,
+        `Temp: ${patientData.vitals.temp}`,
+        `O2 Sat: ${patientData.vitals.o2sat}%`
+      ];
+      if (patientData.vitals.weight) {
+        const weightUnit = measurementSystem === "uk" ? "kg" : "lbs";
+        vitalSignsParts.push(`Weight: ${patientData.vitals.weight} ${weightUnit}`);
+      }
+      sections.push(vitalSignsParts.join(", "));
+      sections.push("");
+    }
+    
+    // Physical Examination
+    if (templateCustomization.includeSections.physicalExam) {
+      sections.push("PHYSICAL EXAMINATION:");
+      if (templateData?.physicalExamination && templateData.physicalExamination.length > 0) {
+        sections.push(templateData.physicalExamination.map(item => `• ${item}`).join('\n'));
+        sections.push("\n[Additional examination findings to be documented]");
+      } else {
+        sections.push("[To be documented]");
+      }
+      sections.push("");
+    }
+    
+    // Social History
+    if (templateCustomization.includeSections.socialHistory) {
+      sections.push("SOCIAL HISTORY:");
+      const socialHistoryParts: string[] = [];
+      if (patient.lifestyle) {
+        if (patient.lifestyle.smokingStatus) socialHistoryParts.push(`Smoking: ${patient.lifestyle.smokingStatus}`);
+        if (patient.lifestyle.alcoholUse) socialHistoryParts.push(`Alcohol: ${patient.lifestyle.alcoholUse}`);
+        if (patient.lifestyle.activityLevel) socialHistoryParts.push(`Activity: ${patient.lifestyle.activityLevel}`);
+      }
+      if (socialHistoryParts.length > 0) {
+        sections.push(socialHistoryParts.join(", "));
+        sections.push("[Additional social history to be documented]");
+      } else {
+        sections.push("[To be documented]");
+      }
+      sections.push("");
+    }
+    
+    // Family History
+    if (templateCustomization.includeSections.familyHistory) {
+      sections.push("FAMILY HISTORY:");
+      if (patient.familyHistory && patient.familyHistory.length > 0) {
+        sections.push(patient.familyHistory.map(item => `• ${item}`).join('\n'));
+        sections.push("\n[Additional family history to be documented]");
+      } else {
+        sections.push("[To be documented]");
+      }
+      sections.push("");
+    }
+    
+    // Medication Reconciliation
+    if (templateCustomization.includeSections.medicationReconciliation) {
+      sections.push("MEDICATION RECONCILIATION:");
+      if (patientData.medications) {
+        sections.push(`Current Medications: ${patientData.medications}`);
+        sections.push("[Review and document any changes, additions, or discontinuations]");
+      } else {
+        sections.push("[No current medications documented]");
+      }
+      if (patientData.allergies) {
+        sections.push(`\nAllergies: ${patientData.allergies}`);
+      }
+      sections.push("");
+    }
+    
+    // Diagnosis Codes
+    if (templateCustomization.includeSections.diagnosisCodes) {
+      sections.push("DIAGNOSIS CODES:");
+      sections.push("[To be documented - ICD-10 codes]");
+      sections.push("");
+    }
+    
+    // Assessment
+    if (templateCustomization.includeSections.assessment) {
+      sections.push("ASSESSMENT:");
+      if (templateData?.assessment) {
+        sections.push(templateData.assessment);
+        sections.push("\n[Additional assessment details to be documented]");
+      } else {
+        sections.push(`[${specialtyName} consultation assessment to be documented]`);
+      }
+      sections.push("");
+    }
+    
+    // Plan
+    if (templateCustomization.includeSections.plan) {
+      sections.push("PLAN:");
+      if (templateData?.plan && templateData.plan.length > 0) {
+        sections.push(templateData.plan.map(item => `• ${item}`).join('\n'));
+        sections.push("\n[Additional plan items to be documented]");
+      } else {
+        sections.push("[To be documented]");
+      }
+      sections.push("");
+    }
+    
+    // Common Diagnoses, Tests, and Medications (if enabled)
+    if (templateCustomization.includeCommonDiagnoses && templateData?.commonDiagnoses && templateData.commonDiagnoses.length > 0) {
+      sections.push("COMMON DIAGNOSES TO CONSIDER:");
+      sections.push(templateData.commonDiagnoses.map(item => `• ${item}`).join('\n'));
+      sections.push("");
+    }
+    
+    if (templateCustomization.includeCommonTests && templateData?.commonTests && templateData.commonTests.length > 0) {
+      sections.push("COMMON TESTS TO CONSIDER:");
+      sections.push(templateData.commonTests.map(item => `• ${item}`).join('\n'));
+      sections.push("");
+    }
+    
+    if (templateCustomization.includeCommonMedications && templateData?.commonMedications && templateData.commonMedications.length > 0) {
+      sections.push("COMMON MEDICATIONS TO CONSIDER:");
+      sections.push(templateData.commonMedications.map(item => `• ${item}`).join('\n'));
+      sections.push("");
+    }
+    
+    // Patient Instructions
+    if (templateCustomization.includeSections.patientInstructions) {
+      sections.push("PATIENT INSTRUCTIONS:");
+      sections.push("[To be documented - patient education, instructions, precautions, warning signs]");
+      sections.push("");
+    }
+    
+    // Follow-up
+    if (templateCustomization.includeSections.followUp) {
+      sections.push("FOLLOW-UP:");
+      sections.push("[To be documented - follow-up appointment, labs, imaging, referrals]");
+    }
+    
+    const templateContent = sections.join("\n").trim();
+    const templateTitle = `${specialtyName} Consultation - ${patient.name}`;
 
-HISTORY OF PRESENT ILLNESS:
-[To be documented]
+    // Update recent templates
+    const updatedRecent = [specialty, ...recentTemplates.filter(s => s !== specialty)].slice(0, 5);
+    setRecentTemplates(updatedRecent);
+    try {
+      localStorage.setItem("recentConsultationTemplates", JSON.stringify(updatedRecent));
+    } catch (error) {
+      logger.warn('Failed to save recent templates:', error);
+    }
 
-REVIEW OF SYSTEMS:
-[To be documented]
-
-VITAL SIGNS:
-BP: ${patientData.vitals.bp}, HR: ${patientData.vitals.hr}, RR: ${patientData.vitals.rr}, Temp: ${patientData.vitals.temp}, O2 Sat: ${patientData.vitals.o2sat}%
-
-PHYSICAL EXAMINATION:
-[To be documented]
-
-ASSESSMENT:
-[To be documented]
-
-PLAN:
-[To be documented]
-    `.trim();
-
-    const parsed = parseNoteContent(templateContent);
-    setNoteData({
-      consultationType: "specialty",
-      specialty: specialty,
-      title: `${template.name} Consultation - ${patient.name}`,
-      content: templateContent,
-      ...parsed,
-    });
-    setShowTemplateGenerator(false);
-    setOpenNote(true);
+    if (showPreview) {
+      // Show preview instead of directly applying
+      setTemplatePreview({
+        content: templateContent,
+        title: templateTitle,
+        specialty: specialty
+      });
+      setEditedTemplateContent(templateContent);
+      setShowTemplateGenerator(false);
+    } else {
+      // Apply template directly
+      const parsed = parseNoteContent(templateContent);
+      setNoteData({
+        consultationType: "specialty",
+        specialty: specialty,
+        title: templateTitle,
+        content: templateContent,
+        ...parsed,
+      });
+      setShowTemplateGenerator(false);
+      setOpenNote(true);
+    }
   };
 
-  const generateCustomTemplateNote = (customTemplate: CustomConsultationTemplate) => {
+  const generateCustomTemplateNote = (customTemplate: CustomConsultationTemplate, showPreview = false) => {
     const template = customTemplate.consultationTemplate;
     const reviewOfSystems = Array.isArray(template.reviewOfSystems) ? template.reviewOfSystems : [];
     const physicalExamination = Array.isArray(template.physicalExamination) ? template.physicalExamination : [];
@@ -560,16 +915,169 @@ COMMON MEDICATIONS:
 ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).join('\n') : "None specified"}
     `.trim();
 
-    const parsed = parseNoteContent(templateContent);
+    const templateTitle = `${customTemplate.name || "Custom Template"} - ${patient.name}`;
+
+    if (showPreview) {
+      setTemplatePreview({
+        content: templateContent,
+        title: templateTitle,
+        specialty: undefined, // Custom templates don't have specialty
+      });
+      setEditedTemplateContent(templateContent);
+      setShowTemplateGenerator(false);
+    } else {
+      const parsed = parseNoteContent(templateContent);
+      setNoteData({
+        consultationType: "specialty",
+        specialty: "other" as SpecialtyType,
+        title: templateTitle,
+        content: templateContent,
+        ...parsed,
+      });
+      setShowTemplateGenerator(false);
+      setOpenNote(true);
+    }
+  };
+
+  // Formatting functions for template editor
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const insertTextAtCursor = (text: string) => {
+    const textarea = templateTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentText = editedTemplateContent;
+    const newText = currentText.substring(0, start) + text + currentText.substring(end);
+    
+    setEditedTemplateContent(newText);
+    
+    // Restore cursor position after text insertion
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + text.length, start + text.length);
+    }, 0);
+  };
+
+  const wrapSelection = (before: string, after: string = before) => {
+    const textarea = templateTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = editedTemplateContent.substring(start, end);
+    const newText = editedTemplateContent.substring(0, start) + before + selectedText + after + editedTemplateContent.substring(end);
+    
+    setEditedTemplateContent(newText);
+    
+    setTimeout(() => {
+      textarea.focus();
+      if (selectedText) {
+        textarea.setSelectionRange(start, end + before.length + after.length);
+      } else {
+        textarea.setSelectionRange(start + before.length, start + before.length);
+      }
+    }, 0);
+  };
+
+  const formatBold = () => wrapSelection("**", "**");
+  const formatItalic = () => wrapSelection("*", "*");
+  const formatBullet = () => {
+    const textarea = templateTextareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const lineStart = editedTemplateContent.lastIndexOf('\n', start - 1) + 1;
+    const lineEnd = editedTemplateContent.indexOf('\n', start);
+    const lineEndPos = lineEnd === -1 ? editedTemplateContent.length : lineEnd;
+    const line = editedTemplateContent.substring(lineStart, lineEndPos);
+    
+    if (line.trim().startsWith('•')) {
+      // Remove bullet
+      const newText = editedTemplateContent.substring(0, lineStart) + line.replace(/^•\s*/, '') + editedTemplateContent.substring(lineEndPos);
+      setEditedTemplateContent(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start - 2, start - 2);
+      }, 0);
+    } else {
+      // Add bullet
+      const newText = editedTemplateContent.substring(0, lineStart) + '• ' + line + editedTemplateContent.substring(lineEndPos);
+      setEditedTemplateContent(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + 2, start + 2);
+      }, 0);
+    }
+  };
+
+  const formatHeader = () => {
+    const textarea = templateTextareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const lineStart = editedTemplateContent.lastIndexOf('\n', start - 1) + 1;
+    const lineEnd = editedTemplateContent.indexOf('\n', start);
+    const lineEndPos = lineEnd === -1 ? editedTemplateContent.length : lineEnd;
+    const line = editedTemplateContent.substring(lineStart, lineEndPos);
+    
+    if (line.trim().endsWith(':')) {
+      // Already a header, remove formatting
+      const newText = editedTemplateContent.substring(0, lineStart) + line + editedTemplateContent.substring(lineEndPos);
+      setEditedTemplateContent(newText);
+    } else {
+      // Make it a header (uppercase and add colon if needed)
+      const headerText = line.trim().toUpperCase() + (line.trim().endsWith(':') ? '' : ':');
+      const newText = editedTemplateContent.substring(0, lineStart) + headerText + editedTemplateContent.substring(lineEndPos);
+      setEditedTemplateContent(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(lineStart + headerText.length, lineStart + headerText.length);
+      }, 0);
+    }
+  };
+
+  // Calculate word and character count
+  const wordCount = editedTemplateContent.trim() ? editedTemplateContent.trim().split(/\s+/).length : 0;
+  const charCount = editedTemplateContent.length;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const charCountNoSpaces = editedTemplateContent.replace(/\s/g, '').length;
+
+  const handleCopyNote = (note: ClinicalNote) => {
+    const parsed = parseNoteContent(note.content);
+    setEditingNote(null); // Not editing, creating new from copy
     setNoteData({
-      consultationType: "specialty",
-      specialty: "other" as SpecialtyType,
-      title: `${customTemplate.name || "Custom Template"} - ${patient.name}`,
-      content: templateContent,
+      consultationType: note.consultationType || "general",
+      specialty: note.specialty || "",
+      title: `${note.title} (Copy)`,
+      content: note.content,
       ...parsed,
     });
-    setShowTemplateGenerator(false);
     setOpenNote(true);
+    toast.success("Note copied. You can now edit and save as a new note.");
+  };
+
+  const handleQuickNoteFromConsultation = (consultation: Appointment) => {
+    const specialty = consultation.specialty || "";
+    setNoteData({
+      consultationType: consultation.consultationType || "general",
+      specialty: specialty as SpecialtyType,
+      title: `${consultation.consultationType === "specialty" && specialty ? getSpecialtyTemplate(specialty as SpecialtyType)?.name || specialty : "General"} Consultation - ${patient.name}`,
+      content: "",
+      chiefComplaint: consultation.reason || "",
+      vitalSigns: "",
+      hpi: "",
+      reviewOfSystems: "",
+      physicalExam: "",
+      socialHistory: "",
+      familyHistory: "",
+      medicationReconciliation: "",
+      diagnosisCodes: "",
+      assessment: "",
+      plan: "",
+      patientInstructions: "",
+      followUp: "",
+    });
+    setOpenNote(true);
+    toast.success("Quick note created from consultation");
   };
 
   const handleEditNote = (note: ClinicalNote) => {
@@ -592,6 +1100,37 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
     let finalContent = noteData.content;
     if (!finalContent || finalContent.trim() === "") {
       finalContent = combineNoteSections();
+    }
+    
+    // Process template shortcuts before saving
+    if (hasShortcuts(finalContent)) {
+      finalContent = processTemplateShortcuts(finalContent, patient);
+    }
+    
+    // Also process shortcuts in individual sections
+    let processedHpi = noteData.hpi;
+    if (hasShortcuts(processedHpi)) {
+      processedHpi = processTemplateShortcuts(processedHpi, patient);
+    }
+    
+    let processedAssessment = noteData.assessment;
+    if (hasShortcuts(processedAssessment)) {
+      processedAssessment = processTemplateShortcuts(processedAssessment, patient);
+    }
+    
+    let processedPlan = noteData.plan;
+    if (hasShortcuts(processedPlan)) {
+      processedPlan = processTemplateShortcuts(processedPlan, patient);
+    }
+    
+    // Recombine if content was empty
+    if (!noteData.content || noteData.content.trim() === "") {
+      finalContent = combineNoteSections();
+      // Replace with processed versions
+      finalContent = finalContent
+        .replace(noteData.hpi || "", processedHpi)
+        .replace(noteData.assessment || "", processedAssessment)
+        .replace(noteData.plan || "", processedPlan);
     }
     
     if (editingNote) {
@@ -668,7 +1207,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
     if (!specialty) return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     const colors: Record<string, string> = {
       cardiology: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
-      endocrinology: "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200",
+      endocrinology: "bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200",
       neurology: "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200",
       oncology: "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
       orthopedics: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
@@ -892,7 +1431,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Stethoscope size={20} className="text-teal-600 dark:text-teal-400" />
+            <Stethoscope size={20} className="text-primary-600 dark:text-primary-400" />
             Consultations
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -917,15 +1456,15 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
       {/* Consultation Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+        <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Consultations</p>
-              <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 mt-1">
+              <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 mt-1">
                 {consultations.length}
               </p>
             </div>
-            <Stethoscope size={32} className="text-teal-600 dark:text-teal-400 opacity-50" />
+            <Stethoscope size={32} className="text-primary-600 dark:text-primary-400 opacity-50" />
           </div>
         </div>
         <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -963,10 +1502,32 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-4 items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
-        <Filter size={16} className="text-gray-600 dark:text-gray-400" />
-        <div className="flex gap-4">
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search consultations and notes by provider, reason, content, author..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-base pl-10"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Filters */}
+        <div className="flex gap-4 items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+          <Filter size={16} className="text-gray-600 dark:text-gray-400" />
+          <div className="flex gap-4">
           <div>
             <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
               Type
@@ -1003,13 +1564,14 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
               </select>
             </div>
           )}
+          </div>
         </div>
       </div>
 
       {/* Scheduled Consultations */}
       <div className="p-4 border rounded-lg dark:border-gray-700">
         <h4 className="font-semibold mb-4 flex items-center gap-2">
-          <Calendar size={18} className="text-teal-600 dark:text-teal-400" />
+          <Calendar size={18} className="text-primary-600 dark:text-primary-400" />
           Scheduled Consultations ({filteredConsultations.length})
         </h4>
         {filteredConsultations.length > 0 ? (
@@ -1080,12 +1642,22 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                         {consultation.notes}
                       </p>
                     )}
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleQuickNoteFromConsultation(consultation)}
+                        className="btn-primary px-3 py-1.5 text-sm flex items-center gap-1.5"
+                        title="Create note from this consultation"
+                      >
+                        <PlusCircle size={14} />
+                        Quick Note
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <span
                       className={`px-3 py-1 text-xs rounded-full ${
                         consultation.status === "scheduled"
-                          ? "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200"
+                          ? "bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200"
                           : consultation.status === "completed"
                           ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
                           : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
@@ -1111,7 +1683,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                           });
                           setOpenSchedule(true);
                         }}
-                        className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
+                        className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
                         title="Edit consultation"
                       >
                         Edit
@@ -1136,20 +1708,34 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
           Consultation Notes ({filteredNotes.length})
         </h4>
         {filteredNotes.length > 0 ? (
-          <div className="space-y-3">
-            {filteredNotes.map((note) => (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {filteredNotes.map((note, index) => (
               <div
                 key={note.id}
-                className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border dark:border-gray-700"
+                className={`p-4 ${index !== filteredNotes.length - 1 ? 'border-b border-gray-200/60 dark:border-gray-700/60' : ''} transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-900/30`}
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h5 className="font-semibold">{note.title}</h5>
+                    <h5 className="font-semibold text-gray-900 dark:text-gray-100">{note.title}</h5>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                       by {note.author} • {new Date(note.date).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex gap-2 items-center">
+                    <button
+                      onClick={() => setViewingNote(note)}
+                      className="p-1.5 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                      title="View note"
+                    >
+                      <Eye size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleCopyNote(note)}
+                      className="p-1.5 text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
+                      title="Copy note"
+                    >
+                      <Copy size={14} />
+                    </button>
                     <button
                       onClick={() => handlePrintConsultationNote(note)}
                       className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
@@ -1159,7 +1745,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     </button>
                     <button
                       onClick={() => handleEditNote(note)}
-                      className="p-1.5 text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded transition-colors"
+                      className="p-1.5 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
                       title="Edit note"
                     >
                       <Edit size={14} />
@@ -1171,7 +1757,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     </span>
                   </div>
                 </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap leading-relaxed">
                   {note.content}
                 </p>
               </div>
@@ -1228,7 +1814,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onClick={() => setFormData({ ...formData, consultationType: "specialty" })}
                     className={`flex-1 p-3 border-2 rounded-lg transition ${
                       formData.consultationType === "specialty"
-                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
+                        ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"
                         : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
                     }`}
                   >
@@ -1329,7 +1915,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onClick={() => setFormData({ ...formData, location: "in-person" })}
                     className={`p-2.5 border-2 rounded-lg transition text-sm ${
                       formData.location === "in-person"
-                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
+                        ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"
                         : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
                     }`}
                   >
@@ -1341,7 +1927,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onClick={() => setFormData({ ...formData, location: "telemedicine" })}
                     className={`p-2.5 border-2 rounded-lg transition text-sm ${
                       formData.location === "telemedicine"
-                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
+                        ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"
                         : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
                     }`}
                   >
@@ -1353,7 +1939,7 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     onClick={() => setFormData({ ...formData, location: "hybrid" })}
                     className={`p-2.5 border-2 rounded-lg transition text-sm ${
                       formData.location === "hybrid"
-                        ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
+                        ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"
                         : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
                     }`}
                   >
@@ -1449,12 +2035,23 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <div>
-                <h4 className="text-lg font-semibold">
-                  {editingNote ? "Edit Consultation Note" : "Add Consultation Note"}
-                </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Comprehensive consultation note with SOAP format and additional sections
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="text-lg font-semibold">
+                    {editingNote ? "Edit Consultation Note" : "Add Consultation Note"}
+                  </h4>
+                  <TemplateShortcutsHelper
+                    onShortcutSelect={(shortcut) => {
+                      // Insert shortcut into content field
+                      setNoteData(prev => ({ 
+                        ...prev, 
+                        content: (prev.content || "") + (prev.content ? " " : "") + shortcut + " "
+                      }));
+                    }}
+                  />
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Comprehensive consultation note with SOAP format. Use shortcuts like #diabetes or @bp
                 </p>
               </div>
               <button
@@ -1804,6 +2401,12 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                     rows={3}
                     className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
+                  <SmartNoteActions
+                    text={noteData.plan}
+                    patient={patient}
+                    onCreateFollowUp={handleCreateFollowUp}
+                    onCreateReferral={handleCreateReferral}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
@@ -1831,22 +2434,26 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                       rows={3}
                       className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
+                    <SmartNoteActions
+                      text={noteData.followUp}
+                      patient={patient}
+                      onCreateFollowUp={handleCreateFollowUp}
+                      onCreateReferral={handleCreateReferral}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Full Content (for backward compatibility and full note) */}
+              {/* Full Content - Interactive Section-Based Editor */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  Full Note Content <span className="text-xs text-gray-500">(Auto-populated from SOAP sections above)</span>
+                <label className="block text-sm font-medium mb-3">
+                  Full Note Content <span className="text-xs text-gray-500">(Click sections to add content with auto-suggestions)</span>
                 </label>
-                <textarea
-                  required
+                <InteractiveNoteEditor
                   value={noteData.content}
-                  onChange={(e) => setNoteData({ ...noteData, content: e.target.value })}
-                  placeholder="Enter full consultation notes or use SOAP format above..."
-                  rows={8}
-                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
+                  onChange={(value) => setNoteData({ ...noteData, content: value })}
+                  patient={patient}
+                  placeholder="Click on a section to start writing..."
                 />
               </div>
 
@@ -1924,6 +2531,132 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
               </button>
             </div>
 
+            {/* Template Customization Options */}
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <Settings size={16} className="text-gray-600 dark:text-gray-400" />
+                  Template Customization
+                </h4>
+                <button
+                  onClick={() => {
+                    setTemplateCustomization({
+                      includeSections: {
+                        chiefComplaint: true,
+                        hpi: true,
+                        reviewOfSystems: true,
+                        vitalSigns: true,
+                        physicalExam: true,
+                        socialHistory: true,
+                        familyHistory: true,
+                        medicationReconciliation: true,
+                        diagnosisCodes: true,
+                        assessment: true,
+                        plan: true,
+                        patientInstructions: true,
+                        followUp: true,
+                      },
+                      includeCommonDiagnoses: true,
+                      includeCommonTests: true,
+                      includeCommonMedications: true,
+                    });
+                  }}
+                  className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
+                >
+                  Reset to Default
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
+                {Object.entries(templateCustomization.includeSections).map(([key, value]) => (
+                  <label key={key} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={value}
+                      onChange={(e) => {
+                        setTemplateCustomization(prev => ({
+                          ...prev,
+                          includeSections: {
+                            ...prev.includeSections,
+                            [key]: e.target.checked
+                          }
+                        }));
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500"
+                    />
+                    <span className="text-gray-700 dark:text-gray-300 capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateCustomization.includeCommonDiagnoses}
+                    onChange={(e) => setTemplateCustomization(prev => ({ ...prev, includeCommonDiagnoses: e.target.checked }))}
+                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">Include Common Diagnoses</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateCustomization.includeCommonTests}
+                    onChange={(e) => setTemplateCustomization(prev => ({ ...prev, includeCommonTests: e.target.checked }))}
+                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">Include Common Tests</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateCustomization.includeCommonMedications}
+                    onChange={(e) => setTemplateCustomization(prev => ({ ...prev, includeCommonMedications: e.target.checked }))}
+                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">Include Common Medications</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Recently Used Templates */}
+            {recentTemplates.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <Clock size={16} className="text-amber-600 dark:text-amber-400" />
+                  Recently Used
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {recentTemplates.map((specialty) => {
+                    const template = getSpecialtyTemplate(specialty);
+                    return (
+                      <div key={specialty} className="relative group">
+                        <button
+                          onClick={() => generateTemplateNote(specialty)}
+                          className="w-full p-4 border-2 border-amber-200 dark:border-amber-700 rounded-lg hover:border-amber-500 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-left"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Clock size={16} className="text-amber-600 dark:text-amber-400" />
+                            <span className="font-medium text-sm text-amber-700 dark:text-amber-300">
+                              {template?.name || specialty}
+                            </span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => generateTemplateNote(specialty, true)}
+                          className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-opacity"
+                          title="Preview template"
+                        >
+                          <Eye size={14} className="text-gray-600 dark:text-gray-400" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Custom Templates Section */}
             {customTemplates.length > 0 && (
               <div className="mb-6">
@@ -1935,55 +2668,71 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
                   {customTemplates
                     .filter((template) => template && template.id && template.name && template.consultationTemplate)
                     .map((customTemplate) => (
-                      <button
-                        key={customTemplate.id}
-                        onClick={() => generateCustomTemplateNote(customTemplate)}
-                        className="p-4 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-left group"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText size={18} className="text-purple-600 dark:text-purple-400" />
-                          <span className="font-medium text-sm group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                            {customTemplate.name || "Unnamed Template"}
-                          </span>
-                        </div>
-                        {customTemplate.description && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                            {customTemplate.description}
-                          </p>
-                        )}
-                      </button>
+                      <div key={customTemplate.id} className="relative group">
+                        <button
+                          onClick={() => generateCustomTemplateNote(customTemplate)}
+                          className="w-full p-4 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-left"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText size={18} className="text-purple-600 dark:text-purple-400" />
+                            <span className="font-medium text-sm group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                              {customTemplate.name || "Unnamed Template"}
+                            </span>
+                          </div>
+                          {customTemplate.description && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                              {customTemplate.description}
+                            </p>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => generateCustomTemplateNote(customTemplate, true)}
+                          className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-opacity"
+                          title="Preview template"
+                        >
+                          <Eye size={14} className="text-gray-600 dark:text-gray-400" />
+                        </button>
+                      </div>
                     ))}
                 </div>
               </div>
             )}
 
             {/* Specialty Templates Section */}
-            <div className={customTemplates.length > 0 ? "border-t pt-6" : ""}>
+            <div className={customTemplates.length > 0 || recentTemplates.length > 0 ? "border-t pt-6" : ""}>
               <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                 <ClipboardList size={16} className="text-indigo-600 dark:text-indigo-400" />
-                Specialty Templates
+                All Specialty Templates
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {getAllSpecialties()
-                  .filter(s => s !== "other")
+                  .filter(s => s !== "other" && !recentTemplates.includes(s))
                   .map((specialty) => {
                     const template = getSpecialtyTemplate(specialty);
                     return (
-                      <button
-                        key={specialty}
-                        onClick={() => generateTemplateNote(specialty as SpecialtyType)}
-                        className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all text-left group"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <ClipboardList size={18} className="text-indigo-600 dark:text-indigo-400" />
-                          <span className="font-medium text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
-                            {template?.name || specialty}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                          {template?.name || `Template for ${specialty} consultation`}
-                        </p>
-                      </button>
+                      <div key={specialty} className="relative group">
+                        <button
+                          onClick={() => generateTemplateNote(specialty as SpecialtyType)}
+                          className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all text-left"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <ClipboardList size={18} className="text-indigo-600 dark:text-indigo-400" />
+                            <span className="font-medium text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                              {template?.name || specialty}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                            {template?.name || `Template for ${specialty} consultation`}
+                          </p>
+                        </button>
+                        <button
+                          onClick={() => generateTemplateNote(specialty as SpecialtyType, true)}
+                          className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-opacity"
+                          title="Preview template"
+                        >
+                          <Eye size={14} className="text-gray-600 dark:text-gray-400" />
+                        </button>
+                      </div>
                     );
                   })}
               </div>
@@ -1991,8 +2740,283 @@ ${commonMedications.length > 0 ? commonMedications.map(item => `• ${item}`).jo
 
             <div className="mt-6 p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
               <p className="text-sm text-teal-800 dark:text-teal-200">
-                <strong>Note:</strong> Templates include structured sections for Chief Complaint, History of Present Illness, Review of Systems, Physical Examination, Assessment, Plan, and common diagnoses, tests, and medications. You can edit the generated template before saving.
+                <strong>Note:</strong> Templates include structured sections for Chief Complaint, History of Present Illness, Review of Systems, Physical Examination, Assessment, Plan, and common diagnoses, tests, and medications. You can customize which sections to include, preview templates before applying, and edit the generated template before saving.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Note Modal */}
+      {viewingNote && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setViewingNote(null);
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center z-10">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {viewingNote.title}
+                  </h3>
+                  <span className={`px-2 py-1 text-xs rounded ${getSpecialtyColor(viewingNote.specialty)}`}>
+                    {viewingNote.consultationType === "general" ? "General" : viewingNote.specialty || "Specialty"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center gap-1">
+                    <User size={14} />
+                    <span>{viewingNote.author}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Calendar size={14} />
+                    <span>{new Date(viewingNote.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                  </div>
+                  {filteredNotes.length > 1 && (
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        Note {filteredNotes.findIndex(n => n.id === viewingNote.id) + 1} of {filteredNotes.length}
+                      </div>
+                      <div className="text-xs text-gray-400 dark:text-gray-600 flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs">←</kbd>
+                        <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs">→</kbd>
+                        <span className="text-gray-500 dark:text-gray-500">Navigate</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {filteredNotes.length > 1 && (() => {
+                  const currentIndex = filteredNotes.findIndex(n => n.id === viewingNote.id);
+                  const isFirst = currentIndex === 0;
+                  const isLast = currentIndex === filteredNotes.length - 1;
+                  
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!isFirst && currentIndex > 0) {
+                            setViewingNote(filteredNotes[currentIndex - 1]);
+                          }
+                        }}
+                        disabled={isFirst}
+                        className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Previous note"
+                        aria-label="Previous note"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!isLast && currentIndex < filteredNotes.length - 1) {
+                            setViewingNote(filteredNotes[currentIndex + 1]);
+                          }
+                        }}
+                        disabled={isLast}
+                        className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Next note"
+                        aria-label="Next note"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </>
+                  );
+                })()}
+                <button
+                  onClick={() => handlePrintConsultationNote(viewingNote)}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  title="Print note"
+                >
+                  <Printer size={20} />
+                </button>
+                <button
+                  onClick={() => {
+                    handleEditNote(viewingNote);
+                    setViewingNote(null);
+                  }}
+                  className="p-2 text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition-colors"
+                  title="Edit note"
+                >
+                  <Edit size={20} />
+                </button>
+                <button
+                  onClick={() => setViewingNote(null)}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  title="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-sans">
+                  {viewingNote.content}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Preview Modal */}
+      {templatePreview && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setTemplatePreview(null);
+              setEditedTemplateContent("");
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h4 className="text-lg font-semibold flex items-center gap-2">
+                  <Eye size={20} className="text-indigo-600 dark:text-indigo-400" />
+                  Template Preview
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {templatePreview.title}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setTemplatePreview(null);
+                  setEditedTemplateContent("");
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Edit Template Content
+                </label>
+                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                  <span>{wordCount} words</span>
+                  <span>{charCount.toLocaleString()} chars</span>
+                </div>
+              </div>
+              
+              {/* Formatting Toolbar */}
+              <div className="flex items-center gap-1 p-2 bg-gray-100 dark:bg-gray-800 rounded-t-lg border border-b-0 border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={formatBold}
+                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  title="Bold (Ctrl+B or Alt+B)"
+                >
+                  <Bold size={16} className="text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={formatItalic}
+                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  title="Italic (Ctrl+I or Alt+I)"
+                >
+                  <Italic size={16} className="text-gray-600 dark:text-gray-400" />
+                </button>
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+                <button
+                  type="button"
+                  onClick={formatBullet}
+                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  title="Toggle Bullet List"
+                >
+                  <List size={16} className="text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={formatHeader}
+                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  title="Format as Header"
+                >
+                  <Type size={16} className="text-gray-600 dark:text-gray-400" />
+                </button>
+                <div className="flex-1" />
+                <div className="text-xs text-gray-500 dark:text-gray-400 px-2">
+                  <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl+B</kbd> or <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs">Alt+B</kbd> Bold
+                  {" "}
+                  <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl+I</kbd> or <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs">Alt+I</kbd> Italic
+                </div>
+              </div>
+              
+              <textarea
+                ref={templateTextareaRef}
+                value={editedTemplateContent}
+                onChange={(e) => setEditedTemplateContent(e.target.value)}
+                onKeyDown={(e) => {
+                  // Keyboard shortcuts for formatting
+                  // Ctrl+B or Cmd+B or Alt+B for Bold
+                  if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'b') {
+                    e.preventDefault();
+                    formatBold();
+                  } 
+                  // Ctrl+I or Cmd+I or Alt+I for Italic
+                  else if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'i') {
+                    e.preventDefault();
+                    formatItalic();
+                  }
+                }}
+                className="w-full h-96 p-4 bg-gray-50 dark:bg-gray-800 rounded-b-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap resize-y focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                placeholder="Template content will appear here... Use the formatting toolbar above or keyboard shortcuts to format your text."
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <button
+                onClick={() => {
+                  setTemplatePreview(null);
+                  setEditedTemplateContent("");
+                }}
+                className="px-5 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const parsed = parseNoteContent(editedTemplateContent);
+                  setNoteData({
+                    consultationType: templatePreview.specialty ? "specialty" : "general",
+                    specialty: templatePreview.specialty || ("other" as SpecialtyType),
+                    title: templatePreview.title,
+                    content: editedTemplateContent,
+                    ...parsed,
+                  });
+                  setTemplatePreview(null);
+                  setEditedTemplateContent("");
+                  setOpenNote(true);
+                }}
+                className="px-5 py-2.5 text-sm font-medium rounded-xl bg-teal-500 text-white hover:bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-600 shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                Use This Template
+              </button>
             </div>
           </div>
         </div>

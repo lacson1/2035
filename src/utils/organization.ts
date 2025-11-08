@@ -3,6 +3,8 @@
  * Manages organization information for print headers and documents
  */
 
+import { logger } from "./logger";
+
 export interface OrganizationDetails {
   name: string;
   type: string; // "Hospital", "Clinic", "Medical Center", etc.
@@ -46,7 +48,7 @@ export function getOrganizationDetails(): OrganizationDetails {
       return { ...DEFAULT_ORGANIZATION, ...parsed };
     }
   } catch (error) {
-    console.warn("Failed to load organization details from localStorage", error);
+    logger.warn("Failed to load organization details from localStorage", error);
   }
   return DEFAULT_ORGANIZATION;
 }
@@ -60,7 +62,7 @@ export function saveOrganizationDetails(details: Partial<OrganizationDetails>): 
     const updated = { ...current, ...details };
     localStorage.setItem(ORGANIZATION_STORAGE_KEY, JSON.stringify(updated));
   } catch (error) {
-    console.error("Failed to save organization details", error);
+    logger.error("Failed to save organization details", error);
   }
 }
 

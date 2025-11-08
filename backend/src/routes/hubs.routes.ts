@@ -1,23 +1,37 @@
 import { Router } from 'express';
 import { hubsController } from '../controllers/hubs.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/auth.middleware';
 import { auditMiddleware } from '../middleware/audit.middleware';
 
 const router = Router();
 
-// All routes require authentication
-router.use(authenticate);
-
-// Audit logging for all hub routes
-router.use(auditMiddleware);
-
 // Hub CRUD operations
-// GET /hubs - List all hubs
+// GET /hubs - List all hubs (public, no auth required for reading)
+// Note: These routes must be defined BEFORE router.use(authenticate) to be public
+// IMPORTANT: More specific routes must come before less specific ones (e.g., /:hubId/functions before /:id)
 router.get('/', hubsController.getHubs.bind(hubsController));
 
-// GET /hubs/:id - Get single hub
+// GET /hubs/:hubId/functions - Get all functions for a hub (public, read-only)
+router.get('/:hubId/functions', hubsController.getHubFunctions.bind(hubsController));
+
+// GET /hubs/:hubId/resources - Get all resources for a hub (public, read-only)
+router.get('/:hubId/resources', hubsController.getHubResources.bind(hubsController));
+
+// GET /hubs/:hubId/notes - Get all notes for a hub (public, read-only)
+router.get('/:hubId/notes', hubsController.getHubNotes.bind(hubsController));
+
+// GET /hubs/:hubId/templates - Get all templates for a hub (public, read-only)
+router.get('/:hubId/templates', hubsController.getHubTemplates.bind(hubsController));
+
+// GET /hubs/:id - Get single hub (public) - Must come after more specific routes
 router.get('/:id', hubsController.getHub.bind(hubsController));
+
+// All other routes require authentication
+router.use(authenticate);
+
+// Audit logging for all authenticated hub routes
+router.use(auditMiddleware);
 
 // POST /hubs - Create hub (admin only)
 router.post(
@@ -41,9 +55,6 @@ router.delete(
 );
 
 // Hub Functions
-// GET /hubs/:hubId/functions - Get all functions for a hub
-router.get('/:hubId/functions', hubsController.getHubFunctions.bind(hubsController));
-
 // POST /hubs/:hubId/functions - Create hub function
 router.post(
   '/:hubId/functions',
@@ -66,9 +77,6 @@ router.delete(
 );
 
 // Hub Resources
-// GET /hubs/:hubId/resources - Get all resources for a hub
-router.get('/:hubId/resources', hubsController.getHubResources.bind(hubsController));
-
 // POST /hubs/:hubId/resources - Create hub resource
 router.post(
   '/:hubId/resources',
@@ -91,9 +99,6 @@ router.delete(
 );
 
 // Hub Notes
-// GET /hubs/:hubId/notes - Get all notes for a hub
-router.get('/:hubId/notes', hubsController.getHubNotes.bind(hubsController));
-
 // POST /hubs/:hubId/notes - Create or update hub note
 router.post(
   '/:hubId/notes',
@@ -109,9 +114,6 @@ router.delete(
 );
 
 // Hub Templates
-// GET /hubs/:hubId/templates - Get all templates for a hub (optional hubId)
-router.get('/:hubId/templates', hubsController.getHubTemplates.bind(hubsController));
-
 // POST /hubs/:hubId/templates - Create hub template (hubId optional)
 router.post(
   '/:hubId/templates',

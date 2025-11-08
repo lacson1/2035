@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FileCheck,
   Plus,
@@ -10,6 +10,8 @@ import {
   Printer,
   Clock,
   Shield,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
 import { Patient, Consent, ConsentType, ConsentStatus } from "../types";
@@ -17,14 +19,221 @@ import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
 import PrintPreview from "./PrintPreview";
 import { openPrintWindow } from "../utils/popupHandler";
+import { getOrganizationFooter, getOrganizationDetails } from "../utils/organization";
+import { consentsService } from "../services/consents";
+import { useToast } from "../context/ToastContext";
+import { logger } from "../utils/logger";
 
 interface ConsentsProps {
   patient?: Patient;
 }
 
+// Consent Templates
+const consentTemplates: Record<ConsentType, {
+  title: string;
+  description: string;
+  procedureName?: string;
+  risks: string[];
+  benefits: string[];
+  alternatives: string[];
+}> = {
+  procedure: {
+    title: "Consent for Medical Procedure",
+    description: "I understand that I am consenting to undergo a medical procedure. The procedure, its benefits, risks, and alternatives have been explained to me. I have had the opportunity to ask questions, and all my questions have been answered to my satisfaction.",
+    risks: [
+      "Bleeding or infection at the procedure site",
+      "Allergic reaction to medications or contrast agents",
+      "Pain or discomfort during or after the procedure",
+      "Need for additional procedures if complications occur"
+    ],
+    benefits: [
+      "Diagnosis or treatment of medical condition",
+      "Potential improvement in symptoms",
+      "Minimally invasive approach when possible"
+    ],
+    alternatives: [
+      "Conservative management with medications",
+      "Alternative diagnostic procedures",
+      "No treatment (with monitoring)"
+    ]
+  },
+  surgery: {
+    title: "Consent for Surgical Procedure",
+    description: "I understand that I am consenting to undergo a surgical procedure. The nature and purpose of the surgery, its benefits, risks, complications, and alternative treatments have been fully explained to me. I understand that no guarantee has been made regarding the results of the surgery.",
+    procedureName: "Surgical Procedure",
+    risks: [
+      "Bleeding requiring transfusion or reoperation",
+      "Infection at the surgical site",
+      "Blood clots (deep vein thrombosis or pulmonary embolism)",
+      "Adverse reaction to anesthesia",
+      "Damage to surrounding structures or organs",
+      "Scarring or poor wound healing",
+      "Need for additional surgery",
+      "Death (rare but possible)"
+    ],
+    benefits: [
+      "Treatment or cure of the underlying condition",
+      "Relief of symptoms",
+      "Improved quality of life",
+      "Prevention of disease progression"
+    ],
+    alternatives: [
+      "Non-surgical treatment options",
+      "Medical management",
+      "Watchful waiting",
+      "Alternative surgical approaches"
+    ]
+  },
+  anesthesia: {
+    title: "Consent for Anesthesia",
+    description: "I understand that anesthesia will be administered for my procedure. The type of anesthesia, its risks, benefits, and alternatives have been explained to me by the anesthesiologist. I understand that anesthesia involves risks and complications.",
+    procedureName: "Anesthesia Administration",
+    risks: [
+      "Allergic reaction to anesthetic agents",
+      "Nausea and vomiting after anesthesia",
+      "Sore throat or hoarseness (from breathing tube)",
+      "Dental injury",
+      "Awareness during surgery (rare)",
+      "Nerve injury from positioning",
+      "Respiratory complications",
+      "Cardiac complications",
+      "Death (rare but possible)"
+    ],
+    benefits: [
+      "Pain-free procedure",
+      "Patient comfort during surgery",
+      "Optimal conditions for surgeon",
+      "Amnesia of the procedure"
+    ],
+    alternatives: [
+      "Local anesthesia only",
+      "Regional anesthesia (spinal/epidural)",
+      "Conscious sedation",
+      "General anesthesia"
+    ]
+  },
+  blood_transfusion: {
+    title: "Consent for Blood Transfusion",
+    description: "I understand that a blood transfusion may be necessary during my treatment. The risks, benefits, and alternatives to blood transfusion have been explained to me. I consent to receiving blood products if medically necessary.",
+    procedureName: "Blood Transfusion",
+    risks: [
+      "Allergic reaction to blood products",
+      "Transmission of infectious diseases (HIV, hepatitis - extremely rare with modern screening)",
+      "Hemolytic reaction (destruction of red blood cells)",
+      "Transfusion-related acute lung injury (TRALI)",
+      "Fever or chills",
+      "Volume overload",
+      "Iron overload with repeated transfusions"
+    ],
+    benefits: [
+      "Restoration of blood volume",
+      "Improved oxygen delivery to tissues",
+      "Correction of anemia",
+      "Support during surgery or treatment"
+    ],
+    alternatives: [
+      "Autologous blood donation (donating your own blood)",
+      "Bloodless surgery techniques",
+      "Medications to increase blood production",
+      "Delaying procedure if medically safe"
+    ]
+  },
+  imaging_contrast: {
+    title: "Consent for Imaging with Contrast",
+    description: "I understand that contrast material (dye) will be injected to enhance the imaging study. The risks, benefits, and alternatives have been explained to me. I understand that contrast agents can cause allergic reactions and kidney problems.",
+    procedureName: "Contrast-Enhanced Imaging",
+    risks: [
+      "Allergic reaction to contrast material (mild to severe)",
+      "Kidney damage (contrast-induced nephropathy)",
+      "Extravasation (contrast leaking into tissue)",
+      "Thyroid dysfunction (with iodine-based contrast)",
+      "Nausea or vomiting",
+      "Metallic taste in mouth"
+    ],
+    benefits: [
+      "Improved image quality and diagnostic accuracy",
+      "Better visualization of blood vessels and organs",
+      "More accurate diagnosis",
+      "Detection of abnormalities not visible without contrast"
+    ],
+    alternatives: [
+      "Imaging without contrast",
+      "Alternative imaging modalities (MRI, ultrasound)",
+      "Non-contrast CT scan",
+      "Other diagnostic tests"
+    ]
+  },
+  research: {
+    title: "Consent for Research Participation",
+    description: "I understand that I am being asked to participate in a research study. The purpose, procedures, risks, benefits, and alternatives have been explained to me. I understand that participation is voluntary and I may withdraw at any time.",
+    procedureName: "Research Study",
+    risks: [
+      "Side effects from investigational treatments",
+      "Time commitment for study visits",
+      "Potential for no direct benefit",
+      "Unknown long-term effects",
+      "Privacy concerns with data sharing"
+    ],
+    benefits: [
+      "Access to potentially beneficial treatment",
+      "Contribution to medical knowledge",
+      "Close monitoring during study",
+      "Potential improvement in condition"
+    ],
+    alternatives: [
+      "Standard treatment outside of research",
+      "Other available treatments",
+      "No treatment",
+      "Participation in different research study"
+    ]
+  },
+  photography: {
+    title: "Consent for Medical Photography",
+    description: "I understand that photographs or videos may be taken for medical documentation, treatment planning, or educational purposes. I consent to the use of these images for medical purposes as explained.",
+    procedureName: "Medical Photography",
+    risks: [
+      "Privacy concerns",
+      "Potential for unauthorized use (though protected by HIPAA)",
+      "Identification in images"
+    ],
+    benefits: [
+      "Accurate documentation of condition",
+      "Treatment planning and monitoring",
+      "Medical education and training",
+      "Comparison over time"
+    ],
+    alternatives: [
+      "Written documentation only",
+      "No photography",
+      "Limited photography with restrictions"
+    ]
+  },
+  other: {
+    title: "Consent for Treatment",
+    description: "I understand that I am consenting to receive medical treatment. The nature of the treatment, its benefits, risks, and alternatives have been explained to me. I have had the opportunity to ask questions.",
+    risks: [
+      "Side effects or complications",
+      "Allergic reactions",
+      "Treatment failure",
+      "Need for additional treatment"
+    ],
+    benefits: [
+      "Treatment of medical condition",
+      "Symptom relief",
+      "Improved health outcomes"
+    ],
+    alternatives: [
+      "Alternative treatments",
+      "Conservative management",
+      "No treatment"
+    ]
+  }
+};
+
 export default function Consents({ patient }: ConsentsProps) {
   const { selectedPatient, addTimelineEvent } = useDashboard();
   const currentPatient = patient || selectedPatient;
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | ConsentType>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | ConsentStatus>("all");
@@ -32,11 +241,64 @@ export default function Consents({ patient }: ConsentsProps) {
   const [selectedConsent, setSelectedConsent] = useState<Consent | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { users } = useUsers();
-  const [consents, setConsents] = useState<Consent[]>(
-    currentPatient?.consents || []
-  );
+  const [consents, setConsents] = useState<Consent[]>([]);
+
+  // Load consents from API when patient changes
+  useEffect(() => {
+    const loadConsents = async () => {
+      if (!currentPatient?.id) {
+        setConsents([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await consentsService.getPatientConsents(currentPatient.id);
+        if (response.data) {
+          // Transform API data to match Consent interface
+          const transformedConsents: Consent[] = response.data.map((consent: any) => ({
+            id: consent.id,
+            date: typeof consent.date === 'string' ? consent.date.split('T')[0] : consent.date,
+            type: consent.type,
+            title: consent.title,
+            description: consent.description,
+            status: consent.status,
+            procedureName: consent.procedureName,
+            risks: consent.risks || [],
+            benefits: consent.benefits || [],
+            alternatives: consent.alternatives || [],
+            signedBy: consent.signedBy,
+            signedById: consent.signedById,
+            witnessName: consent.witnessName,
+            witnessId: consent.witnessId,
+            physicianName: consent.physicianName || consent.physician?.firstName + " " + consent.physician?.lastName,
+            physicianId: consent.physicianId || consent.physician?.id,
+            signedDate: consent.signedDate ? (typeof consent.signedDate === 'string' ? consent.signedDate.split('T')[0] : consent.signedDate) : undefined,
+            signedTime: consent.signedTime,
+            expirationDate: consent.expirationDate ? (typeof consent.expirationDate === 'string' ? consent.expirationDate.split('T')[0] : consent.expirationDate) : undefined,
+            notes: consent.notes,
+            digitalSignature: consent.digitalSignature,
+            printedSignature: consent.printedSignature,
+          }));
+          setConsents(transformedConsents);
+        }
+      } catch (error) {
+        logger.error("Failed to load consents:", error);
+        toast.error("Failed to load consents");
+        // Fallback to patient data if API fails
+        if (currentPatient?.consents) {
+          setConsents(currentPatient.consents);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadConsents();
+  }, [currentPatient?.id, toast]);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -86,10 +348,34 @@ export default function Consents({ patient }: ConsentsProps) {
     return type.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
   };
 
-  const handleAddConsent = (e: React.FormEvent) => {
+  const handleTemplateSelect = (templateType: ConsentType) => {
+    const template = consentTemplates[templateType];
+    setFormData({
+      ...formData,
+      type: templateType,
+      title: template.title,
+      description: template.description,
+      procedureName: template.procedureName || "",
+      risks: [...template.risks],
+      benefits: [...template.benefits],
+      alternatives: [...template.alternatives],
+      currentRisk: "",
+      currentBenefit: "",
+      currentAlternative: "",
+    });
+  };
+
+  const handleAddConsent = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newConsent: Consent = {
-      id: `consent-${Date.now()}`,
+    
+    if (!currentPatient?.id) {
+      toast.error("No patient selected");
+      return;
+    }
+
+    // Optimistic update
+    const tempConsent: Consent = {
+      id: `temp-${Date.now()}`,
       date: formData.date,
       type: formData.type,
       title: formData.title,
@@ -105,14 +391,61 @@ export default function Consents({ patient }: ConsentsProps) {
       notes: formData.notes || undefined,
     };
 
-    setConsents([...consents, newConsent]);
-    addTimelineEvent(currentPatient.id, {
-      date: newConsent.date,
-      type: "consent",
-      title: newConsent.title,
-      description: `Status: ${newConsent.status}`,
-      icon: "file-check",
-    });
+    setConsents([tempConsent, ...consents]);
+
+    try {
+      const response = await consentsService.createConsent(currentPatient.id, {
+        date: formData.date,
+        type: formData.type,
+        title: formData.title,
+        description: formData.description,
+        status: "pending",
+        procedureName: formData.procedureName || undefined,
+        risks: formData.risks.length > 0 ? formData.risks : undefined,
+        benefits: formData.benefits.length > 0 ? formData.benefits : undefined,
+        alternatives: formData.alternatives.length > 0 ? formData.alternatives : undefined,
+        physicianId: formData.physicianId || undefined,
+        expirationDate: formData.expirationDate || undefined,
+        notes: formData.notes || undefined,
+      });
+
+      if (response.data) {
+        // Replace temp consent with real one
+        const realConsent: Consent = {
+          id: response.data.id,
+          date: typeof response.data.date === 'string' ? response.data.date.split('T')[0] : response.data.date,
+          type: response.data.type,
+          title: response.data.title,
+          description: response.data.description,
+          status: response.data.status,
+          procedureName: response.data.procedureName,
+          risks: response.data.risks || [],
+          benefits: response.data.benefits || [],
+          alternatives: response.data.alternatives || [],
+          physicianName: response.data.physicianName || ((response.data as any).physician ? `${(response.data as any).physician.firstName} ${(response.data as any).physician.lastName}` : undefined),
+          physicianId: response.data.physicianId || (response.data as any).physician?.id,
+          expirationDate: response.data.expirationDate ? (typeof response.data.expirationDate === 'string' ? response.data.expirationDate.split('T')[0] : response.data.expirationDate) : undefined,
+          notes: response.data.notes,
+        };
+        setConsents(prev => prev.map(c => c.id === tempConsent.id ? realConsent : c));
+        
+        addTimelineEvent(currentPatient.id, {
+          date: realConsent.date,
+          type: "consent",
+          title: realConsent.title,
+          description: `Status: ${realConsent.status}`,
+          icon: "file-check",
+        });
+        
+        toast.success("Consent created successfully");
+      }
+    } catch (error) {
+      // Rollback on error
+      setConsents(prev => prev.filter(c => c.id !== tempConsent.id));
+      logger.error("Failed to create consent:", error);
+      toast.error("Failed to create consent");
+      return;
+    }
 
     setFormData({
       date: new Date().toISOString().split("T")[0],
@@ -133,13 +466,40 @@ export default function Consents({ patient }: ConsentsProps) {
     setShowAddForm(false);
   };
 
-  const handleSignConsent = (consentId: string) => {
-    setConsents(consents.map(c => 
-      c.id === consentId 
-        ? { ...c, status: "signed" as ConsentStatus, signedBy: currentPatient?.name, signedDate: new Date().toISOString().split("T")[0], signedTime: new Date().toTimeString().slice(0, 5) }
-        : c
-    ));
-    setShowDetailsModal(false);
+  const handleSignConsent = async (consentId: string) => {
+    if (!currentPatient?.id) {
+      toast.error("No patient selected");
+      return;
+    }
+
+    const consent = consents.find(c => c.id === consentId);
+    if (!consent) return;
+
+    // Optimistic update
+    const updatedConsent = {
+      ...consent,
+      status: "signed" as ConsentStatus,
+      signedBy: currentPatient?.name,
+      signedDate: new Date().toISOString().split("T")[0],
+      signedTime: new Date().toTimeString().slice(0, 5),
+    };
+    setConsents(consents.map(c => c.id === consentId ? updatedConsent : c));
+
+    try {
+      await consentsService.updateConsent(currentPatient.id, consentId, {
+        status: "signed",
+        signedBy: currentPatient?.name,
+        signedDate: new Date().toISOString().split("T")[0],
+        signedTime: new Date().toTimeString().slice(0, 5),
+      });
+      toast.success("Consent signed successfully");
+      setShowDetailsModal(false);
+    } catch (error) {
+      // Rollback on error
+      setConsents(consents);
+      logger.error("Failed to sign consent:", error);
+      toast.error("Failed to sign consent");
+    }
   };
 
   const handlePrintFromPreview = () => {
@@ -148,6 +508,9 @@ export default function Consents({ patient }: ConsentsProps) {
   };
 
   const handlePrint = (consent: Consent) => {
+    const orgDetails = getOrganizationDetails();
+    const orgFooter = getOrganizationFooter();
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -156,8 +519,48 @@ export default function Consents({ patient }: ConsentsProps) {
           <style>
             @page { margin: 1in; size: letter; }
             body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
-            .header h1 { margin: 0; font-size: 24px; color: #1e40af; }
+            .org-header {
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+              text-align: center;
+            }
+            .org-name {
+              font-size: 22px;
+              font-weight: 700;
+              color: #1e40af;
+              margin: 0 0 5px 0;
+            }
+            .org-type {
+              font-size: 14px;
+              color: #4b5563;
+              margin: 0 0 8px 0;
+              font-weight: 500;
+            }
+            .org-details {
+              font-size: 11px;
+              color: #6b7280;
+              line-height: 1.5;
+              margin: 0;
+            }
+            .document-header {
+              text-align: center;
+              margin: 25px 0;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .document-header h1 {
+              margin: 0;
+              font-size: 20px;
+              color: #1e40af;
+              font-weight: 600;
+            }
+            .document-header h2 {
+              margin: 8px 0 0 0;
+              font-size: 16px;
+              color: #4b5563;
+              font-weight: normal;
+            }
             .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
             .info-item { padding: 10px; background: #f9fafb; border-radius: 4px; }
             .info-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
@@ -172,7 +575,16 @@ export default function Consents({ patient }: ConsentsProps) {
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="org-header">
+            <div class="org-name">${orgDetails.name}</div>
+            <div class="org-type">${orgDetails.type}</div>
+            <div class="org-details">
+              ${orgDetails.address}, ${orgDetails.city}, ${orgDetails.state} ${orgDetails.zipCode}<br>
+              Phone: ${orgDetails.phone}${orgDetails.fax ? ` | Fax: ${orgDetails.fax}` : ""}${orgDetails.email ? ` | Email: ${orgDetails.email}` : ""}
+            </div>
+          </div>
+
+          <div class="document-header">
             <h1>INFORMED CONSENT</h1>
             <h2>${consent.title}</h2>
           </div>
@@ -238,8 +650,9 @@ export default function Consents({ patient }: ConsentsProps) {
           </div>
           ` : ""}
           <div class="footer">
+            ${orgFooter}<br>
             Generated: ${new Date().toLocaleString()}<br>
-            Bluequee2.0 - Electronic Health Record System
+            This is an official informed consent document. Confidential medical information.
           </div>
         </body>
       </html>
@@ -267,7 +680,7 @@ export default function Consents({ patient }: ConsentsProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <FileCheck className="text-teal-600 dark:text-teal-400" size={24} />
+            <FileCheck className="text-primary-600 dark:text-primary-400" size={24} />
             Consents
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -276,7 +689,7 @@ export default function Consents({ patient }: ConsentsProps) {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors"
+          className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
           New Consent
@@ -331,7 +744,17 @@ export default function Consents({ patient }: ConsentsProps) {
 
       {/* Consents List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {filteredConsents.length === 0 ? (
+        {isLoading ? (
+          <div className="p-4">
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filteredConsents.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <FileCheck size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <p className="text-lg font-medium mb-2">No Consents Found</p>
@@ -354,7 +777,7 @@ export default function Consents({ patient }: ConsentsProps) {
                       <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                         {consent.title}
                       </h3>
-                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400">
                         {getTypeLabel(consent.type)}
                       </span>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded ${getStatusColor(consent.status)}`}>
@@ -393,7 +816,7 @@ export default function Consents({ patient }: ConsentsProps) {
                         setSelectedConsent(consent);
                         setShowDetailsModal(true);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors text-sm font-medium"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors text-sm font-medium"
                     >
                       <FileCheck size={16} />
                       View
@@ -441,6 +864,37 @@ export default function Consents({ patient }: ConsentsProps) {
             </div>
 
             <form onSubmit={handleAddConsent} className="p-6 space-y-5">
+              {/* Consent Templates */}
+              <div>
+                <label className="block text-base font-medium mb-2.5 flex items-center gap-2">
+                  <Sparkles size={18} className="text-primary-600 dark:text-primary-400" />
+                  Quick Templates
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-800/50">
+                  {Object.entries(consentTemplates).map(([type, template]) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => handleTemplateSelect(type as ConsentType)}
+                      className="p-3 text-left border border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors bg-white dark:bg-gray-800"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText size={14} className="text-primary-600 dark:text-primary-400" />
+                        <span className="font-medium text-xs text-gray-900 dark:text-gray-100">
+                          {getTypeLabel(type as ConsentType)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+                        {template.title}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Click a template to pre-fill the form. You can modify any fields after selecting.
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-base font-medium mb-2.5">Date <span className="text-red-500">*</span></label>
@@ -550,7 +1004,7 @@ export default function Consents({ patient }: ConsentsProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
+                      className="btn-primary"
                     >
                       Add
                     </button>
@@ -614,7 +1068,7 @@ export default function Consents({ patient }: ConsentsProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
+                      className="btn-primary"
                     >
                       Add
                     </button>
@@ -678,7 +1132,7 @@ export default function Consents({ patient }: ConsentsProps) {
                           });
                         }
                       }}
-                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600"
+                      className="btn-primary"
                     >
                       Add
                     </button>

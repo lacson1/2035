@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Test - Debug Tool</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Login Debugging Tool</h1>
+        <p>Use this tool to test login functionality and diagnose issues.</p>
+
+        <div class="test-section">
+            <h3>Test 1: Backend Health Check</h3>
+            <button onclick="testHealth()">Test Backend Health</button>
+            <div id="health-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Login Test</h3>
+            <label>Email:</label>
+            <input type="email" id="email" value="sarah.johnson@hospital2035.com" placeholder="Email">
+            <label>Password:</label>
+            <input type="password" id="password" value="password123" placeholder="Password">
+            <button onclick="testLogin()">Test Login</button>
+            <div id="login-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Check Configuration</h3>
+            <button onclick="checkConfig()">Check Config</button>
+            <div id="config-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Test from Frontend API URL</h3>
+            <button onclick="testFromFrontend()">Test Using Frontend API Base URL</button>
+            <div id="frontend-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 5: Check LocalStorage</h3>
+            <button onclick="checkStorage()">Check Storage</button>
+            <div id="storage-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        const FRONTEND_API_BASE = 'http://localhost:3000/api'; // Should match VITE_API_BASE_URL
+
+        function showResult(elementId, message, type = 'info') {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function testHealth() {
+            try {
+                const response = await fetch('http://localhost:3000/health');
+                const data = await response.json();
+                showResult('health-result', 
+                    `✅ Backend is running!<br>
+                    Status: ${data.status}<br>
+                    Environment: ${data.environment || 'N/A'}<br>
+                    Timestamp: ${data.timestamp}`, 
+                    'success'
+                );
+            } catch (error) {
+                showResult('health-result', 
+                    `❌ Backend is NOT reachable!<br>
+                    Error: ${error.message}<br>
+                    <br>Make sure backend is running:<br>
+                    <code>cd backend && npm run dev</code>`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showResult('login-result', '❌ Please enter email and password', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.data) {
+                    const tokens = data.data.tokens || data.data;
+                    const user = data.data.user;
+                    
+                    // Store tokens
+                    localStorage.setItem('authToken', tokens.accessToken);
+                    localStorage.setItem('refreshToken', tokens.refreshToken);
+
+                    showResult('login-result', 
+                        `✅ Login successful!<br>
+                        <strong>User:</strong> ${user.firstName} ${user.lastName} (${user.email})<br>
+                        <strong>Role:</strong> ${user.role}<br>
+                        <strong>Tokens stored in localStorage</strong><br>
+                        <pre>${JSON.stringify({ 
+                            accessToken: tokens.accessToken.substring(0, 50) + '...',
+                            refreshToken: tokens.refreshToken.substring(0, 50) + '...'
+                        }, null, 2)}</pre>`, 
+                        'success'
+                    );
+                } else {
+                    showResult('login-result', 
+                        `❌ Login failed!<br>
+                        Status: ${response.status}<br>
+                        Message: ${data.message || 'Unknown error'}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>`, 
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('login-result', 
+                    `❌ Network error!<br>
+                    Error: ${error.message}<br>
+                    <br>Possible causes:<br>
+                    - Backend not running<br>
+                    - CORS issue<br>
+                    - Network connectivity problem`, 
+                    'error'
+                );
+            }
+        }
+
+        function checkConfig() {
+            const config = {
+                'Backend URL': 'http://localhost:3000',
+                'API Base URL': API_BASE,
+                'Frontend URL': window.location.origin,
+                'Current Page': window.location.href,
+            };
+
+            showResult('config-result', 
+                `<pre>${JSON.stringify(config, null, 2)}</pre>`, 
+                'info'
+            );
+        }
+
+        async function testFromFrontend() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                // This simulates what the frontend does
+                const response = await fetch(`${FRONTEND_API_BASE}/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const responseData = await response.json();
+                
+                // Simulate frontend response parsing
+                const result = {
+                    data: responseData.data || responseData,
+                    message: responseData.message,
+                };
+
+                const accessToken = result.data.tokens?.accessToken || result.data.accessToken;
+                const refreshToken = result.data.tokens?.refreshToken || result.data.refreshToken;
+                const user = result.data.user;
+
+                if (accessToken && refreshToken && user) {
+                    showResult('frontend-result', 
+                        `✅ Frontend API call successful!<br>
+                        <strong>Access Token:</strong> ${accessToken ? 'Present' : 'Missing'}<br>
+                        <strong>Refresh Token:</strong> ${refreshToken ? 'Present' : 'Missing'}<br>
+                        <strong>User:</strong> ${user ? `${user.firstName} ${user.lastName}` : 'Missing'}<br>
+                        <pre>${JSON.stringify({ 
+                            hasAccessToken: !!accessToken,
+                            hasRefreshToken: !!refreshToken,
+                            hasUser: !!user,
+                            userEmail: user?.email
+                        }, null, 2)}</pre>`, 
+                        'success'
+                    );
+                } else {
+                    showResult('frontend-result', 
+                        `⚠️ Response received but missing data!<br>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>`, 
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('frontend-result', 
+                    `❌ Error: ${error.message}`, 
+                    'error'
+                );
+            }
+        }
+
+        function checkStorage() {
+            const authToken = localStorage.getItem('authToken');
+            const refreshToken = localStorage.getItem('refreshToken');
+
+            if (authToken && refreshToken) {
+                showResult('storage-result', 
+                    `✅ Tokens found in localStorage!<br>
+                    <strong>Auth Token:</strong> ${authToken.substring(0, 50)}...<br>
+                    <strong>Refresh Token:</strong> ${refreshToken.substring(0, 50)}...<br>
+                    <br><button onclick="clearStorage()">Clear Storage</button>`, 
+                    'success'
+                );
+            } else {
+                showResult('storage-result', 
+                    `ℹ️ No tokens in localStorage<br>
+                    Auth Token: ${authToken ? 'Present' : 'Missing'}<br>
+                    Refresh Token: ${refreshToken ? 'Present' : 'Missing'}`, 
+                    'info'
+                );
+            }
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            checkStorage();
+        }
+
+        // Auto-run health check on load
+        window.addEventListener('load', () => {
+            testHealth();
+            checkStorage();
+        });
+    </script>
+</body>
+</html>
+

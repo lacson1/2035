@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Calculator, Droplet, Ruler, Activity, Baby, Clock, Syringe, Beaker, DollarSign, TrendingUp, Info, Heart, Brain, Scale, Thermometer, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Calculator, Droplet, Ruler, Activity, Baby, Clock, Syringe, Beaker, DollarSign, TrendingUp, Info, Heart, Brain, Scale, Thermometer, AlertCircle, CheckCircle2, Search, Star, History, Download, Printer, X } from "lucide-react";
+import { useDashboard } from "../context/DashboardContext";
+import { getOrganizationFooter, getOrganizationDetails } from "../utils/organization";
 
 interface CalculatorResult {
   value: number;
@@ -37,43 +39,149 @@ type CalculatorType =
   | "blood-loss"
   | "postop-fluids";
 
-const calculatorInfo: Record<CalculatorType, { name: string; description: string; icon: typeof Calculator }> = {
-  dosage: { name: "Dosage Calculator", description: "Calculate medication dose based on weight and concentration", icon: Calculator },
-  "drip-rate": { name: "IV Drip Rate", description: "Calculate IV drip rate in drops per minute", icon: Droplet },
-  bsa: { name: "Body Surface Area", description: "Calculate BSA using Mosteller formula", icon: Ruler },
-  "creatinine-clearance": { name: "Creatinine Clearance", description: "Calculate CrCl for dose adjustments (Cockcroft-Gault)", icon: Activity },
-  "pediatric-dose": { name: "Pediatric Dose", description: "Calculate safe pediatric medication doses", icon: Baby },
-  "half-life": { name: "Drug Half-Life", description: "Calculate drug concentration over time", icon: Clock },
-  "iv-infusion": { name: "IV Infusion Rate", description: "Calculate IV infusion rate in mL/hour", icon: Syringe },
-  "body-weight-dose": { name: "Weight-Based Dose", description: "Calculate dose per kg body weight", icon: Activity },
-  alligation: { name: "Alligation Calculator", description: "Calculate mixing ratios for compounding", icon: Beaker },
-  cost: { name: "Medication Cost", description: "Calculate medication cost per dose and per month", icon: DollarSign },
-  dilution: { name: "Dilution Calculator", description: "Calculate dilution ratios and concentrations", icon: Beaker },
-  "steady-state": { name: "Steady State Time", description: "Calculate time to reach steady state", icon: TrendingUp },
-  bmi: { name: "BMI Calculator", description: "Calculate Body Mass Index", icon: Scale },
-  "ideal-body-weight": { name: "Ideal Body Weight", description: "Calculate IBW using Devine formula", icon: Scale },
-  "adjusted-body-weight": { name: "Adjusted Body Weight", description: "Calculate ABW for obese patients", icon: Scale },
-  egfr: { name: "eGFR Calculator", description: "Estimate Glomerular Filtration Rate (MDRD/CKD-EPI)", icon: Activity },
-  "anion-gap": { name: "Anion Gap", description: "Calculate anion gap for metabolic acidosis", icon: Activity },
-  qtc: { name: "QTc Calculator", description: "Corrected QT interval (Bazett/Fridericia)", icon: Heart },
-  map: { name: "Mean Arterial Pressure", description: "Calculate MAP from systolic and diastolic BP", icon: Heart },
-  parkland: { name: "Parkland Formula", description: "Burn resuscitation fluid calculation", icon: Thermometer },
-  "rule-of-nines": { name: "Rule of Nines", description: "Estimate total body surface area burned", icon: Thermometer },
-  "free-water-deficit": { name: "Free Water Deficit", description: "Calculate free water deficit in hypernatremia", icon: Droplet },
-  "fluid-maintenance": { name: "Fluid Maintenance", description: "Calculate daily fluid maintenance (Holliday-Segar)", icon: Droplet },
-  "antipsychotic-equivalent": { name: "Antipsychotic Equivalent", description: "Convert between antipsychotic doses", icon: Brain },
-  "lithium-dose": { name: "Lithium Dosing", description: "Calculate lithium dose based on levels", icon: Brain },
-  "blood-loss": { name: "Blood Loss Estimation", description: "Estimate surgical blood loss", icon: Activity },
-  "postop-fluids": { name: "Post-op Fluids", description: "Calculate post-operative fluid requirements", icon: Droplet },
+type CalculatorCategory = "all" | "dosage" | "cardiology" | "renal" | "pediatric" | "iv-fluids" | "body-metrics" | "psychiatry" | "emergency";
+
+const calculatorInfo: Record<CalculatorType, { 
+  name: string; 
+  description: string; 
+  icon: typeof Calculator;
+  category: CalculatorCategory;
+  keywords: string[];
+}> = {
+  dosage: { name: "Dosage Calculator", description: "Calculate medication dose based on weight and concentration", icon: Calculator, category: "dosage", keywords: ["dose", "medication", "weight", "concentration"] },
+  "drip-rate": { name: "IV Drip Rate", description: "Calculate IV drip rate in drops per minute", icon: Droplet, category: "iv-fluids", keywords: ["iv", "drip", "infusion", "drops"] },
+  bsa: { name: "Body Surface Area", description: "Calculate BSA using Mosteller formula", icon: Ruler, category: "body-metrics", keywords: ["bsa", "surface area", "body"] },
+  "creatinine-clearance": { name: "Creatinine Clearance", description: "Calculate CrCl for dose adjustments (Cockcroft-Gault)", icon: Activity, category: "renal", keywords: ["creatinine", "renal", "kidney", "clearance"] },
+  "pediatric-dose": { name: "Pediatric Dose", description: "Calculate safe pediatric medication doses", icon: Baby, category: "pediatric", keywords: ["pediatric", "child", "dose", "young"] },
+  "half-life": { name: "Drug Half-Life", description: "Calculate drug concentration over time", icon: Clock, category: "dosage", keywords: ["half-life", "elimination", "concentration"] },
+  "iv-infusion": { name: "IV Infusion Rate", description: "Calculate IV infusion rate in mL/hour", icon: Syringe, category: "iv-fluids", keywords: ["iv", "infusion", "rate", "ml"] },
+  "body-weight-dose": { name: "Weight-Based Dose", description: "Calculate dose per kg body weight", icon: Activity, category: "dosage", keywords: ["weight", "dose", "kg", "per kg"] },
+  alligation: { name: "Alligation Calculator", description: "Calculate mixing ratios for compounding", icon: Beaker, category: "dosage", keywords: ["alligation", "mixing", "compounding", "ratio"] },
+  cost: { name: "Medication Cost", description: "Calculate medication cost per dose and per month", icon: DollarSign, category: "dosage", keywords: ["cost", "price", "medication", "dollar"] },
+  dilution: { name: "Dilution Calculator", description: "Calculate dilution ratios and concentrations", icon: Beaker, category: "dosage", keywords: ["dilution", "concentration", "c1v1"] },
+  "steady-state": { name: "Steady State Time", description: "Calculate time to reach steady state", icon: TrendingUp, category: "dosage", keywords: ["steady state", "equilibrium", "time"] },
+  bmi: { name: "BMI Calculator", description: "Calculate Body Mass Index", icon: Scale, category: "body-metrics", keywords: ["bmi", "body mass", "index", "weight"] },
+  "ideal-body-weight": { name: "Ideal Body Weight", description: "Calculate IBW using Devine formula", icon: Scale, category: "body-metrics", keywords: ["ibw", "ideal weight", "body weight"] },
+  "adjusted-body-weight": { name: "Adjusted Body Weight", description: "Calculate ABW for obese patients", icon: Scale, category: "body-metrics", keywords: ["abw", "adjusted weight", "obese"] },
+  egfr: { name: "eGFR Calculator", description: "Estimate Glomerular Filtration Rate (MDRD/CKD-EPI)", icon: Activity, category: "renal", keywords: ["egfr", "gfr", "renal", "kidney"] },
+  "anion-gap": { name: "Anion Gap", description: "Calculate anion gap for metabolic acidosis", icon: Activity, category: "emergency", keywords: ["anion gap", "acidosis", "metabolic"] },
+  qtc: { name: "QTc Calculator", description: "Corrected QT interval (Bazett/Fridericia)", icon: Heart, category: "cardiology", keywords: ["qtc", "qt interval", "ecg", "heart"] },
+  map: { name: "Mean Arterial Pressure", description: "Calculate MAP from systolic and diastolic BP", icon: Heart, category: "cardiology", keywords: ["map", "blood pressure", "arterial", "bp"] },
+  parkland: { name: "Parkland Formula", description: "Burn resuscitation fluid calculation", icon: Thermometer, category: "emergency", keywords: ["parkland", "burn", "fluid", "resuscitation"] },
+  "rule-of-nines": { name: "Rule of Nines", description: "Estimate total body surface area burned", icon: Thermometer, category: "emergency", keywords: ["rule of nines", "burn", "tbsa", "surface area"] },
+  "free-water-deficit": { name: "Free Water Deficit", description: "Calculate free water deficit in hypernatremia", icon: Droplet, category: "iv-fluids", keywords: ["free water", "deficit", "hypernatremia", "sodium"] },
+  "fluid-maintenance": { name: "Fluid Maintenance", description: "Calculate daily fluid maintenance (Holliday-Segar)", icon: Droplet, category: "iv-fluids", keywords: ["fluid", "maintenance", "holliday", "segar"] },
+  "antipsychotic-equivalent": { name: "Antipsychotic Equivalent", description: "Convert between antipsychotic doses", icon: Brain, category: "psychiatry", keywords: ["antipsychotic", "equivalent", "psychiatry", "mental"] },
+  "lithium-dose": { name: "Lithium Dosing", description: "Calculate lithium dose based on levels", icon: Brain, category: "psychiatry", keywords: ["lithium", "dose", "psychiatry", "bipolar"] },
+  "blood-loss": { name: "Blood Loss Estimation", description: "Estimate surgical blood loss", icon: Activity, category: "emergency", keywords: ["blood loss", "surgical", "hematocrit", "estimation"] },
+  "postop-fluids": { name: "Post-op Fluids", description: "Calculate post-operative fluid requirements", icon: Droplet, category: "iv-fluids", keywords: ["post-op", "postoperative", "fluids", "surgery"] },
+};
+
+const categoryLabels: Record<CalculatorCategory, string> = {
+  all: "All Calculators",
+  dosage: "Dosage & Medication",
+  cardiology: "Cardiology",
+  renal: "Renal & Kidney",
+  pediatric: "Pediatric",
+  "iv-fluids": "IV & Fluids",
+  "body-metrics": "Body Metrics",
+  psychiatry: "Psychiatry",
+  emergency: "Emergency & Trauma",
+};
+
+// LocalStorage keys
+const STORAGE_KEYS = {
+  FAVORITES: "medcalc_favorites",
+  RECENT: "medcalc_recent",
+  HISTORY: "medcalc_history",
 };
 
 export default function MedicationCalculators() {
+  const { selectedPatient } = useDashboard();
   const [activeCalculator, setActiveCalculator] = useState<CalculatorType>("dosage");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<CalculatorCategory>("all");
+  const [favorites, setFavorites] = useState<Set<CalculatorType>>(new Set());
+  const [recent, setRecent] = useState<CalculatorType[]>([]);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [showRecent, setShowRecent] = useState(false);
+
+  // Load favorites and recent from localStorage
+  useEffect(() => {
+    try {
+      const savedFavorites = localStorage.getItem(STORAGE_KEYS.FAVORITES);
+      if (savedFavorites) {
+        setFavorites(new Set(JSON.parse(savedFavorites)));
+      }
+      const savedRecent = localStorage.getItem(STORAGE_KEYS.RECENT);
+      if (savedRecent) {
+        setRecent(JSON.parse(savedRecent));
+      }
+    } catch (e) {
+      console.error("Error loading calculator preferences:", e);
+    }
+  }, []);
+
+  // Save favorites to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(Array.from(favorites)));
+    } catch (e) {
+      console.error("Error saving favorites:", e);
+    }
+  }, [favorites]);
+
+  // Save recent to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.RECENT, JSON.stringify(recent));
+    } catch (e) {
+      console.error("Error saving recent:", e);
+    }
+  }, [recent]);
+
+  // Track calculator usage
+  const handleCalculatorSelect = (calc: CalculatorType) => {
+    setActiveCalculator(calc);
+    // Add to recent (max 10)
+    setRecent((prev) => {
+      const filtered = prev.filter((c) => c !== calc);
+      return [calc, ...filtered].slice(0, 10);
+    });
+  };
+
+  const toggleFavorite = (calc: CalculatorType) => {
+    setFavorites((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(calc)) {
+        newSet.delete(calc);
+      } else {
+        newSet.add(calc);
+      }
+      return newSet;
+    });
+  };
+
+  const filteredCalculators = Object.entries(calculatorInfo).filter(([key, info]) => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || (
+      info.name.toLowerCase().includes(query) ||
+      info.description.toLowerCase().includes(query) ||
+      key.toLowerCase().includes(query) ||
+      info.keywords.some(k => k.toLowerCase().includes(query))
+    );
+    
+    const matchesCategory = selectedCategory === "all" || info.category === selectedCategory;
+    const matchesFavorites = !showFavorites || favorites.has(key as CalculatorType);
+    const matchesRecent = !showRecent || recent.includes(key as CalculatorType);
+    
+    return matchesSearch && matchesCategory && (!showFavorites || matchesFavorites) && (!showRecent || matchesRecent);
+  });
 
   const renderCalculator = () => {
     switch (activeCalculator) {
       case "dosage":
-        return <DosageCalculator />;
+        return <DosageCalculator patient={selectedPatient} />;
       case "drip-rate":
         return <DripRateCalculator />;
       case "bsa":
@@ -146,29 +254,140 @@ export default function MedicationCalculators() {
 
         {/* Calculator Selection */}
         <div className="mb-6">
+          {/* Search and Filter Bar */}
+          <div className="mb-4 space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search calculators..."
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+              />
+            </div>
+            
+            {/* Category Tabs and Quick Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Quick Filter Buttons */}
+              <button
+                onClick={() => {
+                  setShowFavorites(!showFavorites);
+                  setShowRecent(false);
+                  setSelectedCategory("all");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  showFavorites
+                    ? "bg-teal-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                <Star size={14} className={showFavorites ? "fill-current" : ""} />
+                Favorites {favorites.size > 0 && `(${favorites.size})`}
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowRecent(!showRecent);
+                  setShowFavorites(false);
+                  setSelectedCategory("all");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  showRecent
+                    ? "bg-teal-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                <History size={14} />
+                Recent {recent.length > 0 && `(${recent.length})`}
+              </button>
+              
+              {(showFavorites || showRecent) && (
+                <button
+                  onClick={() => {
+                    setShowFavorites(false);
+                    setShowRecent(false);
+                    setSelectedCategory("all");
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5"
+                >
+                  <X size={14} />
+                  Clear Filters
+                </button>
+              )}
+              
+              <div className="flex-1" />
+              
+              {/* Category Dropdown */}
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value as CalculatorCategory);
+                  setShowFavorites(false);
+                  setShowRecent(false);
+                }}
+                className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                {Object.entries(categoryLabels).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+            
+            {searchQuery && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Found {filteredCalculators.length} calculator{filteredCalculators.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+
+          {/* Calculator Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {Object.entries(calculatorInfo).map(([key, info]) => {
+            {filteredCalculators.map(([key, info]) => {
               const Icon = info.icon;
               const isActive = activeCalculator === key;
+              const isFavorite = favorites.has(key as CalculatorType);
               return (
-                <button
-                  key={key}
-                  onClick={() => setActiveCalculator(key as CalculatorType)}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${isActive
-                    ? "border-teal-600 bg-teal-50 dark:bg-teal-900/20 shadow-md"
-                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                    }`}
-                >
-                  <Icon
-                    className={`mb-2 ${isActive ? "text-teal-600 dark:text-teal-400" : "text-gray-500 dark:text-gray-400"}`}
-                    size={24}
-                  />
-                  <div className="font-semibold text-sm mb-1">{info.name}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">{info.description}</div>
-                </button>
+                <div key={key} className="relative">
+                  <button
+                    onClick={() => handleCalculatorSelect(key as CalculatorType)}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left hover:scale-[1.02] ${isActive
+                      ? "border-teal-600 bg-teal-50 dark:bg-teal-900/20 shadow-md ring-2 ring-teal-200 dark:ring-teal-800"
+                      : "border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-sm"
+                      }`}
+                  >
+                    <Icon
+                      className={`mb-2 ${isActive ? "text-teal-600 dark:text-teal-400" : "text-gray-500 dark:text-gray-400"}`}
+                      size={24}
+                    />
+                    <div className="font-semibold text-sm mb-1">{info.name}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">{info.description}</div>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(key as CalculatorType);
+                    }}
+                    className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Star
+                      size={16}
+                      className={isFavorite ? "text-yellow-500 fill-yellow-500" : "text-gray-400"}
+                    />
+                  </button>
+                </div>
               );
             })}
           </div>
+          {filteredCalculators.length === 0 && (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <p>No calculators found{searchQuery && ` matching "${searchQuery}"`}</p>
+              {(showFavorites && favorites.size === 0) && (
+                <p className="text-sm mt-2">Add calculators to favorites by clicking the star icon</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Active Calculator */}
@@ -179,11 +398,18 @@ export default function MedicationCalculators() {
 }
 
 // 1. Dosage Calculator
-function DosageCalculator() {
+function DosageCalculator({ patient }: { patient?: any }) {
   const [weight, setWeight] = useState("");
   const [dosePerKg, setDosePerKg] = useState("");
   const [concentration, setConcentration] = useState("");
   const [result, setResult] = useState<CalculatorResult | null>(null);
+
+  // Auto-populate from patient data
+  useEffect(() => {
+    if (patient?.weight && !weight) {
+      setWeight(patient.weight.toString());
+    }
+  }, [patient]);
 
   const calculate = () => {
     const w = parseFloat(weight);
@@ -216,7 +442,16 @@ function DosageCalculator() {
   };
 
   return (
-    <CalculatorCard title="Dosage Calculator" icon={Calculator}>
+    <CalculatorCard 
+      title="Dosage Calculator" 
+      icon={Calculator}
+      result={result}
+      inputs={{
+        "Patient Weight": weight ? `${weight} kg` : "Not entered",
+        "Dose per kg": dosePerKg ? `${dosePerKg} mg/kg` : "Not entered",
+        "Concentration": concentration ? `${concentration} mg/mL` : "Not entered",
+      }}
+    >
       <div className="space-y-5">
         <div className="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-lg border border-teal-200/50 dark:border-teal-800/50">
           <p className="text-xs text-teal-700 dark:text-teal-300 font-medium flex items-center gap-1.5">
@@ -242,7 +477,25 @@ function DosageCalculator() {
                   : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
               } dark:bg-gray-800 focus:outline-none`}
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Enter patient weight in kilograms</p>
+            <div className="flex items-center gap-2 mt-1.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Enter patient weight in kilograms</p>
+              {weight && !isNaN(parseFloat(weight)) && parseFloat(weight) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const kg = parseFloat(weight);
+                    const lbs = (kg * 2.20462).toFixed(1);
+                    if (confirm(`Convert to pounds? ${kg} kg = ${lbs} lbs`)) {
+                      // Just show conversion, don't change input
+                    }
+                  }}
+                  className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
+                  title={`${weight} kg = ${(parseFloat(weight) * 2.20462).toFixed(1)} lbs`}
+                >
+                  ({weight} kg = {(parseFloat(weight) * 2.20462).toFixed(1)} lbs)
+                </button>
+              )}
+            </div>
           </div>
           
           <div>
@@ -458,54 +711,113 @@ function BSACalculator() {
     });
   };
 
+  useEffect(() => {
+    calculate();
+  }, [height, weight, unit]);
+
+  const isValid = (val: string) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num > 0;
+  };
+
   return (
     <CalculatorCard title="Body Surface Area Calculator" icon={Ruler}>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Unit System</label>
-          <select
-            value={unit}
-            onChange={(e) => {
-              setUnit(e.target.value as "metric" | "imperial");
-              setResult(null);
-            }}
-            aria-label="Unit System"
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          >
-            <option value="metric">Metric (cm, kg)</option>
-            <option value="imperial">Imperial (inches, lbs)</option>
-          </select>
+      <div className="space-y-5">
+        <div className="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-lg border border-teal-200/50 dark:border-teal-800/50">
+          <p className="text-xs text-teal-700 dark:text-teal-300 font-medium flex items-center gap-1.5">
+            <Info size={14} />
+            Formula: BSA = √[(Height × Weight) / 3600] (Mosteller formula)
+          </p>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Height ({unit === "metric" ? "cm" : "inches"})</label>
-          <input
-            type="number"
-            value={height}
-            onChange={(e) => setHeight(e.target.value)}
-            onBlur={calculate}
-            placeholder={unit === "metric" ? "170" : "67"}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Weight ({unit === "metric" ? "kg" : "lbs"})</label>
-          <input
-            type="number"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            onBlur={calculate}
-            placeholder={unit === "metric" ? "70" : "154"}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          />
-        </div>
-        {result && (
-          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
-            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-              {result.value.toFixed(3)} {result.unit}
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">Unit System</label>
+            <select
+              value={unit}
+              onChange={(e) => {
+                setUnit(e.target.value as "metric" | "imperial");
+              }}
+              aria-label="Unit System"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 focus:outline-none transition-all"
+            >
+              <option value="metric">Metric (cm, kg)</option>
+              <option value="imperial">Imperial (inches, lbs)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+              Height ({unit === "metric" ? "cm" : "inches"})
+              {isValid(height) && <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />}
+            </label>
+            <input
+              type="number"
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              placeholder={unit === "metric" ? "170" : "67"}
+              className={`w-full px-4 py-3 border rounded-xl transition-all ${
+                isValid(height)
+                  ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
+              } dark:bg-gray-800 focus:outline-none`}
+            />
+            <div className="flex items-center gap-2 mt-1.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Enter patient height</p>
+              {height && !isNaN(parseFloat(height)) && parseFloat(height) > 0 && unit === "metric" && (
+                <span className="text-xs text-teal-600 dark:text-teal-400">
+                  ({height} cm = {(parseFloat(height) / 2.54).toFixed(1)} in)
+                </span>
+              )}
+              {height && !isNaN(parseFloat(height)) && parseFloat(height) > 0 && unit === "imperial" && (
+                <span className="text-xs text-teal-600 dark:text-teal-400">
+                  ({height} in = {(parseFloat(height) * 2.54).toFixed(1)} cm)
+                </span>
+              )}
             </div>
-            <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-              Using Mosteller formula: BSA = √[(Height × Weight) / 3600]
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+              Weight ({unit === "metric" ? "kg" : "lbs"})
+              {isValid(weight) && <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />}
+            </label>
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder={unit === "metric" ? "70" : "154"}
+              className={`w-full px-4 py-3 border rounded-xl transition-all ${
+                isValid(weight)
+                  ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
+              } dark:bg-gray-800 focus:outline-none`}
+            />
+            <div className="flex items-center gap-2 mt-1.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Enter patient weight</p>
+              {weight && !isNaN(parseFloat(weight)) && parseFloat(weight) > 0 && unit === "metric" && (
+                <span className="text-xs text-teal-600 dark:text-teal-400">
+                  ({weight} kg = {(parseFloat(weight) * 2.20462).toFixed(1)} lbs)
+                </span>
+              )}
+              {weight && !isNaN(parseFloat(weight)) && parseFloat(weight) > 0 && unit === "imperial" && (
+                <span className="text-xs text-teal-600 dark:text-teal-400">
+                  ({weight} lbs = {(parseFloat(weight) * 0.453592).toFixed(1)} kg)
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {result && (
+          <div className="mt-6 p-5 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 rounded-xl border-2 border-teal-300 dark:border-teal-700 shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Ruler className="text-teal-600 dark:text-teal-400" size={20} />
+              <span className="text-sm font-semibold text-teal-700 dark:text-teal-300">Calculation Result</span>
+            </div>
+            <div className="text-3xl font-bold text-teal-700 dark:text-teal-300 mb-2">
+              {result.value.toFixed(3)} <span className="text-xl">{result.unit}</span>
+            </div>
+            <div className="text-sm text-teal-800 dark:text-teal-200 mt-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+              {result.explanation}
             </div>
           </div>
         )}
@@ -548,68 +860,113 @@ function CreatinineClearanceCalculator() {
     });
   };
 
+  useEffect(() => {
+    calculate();
+  }, [age, weight, creatinine, gender]);
+
+  const isValid = (val: string) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num > 0;
+  };
+
   return (
     <CalculatorCard title="Creatinine Clearance Calculator" icon={Activity}>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Age (years)</label>
-          <input
-            type="number"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            onBlur={calculate}
-            placeholder="45"
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          />
+      <div className="space-y-5">
+        <div className="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-lg border border-teal-200/50 dark:border-teal-800/50">
+          <p className="text-xs text-teal-700 dark:text-teal-300 font-medium flex items-center gap-1.5">
+            <Info size={14} />
+            Formula: CrCl = [(140 - Age) × Weight × Gender Factor] ÷ (72 × Creatinine) (Cockcroft-Gault)
+          </p>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Weight (kg)</label>
-          <input
-            type="number"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            onBlur={calculate}
-            placeholder="70"
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          />
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+              Age (years)
+              {isValid(age) && <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />}
+            </label>
+            <input
+              type="number"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="45"
+              className={`w-full px-4 py-3 border rounded-xl transition-all ${
+                isValid(age)
+                  ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
+              } dark:bg-gray-800 focus:outline-none`}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Patient age in years</p>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+              Weight (kg)
+              {isValid(weight) && <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />}
+            </label>
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="70"
+              className={`w-full px-4 py-3 border rounded-xl transition-all ${
+                isValid(weight)
+                  ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
+              } dark:bg-gray-800 focus:outline-none`}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Patient weight in kilograms</p>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+              Serum Creatinine (mg/dL)
+              {isValid(creatinine) && <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />}
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={creatinine}
+              onChange={(e) => setCreatinine(e.target.value)}
+              placeholder="1.0"
+              className={`w-full px-4 py-3 border rounded-xl transition-all ${
+                isValid(creatinine)
+                  ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
+              } dark:bg-gray-800 focus:outline-none`}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Serum creatinine level</p>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Gender</label>
+            <select
+              value={gender}
+              onChange={(e) => {
+                setGender(e.target.value as "male" | "female");
+              }}
+              aria-label="Gender"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 focus:outline-none transition-all"
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Serum Creatinine (mg/dL)</label>
-          <input
-            type="number"
-            step="0.1"
-            value={creatinine}
-            onChange={(e) => setCreatinine(e.target.value)}
-            onBlur={calculate}
-            placeholder="1.0"
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Gender</label>
-          <select
-            value={gender}
-            onChange={(e) => {
-              setGender(e.target.value as "male" | "female");
-              calculate();
-            }}
-            aria-label="Gender"
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          >
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </div>
+
         {result && (
-          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
-            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-              {result.value.toFixed(1)} {result.unit}
+          <div className="mt-6 p-5 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 rounded-xl border-2 border-teal-300 dark:border-teal-700 shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="text-teal-600 dark:text-teal-400" size={20} />
+              <span className="text-sm font-semibold text-teal-700 dark:text-teal-300">Calculation Result</span>
             </div>
-            <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
+            <div className="text-3xl font-bold text-teal-700 dark:text-teal-300 mb-2">
+              {result.value.toFixed(1)} <span className="text-xl">{result.unit}</span>
+            </div>
+            <div className="text-sm text-teal-800 dark:text-teal-200 mt-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+              {result.explanation}
+            </div>
             {result.warnings && result.warnings.length > 0 && (
-              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <div className="flex items-start gap-2">
-                  <Info className="text-yellow-600 dark:text-yellow-400 mt-0.5" size={16} />
+                  <AlertCircle className="text-yellow-600 dark:text-yellow-400 mt-0.5" size={16} />
                   <div className="text-sm text-yellow-800 dark:text-yellow-200">
                     {result.warnings.map((w, i) => (
                       <div key={i}>• {w}</div>
@@ -618,9 +975,6 @@ function CreatinineClearanceCalculator() {
                 </div>
               </div>
             )}
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-              Using Cockcroft-Gault formula
-            </div>
           </div>
         )}
       </div>
@@ -657,51 +1011,97 @@ function PediatricDoseCalculator() {
     });
   };
 
+  useEffect(() => {
+    calculate();
+  }, [age, weight, adultDose]);
+
+  const isValid = (val: string) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num > 0;
+  };
+
   return (
     <CalculatorCard title="Pediatric Dose Calculator" icon={Baby}>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Age (years)</label>
-          <input
-            type="number"
-            step="0.1"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            onBlur={calculate}
-            placeholder="5"
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          />
+      <div className="space-y-5">
+        <div className="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-lg border border-teal-200/50 dark:border-teal-800/50">
+          <p className="text-xs text-teal-700 dark:text-teal-300 font-medium flex items-center gap-1.5">
+            <Info size={14} />
+            Uses Young's rule and Clark's rule - always uses the lower (safer) value
+          </p>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Weight (kg)</label>
-          <input
-            type="number"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            onBlur={calculate}
-            placeholder="20"
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          />
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+              Age (years)
+              {isValid(age) && <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />}
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="5"
+              className={`w-full px-4 py-3 border rounded-xl transition-all ${
+                isValid(age)
+                  ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
+              } dark:bg-gray-800 focus:outline-none`}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Patient age in years</p>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+              Weight (kg)
+              {isValid(weight) && <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />}
+            </label>
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="20"
+              className={`w-full px-4 py-3 border rounded-xl transition-all ${
+                isValid(weight)
+                  ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
+              } dark:bg-gray-800 focus:outline-none`}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Patient weight in kilograms</p>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+              Adult Dose (mg)
+              {isValid(adultDose) && <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />}
+            </label>
+            <input
+              type="number"
+              value={adultDose}
+              onChange={(e) => setAdultDose(e.target.value)}
+              placeholder="500"
+              className={`w-full px-4 py-3 border rounded-xl transition-all ${
+                isValid(adultDose)
+                  ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10"
+                  : "border-gray-300 dark:border-gray-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800"
+              } dark:bg-gray-800 focus:outline-none`}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Standard adult dose</p>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Adult Dose (mg)</label>
-          <input
-            type="number"
-            value={adultDose}
-            onChange={(e) => setAdultDose(e.target.value)}
-            onBlur={calculate}
-            placeholder="500"
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-          />
-        </div>
+
         {result && (
-          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
-            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-              {result.value.toFixed(2)} {result.unit}
+          <div className="mt-6 p-5 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 rounded-xl border-2 border-teal-300 dark:border-teal-700 shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Baby className="text-teal-600 dark:text-teal-400" size={20} />
+              <span className="text-sm font-semibold text-teal-700 dark:text-teal-300">Calculation Result</span>
             </div>
-            <div className="text-sm text-gray-700 dark:text-gray-300 mt-2">{result.explanation}</div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-              Always verify with pediatric dosing references
+            <div className="text-3xl font-bold text-teal-700 dark:text-teal-300 mb-2">
+              {result.value.toFixed(2)} <span className="text-xl">{result.unit}</span>
+            </div>
+            <div className="text-sm text-teal-800 dark:text-teal-200 mt-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+              {result.explanation}
+            </div>
+            <div className="text-xs text-amber-700 dark:text-amber-300 mt-3 p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded-lg">
+              ⚠️ Always verify with pediatric dosing references
             </div>
           </div>
         )}
@@ -2627,16 +3027,232 @@ function CalculatorCard({
   title,
   icon: Icon,
   children,
+  result,
+  inputs,
 }: {
   title: string;
   icon: typeof Calculator;
   children: React.ReactNode;
+  result?: CalculatorResult | null;
+  inputs?: Record<string, any>;
 }) {
+  const { selectedPatient } = useDashboard();
+  
+  const handleExport = () => {
+    if (!result) return;
+    
+    // Save to history when exporting
+    if (selectedPatient?.id) {
+      const historyKey = `${STORAGE_KEYS.HISTORY}_${selectedPatient.id}`;
+      try {
+        const existing = localStorage.getItem(historyKey);
+        const history = existing ? JSON.parse(existing) : [];
+        const calculation = {
+          id: `calc-${Date.now()}`,
+          calculator: title,
+          inputs: inputs || {},
+          result: {
+            value: result.value,
+            unit: result.unit,
+            explanation: result.explanation,
+            warnings: result.warnings,
+          },
+          timestamp: new Date().toISOString(),
+          patientId: selectedPatient.id,
+          patientName: selectedPatient.name,
+        };
+        history.unshift(calculation);
+        const limited = history.slice(0, 50);
+        localStorage.setItem(historyKey, JSON.stringify(limited));
+      } catch (e) {
+        console.error("Error saving calculation history:", e);
+      }
+    }
+    
+    const data = {
+      calculator: title,
+      patient: selectedPatient ? `${selectedPatient.name} (${selectedPatient.id})` : "No patient selected",
+      date: new Date().toISOString(),
+      inputs: inputs || {},
+      result: {
+        value: result.value,
+        unit: result.unit,
+        explanation: result.explanation,
+        warnings: result.warnings,
+      },
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
+  const handlePrint = () => {
+    if (!result) return;
+    
+    // Save to history when printing/exporting
+    if (selectedPatient?.id) {
+      const historyKey = `${STORAGE_KEYS.HISTORY}_${selectedPatient.id}`;
+      try {
+        const existing = localStorage.getItem(historyKey);
+        const history = existing ? JSON.parse(existing) : [];
+        const calculation = {
+          id: `calc-${Date.now()}`,
+          calculator: title,
+          inputs: inputs || {},
+          result: {
+            value: result.value,
+            unit: result.unit,
+            explanation: result.explanation,
+            warnings: result.warnings,
+          },
+          timestamp: new Date().toISOString(),
+          patientId: selectedPatient.id,
+          patientName: selectedPatient.name,
+        };
+        history.unshift(calculation);
+        const limited = history.slice(0, 50);
+        localStorage.setItem(historyKey, JSON.stringify(limited));
+      } catch (e) {
+        console.error("Error saving calculation history:", e);
+      }
+    }
+    
+    const orgDetails = getOrganizationDetails();
+    const orgFooter = getOrganizationFooter();
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            @page { margin: 1in; size: letter; }
+            body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+            .org-header {
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+              text-align: center;
+            }
+            .org-name {
+              font-size: 22px;
+              font-weight: 700;
+              color: #1e40af;
+              margin: 0 0 5px 0;
+            }
+            .org-type {
+              font-size: 14px;
+              color: #4b5563;
+              margin: 0 0 8px 0;
+              font-weight: 500;
+            }
+            .org-details {
+              font-size: 11px;
+              color: #6b7280;
+              line-height: 1.5;
+              margin: 0;
+            }
+            .document-header {
+              text-align: center;
+              margin: 25px 0;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .document-header h1 {
+              margin: 0;
+              font-size: 20px;
+              color: #14b8a6;
+              font-weight: 600;
+            }
+            .result { font-size: 24px; font-weight: bold; margin: 20px 0; color: #1e40af; }
+            .info { margin: 10px 0; }
+            .warning { color: #f59e0b; margin: 10px 0; }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              font-size: 11px;
+              color: #6b7280;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="org-header">
+            <div class="org-name">${orgDetails.name}</div>
+            <div class="org-type">${orgDetails.type}</div>
+            <div class="org-details">
+              ${orgDetails.address}, ${orgDetails.city}, ${orgDetails.state} ${orgDetails.zipCode}<br>
+              Phone: ${orgDetails.phone}${orgDetails.fax ? ` | Fax: ${orgDetails.fax}` : ""}${orgDetails.email ? ` | Email: ${orgDetails.email}` : ""}
+            </div>
+          </div>
+
+          <div class="document-header">
+            <h1>${title}</h1>
+          </div>
+
+          ${selectedPatient ? `<p class="info"><strong>Patient:</strong> ${selectedPatient.name}</p>` : ""}
+          <p class="info"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+          ${inputs ? Object.entries(inputs).map(([key, value]) => 
+            `<p class="info"><strong>${key}:</strong> ${value}</p>`
+          ).join("") : ""}
+          <div class="result">${result.value.toFixed(2)} ${result.unit}</div>
+          ${result.explanation ? `<p class="info">${result.explanation}</p>` : ""}
+          ${result.warnings && result.warnings.length > 0 ? 
+            `<div class="warning"><strong>Warnings:</strong><ul>${result.warnings.map(w => `<li>${w}</li>`).join("")}</ul></div>` 
+            : ""}
+          
+          <div class="footer">
+            ${orgFooter}<br>
+            Generated: ${new Date().toLocaleString()}<br>
+            This is a medical calculation document. For clinical reference only.
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+  };
+  
   return (
     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-      <div className="flex items-center gap-3 mb-6">
-        <Icon className="text-teal-600 dark:text-teal-400" size={24} />
-        <h3 className="text-xl font-bold">{title}</h3>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Icon className="text-teal-600 dark:text-teal-400" size={24} />
+          <h3 className="text-xl font-bold">{title}</h3>
+        </div>
+        {result && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              title="Export calculation"
+            >
+              <Download size={18} />
+            </button>
+            <button
+              onClick={handlePrint}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              title="Print calculation"
+            >
+              <Printer size={18} />
+            </button>
+          </div>
+        )}
       </div>
       {children}
     </div>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<!-- eslint-disable -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinical Staff Login - Role Selection</title>
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          fontSize: {
+            'xs': ['0.75rem', { lineHeight: '1.5rem', letterSpacing: '-0.005em' }],
+            'sm': ['0.875rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+            'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+            'lg': ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '-0.015em' }],
+            'xl': ['1.25rem', { lineHeight: '1.4rem', letterSpacing: '-0.015em' }],
+            '2xl': ['1.5rem', { lineHeight: '1.3rem', letterSpacing: '-0.02em' }],
+          },
+          colors: {
+            primary: {
+              50: '#f0fdfa', 500: '#14b8a6', 600: '#0d9488',
+            },
+            success: {
+              50: '#ecfdf5', 500: '#10b981', 600: '#059669',
+            },
+            warning: {
+              50: '#fffbeb', 500: '#f59e0b', 600: '#d97706',
+            },
+            destructive: {
+              50: '#fff1f2', 500: '#f43f5e', 600: '#e11d48',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      letter-spacing: -0.01em;
+      line-height: 1.5;
+    }
+    .role-card {
+      transition: all 200ms ease;
+      cursor: pointer;
+    }
+    .role-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+    .role-card:active {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-6xl">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-500 rounded-2xl mb-4">
+          <span class="text-3xl">🩺</span>
+        </div>
+        <h1 class="text-3xl font-bold mb-2" style="letter-spacing: -0.025em; line-height: 1.2;">
+          Clinical Staff Portal
+        </h1>
+        <p class="text-base text-gray-600 mb-4" style="letter-spacing: -0.01em;">
+          Select your role to view your personalized interface
+        </p>
+        <!-- Quick Login Button -->
+        <div class="flex justify-center gap-3">
+          <a href="mock-role-physician.html" class="px-6 py-3 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-all shadow-md hover:shadow-lg font-medium">
+            🔐 Login as Physician
+          </a>
+        </div>
+      </div>
+
+      <!-- Role Selection Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <!-- Physician/Doctor -->
+        <a href="mock-role-physician.html" class="role-card bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:border-primary-300">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
+              <span class="text-2xl">👨‍⚕️</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em; line-height: 1.4;">
+                Physician
+              </h3>
+              <p class="text-sm text-gray-600 mb-3" style="letter-spacing: -0.01em;">
+                Patient care, clinical notes, prescriptions
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 text-xs font-medium bg-primary-50 text-primary-600 rounded-lg">
+                  Full Access
+                </span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        <!-- Nurse -->
+        <a href="mock-role-nurse.html" class="role-card bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:border-primary-300">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-success-50 rounded-xl flex items-center justify-center">
+              <span class="text-2xl">👩‍⚕️</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em; line-height: 1.4;">
+                Nurse
+              </h3>
+              <p class="text-sm text-gray-600 mb-3" style="letter-spacing: -0.01em;">
+                Vitals, patient monitoring, care coordination
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                  Clinical Access
+                </span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        <!-- Radiologist -->
+        <a href="mock-imaging-2-viewer-report.html" class="role-card bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:border-primary-300">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-warning-50 rounded-xl flex items-center justify-center">
+              <span class="text-2xl">🔬</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em; line-height: 1.4;">
+                Radiologist
+              </h3>
+              <p class="text-sm text-gray-600 mb-3" style="letter-spacing: -0.01em;">
+                Imaging studies, DICOM viewer, reports
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 text-xs font-medium bg-warning-50 text-warning-600 rounded-lg">
+                  Imaging Access
+                </span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        <!-- Lab Technician -->
+        <a href="mock-lab-results-1-table.html" class="role-card bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:border-primary-300">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
+              <span class="text-2xl">🧪</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em; line-height: 1.4;">
+                Lab Technician
+              </h3>
+              <p class="text-sm text-gray-600 mb-3" style="letter-spacing: -0.01em;">
+                Lab results, test orders, specimen tracking
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 text-xs font-medium bg-primary-50 text-primary-600 rounded-lg">
+                  Lab Access
+                </span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        <!-- Medical Assistant -->
+        <a href="mock-role-medical-assistant.html" class="role-card bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:border-primary-300">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-success-50 rounded-xl flex items-center justify-center">
+              <span class="text-2xl">💼</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em; line-height: 1.4;">
+                Medical Assistant
+              </h3>
+              <p class="text-sm text-gray-600 mb-3" style="letter-spacing: -0.01em;">
+                Appointments, patient intake, documentation
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 text-xs font-medium bg-success-50 text-success-600 rounded-lg">
+                  Limited Access
+                </span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        <!-- Administrator -->
+        <a href="mock-role-administrator.html" class="role-card bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:border-primary-300">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-warning-50 rounded-xl flex items-center justify-center">
+              <span class="text-2xl">⚙️</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-1" style="letter-spacing: -0.01em; line-height: 1.4;">
+                Administrator
+              </h3>
+              <p class="text-sm text-gray-600 mb-3" style="letter-spacing: -0.01em;">
+                System settings, user management, reports
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-1 text-xs font-medium bg-warning-50 text-warning-600 rounded-lg">
+                  Admin Access
+                </span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+        <h2 class="text-lg font-semibold mb-4" style="letter-spacing: -0.01em; line-height: 1.4;">
+          Quick Access
+        </h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <a href="mock-example-1-dashboard.html" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 text-center transition-colors">
+            Dashboard
+          </a>
+          <a href="mock-lab-results-2-detailed.html" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 text-center transition-colors">
+            Lab Results
+          </a>
+          <a href="mock-imaging-1-studies-list.html" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 text-center transition-colors">
+            Imaging
+          </a>
+          <a href="mock-example-2-form-modal.html" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 text-center transition-colors">
+            Forms
+          </a>
+        </div>
+      </div>
+
+      <!-- Footer Note -->
+      <div class="text-center mt-8">
+        <p class="text-xs text-gray-500" style="letter-spacing: -0.005em;">
+          Demo interface - Click any role card to view that staff member's personalized dashboard
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

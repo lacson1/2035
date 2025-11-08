@@ -18,7 +18,9 @@ import {
 } from "lucide-react";
 import { User, UserRole } from "../types";
 import { useUsers } from "../hooks/useUsers";
+import { useToast } from "../context/ToastContext";
 import { getAllRoles, getRoleName, getRolePermissions, hasPermission } from "../data/roles";
+import { logger } from "../utils/logger";
 
 interface UserManagementProps {
   currentUser: User | null;
@@ -26,15 +28,31 @@ interface UserManagementProps {
 }
 
 export default function UserManagement({ currentUser }: UserManagementProps) {
-  const { users: loadedUsers } = useUsers();
-  const [users, setUsers] = useState<User[]>(loadedUsers);
-  
-  // Update users when loaded from API
+  const { users: loadedUsers, isLoading: isLoadingUsers, error: usersError } = useUsers();
+  const toast = useToast();
+  const [users, setUsers] = useState<User[]>([]);
+
+  // Debug logging
   useEffect(() => {
-    if (loadedUsers.length > 0) {
-      setUsers(loadedUsers);
-    }
+    logger.debug('UserManagement - Current user:', currentUser);
+    logger.debug('UserManagement - Loaded users:', loadedUsers);
+    logger.debug('UserManagement - Loading:', isLoadingUsers);
+    logger.debug('UserManagement - Error:', usersError);
+  }, [currentUser, loadedUsers, isLoadingUsers, usersError]);
+
+  // Update users when loaded from API - always update, even if empty
+  useEffect(() => {
+    logger.debug('UserManagement - Setting users from loadedUsers:', loadedUsers.length);
+    setUsers(loadedUsers);
   }, [loadedUsers]);
+
+  // Show error if users failed to load
+  useEffect(() => {
+    if (usersError) {
+      logger.error('UserManagement - Failed to load users:', usersError);
+      toast.error(usersError.message || 'Failed to load users');
+    }
+  }, [usersError, toast]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -49,11 +67,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     email: editingUser?.email || "",
     firstName: editingUser?.firstName || "",
     lastName: editingUser?.lastName || "",
-    role: (editingUser?.role || "read_only") as UserRole,
+    role: (editingUser?.role || "receptionist") as UserRole,
     specialty: editingUser?.specialty || "",
     department: editingUser?.department || "",
     phone: editingUser?.phone || "",
     isActive: editingUser?.isActive ?? true,
+    password: "", // For new users only
   };
 
   const [formState, setFormState] = useState(formData);
@@ -70,6 +89,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         department: editingUser.department || "",
         phone: editingUser.phone || "",
         isActive: editingUser.isActive,
+        password: "", // Don't show password for existing users
       });
     } else {
       setFormState({
@@ -77,11 +97,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         email: "",
         firstName: "",
         lastName: "",
-        role: "read_only",
+        role: "receptionist",
         specialty: "",
         department: "",
         phone: "",
         isActive: true,
+        password: "",
       });
     }
   }, [editingUser]);
@@ -104,36 +125,46 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleSave = (e: FormEvent) => {
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!canManageUsers) return;
 
-    const userData: User = editingUser
-      ? {
-          ...editingUser,
-          ...formState,
-          updatedAt: new Date().toISOString(),
+    try {
+      const { userService } = await import("../services/users");
+      
+      if (editingUser) {
+        // Update existing user
+        const updatedUser = await userService.updateUser(editingUser.id, formState);
+        setUsers(users.map((u) => (u.id === editingUser.id ? updatedUser.data : u)));
+        toast.success('User updated successfully');
+      } else {
+        // Create new user - need password
+        if (!formState.password || formState.password.length < 8) {
+          toast.warning('Password is required and must be at least 8 characters');
+          return;
         }
-      : {
-          id: `user-${Date.now()}`,
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newUser = await userService.createUser({
           ...formState,
-          createdAt: new Date().toISOString(),
-        };
+          password: (formState as any).password,
+        } as any);
+        setUsers([...users, newUser.data]);
+        toast.success('User created successfully');
+      }
 
-    if (editingUser) {
-      setUsers(users.map((u) => (u.id === editingUser.id ? userData : u)));
-    } else {
-      setUsers([...users, userData]);
+      setOpenAddEdit(false);
+      setEditingUser(null);
+    } catch (error: any) {
+      logger.error('Failed to save user:', error);
+      toast.error(error?.message || 'Failed to save user');
     }
-
-    setOpenAddEdit(false);
-    setEditingUser(null);
   };
 
   const handleDelete = (userId: string) => {
     if (!canManageUsers || !confirm("Are you sure you want to delete this user?")) return;
     if (userId === currentUser?.id) {
-      alert("You cannot delete your own account");
+      toast.warning("You cannot delete your own account");
       return;
     }
     setUsers(users.filter((u) => u.id !== userId));
@@ -142,7 +173,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const handleToggleActive = (userId: string) => {
     if (!canManageUsers) return;
     if (userId === currentUser?.id) {
-      alert("You cannot deactivate your own account");
+      toast.warning("You cannot deactivate your own account");
       return;
     }
     setUsers(
@@ -166,9 +197,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       therapist: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700",
       social_worker: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700",
       care_coordinator: "bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-200 border-sky-300 dark:border-sky-700",
-      read_only: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600",
     };
-    return colorMap[role] || colorMap.read_only;
+    return colorMap[role] || "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600";
   };
 
   if (!canManageUsers) {
@@ -195,7 +225,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Users size={20} className="text-teal-600 dark:text-teal-400" />
             User Management
+            {isLoadingUsers && <span className="text-sm text-gray-500">(Loading...)</span>}
+            {usersError && <span className="text-sm text-red-500">(Error: {usersError.message})</span>}
           </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Showing {users.length} user{users.length !== 1 ? 's' : ''} {loadedUsers.length !== users.length && `(${loadedUsers.length} loaded)`}
+          </p>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Manage system users and their roles
           </p>
@@ -223,10 +258,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         />
         <div className="flex gap-3">
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+            <label htmlFor="role-filter" className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
               Role
             </label>
             <select
+              id="role-filter"
+              aria-label="Filter by role"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value as UserRole | "all")}
               className="text-sm border rounded px-3 py-1 dark:bg-gray-700 dark:border-gray-600"
@@ -240,10 +277,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+            <label htmlFor="status-filter" className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
               Status
             </label>
             <select
+              id="status-filter"
+              aria-label="Filter by status"
               value={statusFilter}
               onChange={(e) =>
                 setStatusFilter(e.target.value as "all" | "active" | "inactive")
@@ -285,7 +324,29 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredUsers.map((user) => {
+              {isLoadingUsers ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                    Loading users...
+                  </td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                    {usersError ? (
+                      <div>
+                        <p className="text-red-600 dark:text-red-400 font-medium mb-1">Failed to load users</p>
+                        <p className="text-sm">{usersError.message}</p>
+                      </div>
+                    ) : searchTerm || roleFilter !== "all" || statusFilter !== "all" ? (
+                      "No users match your filters"
+                    ) : (
+                      "No users found. Click 'Add User' to create one."
+                    )}
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user) => {
                 return (
                   <tr
                     key={user.id}
@@ -395,7 +456,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
@@ -405,7 +466,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
           <div className="border-t dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900">
             {(() => {
               const user = users.find((u) => u.id === showPermissions);
-              const userRole = (user?.role || "read_only") as UserRole;
+              const userRole = (user?.role || "receptionist") as UserRole;
               const permissions = getRolePermissions(userRole);
               return (
                 <div>
@@ -415,6 +476,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     </h4>
                     <button
                       onClick={() => setShowPermissions(null)}
+                      aria-label="Close permissions view"
                       className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     >
                       <X size={18} />
@@ -467,6 +529,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   setOpenAddEdit(false);
                   setEditingUser(null);
                 }}
+                aria-label="Close user form"
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 <X size={20} />
@@ -475,8 +538,9 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             <form onSubmit={handleSave} className="space-y-5">
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">First Name</label>
+                  <label htmlFor="firstName" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">First Name</label>
                   <input
+                    id="firstName"
                     type="text"
                     required
                     value={formState.firstName}
@@ -487,8 +551,9 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Last Name</label>
+                  <label htmlFor="lastName" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Last Name</label>
                   <input
+                    id="lastName"
                     type="text"
                     required
                     value={formState.lastName}
@@ -502,8 +567,9 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Username</label>
+                  <label htmlFor="username" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Username</label>
                   <input
+                    id="username"
                     type="text"
                     required
                     value={formState.username}
@@ -511,12 +577,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                       setFormState({ ...formState, username: e.target.value })
                     }
                     className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
-                    disabled={!!editingUser}
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Email</label>
+                  <label htmlFor="email" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Email</label>
                   <input
+                    id="email"
                     type="email"
                     required
                     value={formState.email}
@@ -530,8 +596,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Role</label>
+                  <label htmlFor="role" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Role</label>
                   <select
+                    id="role"
+                    aria-label="Select user role"
                     required
                     value={formState.role}
                     onChange={(e) =>
@@ -547,8 +615,9 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Department</label>
+                  <label htmlFor="department" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Department</label>
                   <input
+                    id="department"
                     type="text"
                     value={formState.department}
                     onChange={(e) =>
@@ -561,8 +630,9 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Specialty (Optional)</label>
+                  <label htmlFor="specialty" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Specialty (Optional)</label>
                   <input
+                    id="specialty"
                     type="text"
                     value={formState.specialty}
                     onChange={(e) =>
@@ -572,8 +642,9 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Phone</label>
+                  <label htmlFor="phone" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Phone</label>
                   <input
+                    id="phone"
                     type="tel"
                     value={formState.phone}
                     onChange={(e) =>
@@ -583,6 +654,30 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   />
                 </div>
               </div>
+
+              {/* Password field - only for new users */}
+              {!editingUser && (
+                <div>
+                  <label htmlFor="password" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    required={!editingUser}
+                    value={formState.password}
+                    onChange={(e) =>
+                      setFormState({ ...formState, password: e.target.value })
+                    }
+                    placeholder="Enter password (min 8 characters)"
+                    minLength={8}
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Password must be at least 8 characters long
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center gap-3">
                 <input

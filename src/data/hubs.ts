@@ -1,94 +1,138 @@
 /**
- * Hub Configuration - Reference Data
+ * Hub Configuration
  * 
- * In production, these should be loaded from the backend API or database.
- * For now, kept as minimal reference data.
+ * Loads hubs from the backend API. Falls back to cached data if API is unavailable.
  */
+
+import { hubService, Hub as ApiHub } from '../services/hubs';
+import { SpecialtyType } from '../types';
 
 export type HubId = string;
 
-export interface Hub {
-  id: HubId;
-  name: string;
-  description: string;
-  color: string;
+// Re-export Hub type for convenience
+export type Hub = ApiHub;
+
+// Cache for hubs (fallback if API fails)
+let cachedHubs: Hub[] = [];
+let hubsLoaded = false;
+
+// Specialty to Hub ID mapping
+const specialtyToHubMap: Record<string, HubId> = {
+  cardiology: 'cardiology',
+  endocrinology: 'endocrinology',
+  neurology: 'neurology',
+  dermatology: 'dermatology',
+  gastroenterology: 'gastroenterology',
+  orthopedics: 'orthopedics',
+  pediatrics: 'pediatrics',
+  psychiatry: 'psychiatry',
+  oncology: 'oncology',
+  emergency: 'emergency',
+  'general_surgery': 'general_surgery',
+  // Additional mappings
+  'cardiac': 'cardiology',
+  'cardiac_surgery': 'cardiology',
+  'endocrinology_diabetes': 'endocrinology',
+  'neurological': 'neurology',
+  'dermatological': 'dermatology',
+  'gi': 'gastroenterology',
+  'gastro': 'gastroenterology',
+  'orthopedic': 'orthopedics',
+  'pediatric': 'pediatrics',
+  'psychiatric': 'psychiatry',
+  'cancer': 'oncology',
+  'emergency_medicine': 'emergency',
+  'surgery': 'general_surgery',
+  'surgical': 'general_surgery',
+};
+
+/**
+ * Load hubs from API
+ */
+export async function loadHubs(): Promise<Hub[]> {
+  try {
+    const response = await hubService.getHubs({ limit: 100 });
+    // Backend returns: { data: Hub[], meta: {...} }
+    // API client wraps it: { data: { data: Hub[], meta: {...} }, message, errors }
+    // So we need: response.data.data (the array of hubs)
+    const hubs = Array.isArray(response.data?.data) 
+      ? response.data.data 
+      : Array.isArray(response.data) 
+        ? response.data 
+        : [];
+    
+    if (hubs.length > 0) {
+      cachedHubs = hubs;
+      hubsLoaded = true;
+      console.log(`✅ Loaded ${hubs.length} hubs from API`);
+    }
+    return hubs;
+  } catch (error) {
+    console.warn('Failed to load hubs from API, using cached data:', error);
+    // Return cached hubs if available, otherwise return empty array
+    return cachedHubs;
+  }
 }
 
-// Hub definitions - should be loaded from API in production
-const hubs: Hub[] = [
-  {
-    id: "cardiology",
-    name: "Cardiology",
-    description: "Heart and cardiovascular care, including heart disease management, cardiac procedures, and cardiovascular monitoring.",
-    color: "red",
-  },
-  {
-    id: "oncology",
-    name: "Oncology",
-    description: "Cancer care and treatment, including chemotherapy, radiation therapy, and cancer screening programs.",
-    color: "purple",
-  },
-  {
-    id: "pediatrics",
-    name: "Pediatrics",
-    description: "Medical care for infants, children, and adolescents, including well-child visits and pediatric specialty care.",
-    color: "blue",
-  },
-  {
-    id: "orthopedics",
-    name: "Orthopedics",
-    description: "Musculoskeletal care, including joint replacement, sports medicine, and fracture management.",
-    color: "green",
-  },
-  {
-    id: "neurology",
-    name: "Neurology",
-    description: "Brain and nervous system care, including stroke management, epilepsy treatment, and neurological disorders.",
-    color: "indigo",
-  },
-  {
-    id: "psychiatry",
-    name: "Psychiatry",
-    description: "Mental health care, including therapy, medication management, and psychiatric evaluation.",
-    color: "pink",
-  },
-  {
-    id: "dermatology",
-    name: "Dermatology",
-    description: "Skin care and treatment, including dermatological conditions, skin cancer screening, and cosmetic procedures.",
-    color: "orange",
-  },
-  {
-    id: "endocrinology",
-    name: "Endocrinology",
-    description: "Hormone and metabolic care, including diabetes management, thyroid disorders, and hormone therapy.",
-    color: "cyan",
-  },
-  {
-    id: "gastroenterology",
-    name: "Gastroenterology",
-    description: "Digestive system care, including gastrointestinal disorders, endoscopy, and liver disease management.",
-    color: "yellow",
-  },
-  {
-    id: "emergency",
-    name: "Emergency Medicine",
-    description: "Acute care and emergency response, including trauma care, urgent medical conditions, and emergency procedures.",
-    color: "red",
-  },
-];
-
-export function getAllHubs(): Hub[] {
-  return hubs;
+/**
+ * Get all hubs (loads from API if not already loaded)
+ */
+export async function getAllHubs(): Promise<Hub[]> {
+  if (hubsLoaded && cachedHubs.length > 0) {
+    return cachedHubs;
+  }
+  return loadHubs();
 }
 
+/**
+ * Get all hubs synchronously (returns cached data)
+ * Use this for synchronous operations, but call getAllHubs() first to ensure data is loaded
+ */
+export function getAllHubsSync(): Hub[] {
+  return cachedHubs;
+}
+
+/**
+ * Get hub by ID
+ */
 export function getHubById(id: HubId): Hub | undefined {
-  return hubs.find(h => h.id === id);
+  return cachedHubs.find(h => h.id === id);
 }
 
-export function getHubBySpecialty(_specialty: string): Hub | undefined {
-  // This should be implemented based on your hub-specialty mapping
-  return undefined;
+/**
+ * Get hub by specialty name
+ */
+export function getHubBySpecialty(specialty: string | SpecialtyType): Hub | undefined {
+  if (!specialty) return undefined;
+  
+  const normalizedSpecialty = specialty.toLowerCase().trim();
+  
+  // Direct match
+  const hubId = specialtyToHubMap[normalizedSpecialty];
+  if (hubId) {
+    return getHubById(hubId);
+  }
+  
+  // Check if any hub has this specialty in its specialties array
+  const hub = cachedHubs.find(h => 
+    h.specialties && h.specialties.some(s => 
+      s.toLowerCase() === normalizedSpecialty
+    )
+  );
+  
+  if (hub) return hub;
+  
+  // Partial match (e.g., "cardiac" matches "cardiology")
+  const partialMatch = cachedHubs.find(h => {
+    const hubName = h.name.toLowerCase();
+    const hubIdLower = h.id.toLowerCase();
+    return hubName.includes(normalizedSpecialty) || 
+           normalizedSpecialty.includes(hubName) ||
+           hubIdLower.includes(normalizedSpecialty) ||
+           normalizedSpecialty.includes(hubIdLower);
+  });
+  
+  return partialMatch;
 }
 
 export function getHubColorClass(hubId: HubId): string {
@@ -107,8 +151,21 @@ export function getHubColorClass(hubId: HubId): string {
     green: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300",
     indigo: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300",
     cyan: "bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300",
+    teal: "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300",
   };
 
   return colorMap[hub.color] || "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300";
+}
+
+/**
+ * Initialize hubs by loading from API
+ * Call this on app startup
+ */
+export async function initializeHubs(): Promise<void> {
+  try {
+    await loadHubs();
+  } catch (error) {
+    console.error('Failed to initialize hubs:', error);
+  }
 }
 

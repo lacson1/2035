@@ -5,6 +5,8 @@
  * Set VITE_SENTRY_DSN in .env file to enable.
  */
 
+import { logger } from './logger';
+
 let sentryInitialized = false;
 
 export const initSentry = () => {
@@ -57,7 +59,7 @@ export const initSentry = () => {
           sentryInitialized = true;
           // Only log in production or if explicitly enabled
           if (import.meta.env.PROD) {
-            console.log('Sentry initialized successfully');
+            logger.info('Sentry initialized successfully');
           }
         })
         .catch(() => {
@@ -67,7 +69,7 @@ export const initSentry = () => {
     } catch (error) {
       // Only log errors in development
       if (import.meta.env.DEV) {
-        console.warn('Sentry initialization skipped:', error instanceof Error ? error.message : 'Unknown error');
+        logger.warn('Sentry initialization skipped:', error instanceof Error ? error.message : 'Unknown error');
       }
     }
   }

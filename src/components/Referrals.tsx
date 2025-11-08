@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowRight,
   Plus,
@@ -24,6 +24,8 @@ import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
 import PrintPreview from "./PrintPreview";
 import { openPrintWindow } from "../utils/popupHandler";
+import { getOrganizationDetails, getOrganizationHeader, getOrganizationFooter } from "../utils/organization";
+import { referralService } from "../services/referrals";
 
 interface ReferralsProps {
   patient?: Patient;
@@ -42,9 +44,45 @@ export default function Referrals({ patient }: ReferralsProps) {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const { users } = useUsers();
-  const [referrals, setReferrals] = useState<Referral[]>(
-    currentPatient?.referrals || []
-  );
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load referrals from API when patient changes
+  useEffect(() => {
+    const loadReferrals = async () => {
+      if (!currentPatient?.id) {
+        setReferrals([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await referralService.getPatientReferrals(currentPatient.id);
+        if (response.data) {
+          // Transform backend data to match frontend Referral type
+          const transformedReferrals = response.data.map((ref: any) => ({
+            ...ref,
+            date: ref.date ? (typeof ref.date === 'string' ? ref.date : new Date(ref.date).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+            appointmentDate: ref.appointmentDate ? (typeof ref.appointmentDate === 'string' ? ref.appointmentDate : new Date(ref.appointmentDate).toISOString().split('T')[0]) : undefined,
+            followUpDate: ref.followUpDate ? (typeof ref.followUpDate === 'string' ? ref.followUpDate : new Date(ref.followUpDate).toISOString().split('T')[0]) : undefined,
+            referringPhysician: ref.referringPhysician ? `${ref.referringPhysician.firstName} ${ref.referringPhysician.lastName}` : undefined,
+            referredToProvider: ref.referredToProvider ? (typeof ref.referredToProvider === 'string' ? ref.referredToProvider : `${ref.referredToProvider.firstName} ${ref.referredToProvider.lastName}`) : undefined,
+          }));
+          setReferrals(transformedReferrals);
+        }
+      } catch (err: any) {
+        console.error('Failed to load referrals:', err);
+        setError(err?.message || 'Failed to load referrals');
+        setReferrals([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadReferrals();
+  }, [currentPatient?.id]);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -75,7 +113,7 @@ export default function Referrals({ patient }: ReferralsProps) {
     const matchesStatus = statusFilter === "all" || ref.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || ref.priority === priorityFilter;
     return matchesSearch && matchesStatus && matchesPriority;
-  });
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const getStatusColor = (status: ReferralStatus) => {
     switch (status) {
@@ -110,61 +148,87 @@ export default function Referrals({ patient }: ReferralsProps) {
     }
   };
 
-  const handleAddReferral = (e: React.FormEvent) => {
+  const handleAddReferral = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newReferral: Referral = {
-      id: `ref-${Date.now()}`,
-      date: formData.date,
-      specialty: formData.specialty,
-      reason: formData.reason,
-      diagnosis: formData.diagnosis || undefined,
-      priority: formData.priority,
-      status: "pending",
-      referringPhysician: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined,
-      referringPhysicianId: currentUser?.id,
-      referredToProvider: formData.referredToProvider || undefined,
-      referredToProviderId: formData.referredToProviderId || undefined,
-      referredToFacility: formData.referredToFacility || undefined,
-      referredToAddress: formData.referredToAddress || undefined,
-      referredToPhone: formData.referredToPhone || undefined,
-      appointmentDate: formData.appointmentDate || undefined,
-      appointmentTime: formData.appointmentTime || undefined,
-      notes: formData.notes || undefined,
-      insurancePreAuth: formData.insurancePreAuth,
-      preAuthNumber: formData.preAuthNumber || undefined,
-      followUpRequired: formData.followUpRequired,
-      followUpDate: formData.followUpDate || undefined,
-    };
+    
+    if (!currentPatient?.id) {
+      setError('No patient selected');
+      return;
+    }
 
-    setReferrals([...referrals, newReferral]);
-    addTimelineEvent(currentPatient.id, {
-      date: newReferral.date,
-      type: "referral",
-      title: `Referral to ${formData.specialty} - ${formData.reason}`,
-      description: `Priority: ${formData.priority}`,
-      icon: "arrow-right",
-    });
+    setIsLoading(true);
+    setError(null);
 
-    setFormData({
-      date: new Date().toISOString().split("T")[0],
-      specialty: "" as SpecialtyType | "",
-      reason: "",
-      diagnosis: "",
-      priority: "routine",
-      referredToProvider: "",
-      referredToProviderId: null,
-      referredToFacility: "",
-      referredToAddress: "",
-      referredToPhone: "",
-      appointmentDate: "",
-      appointmentTime: "",
-      notes: "",
-      insurancePreAuth: false,
-      preAuthNumber: "",
-      followUpRequired: false,
-      followUpDate: "",
-    });
-    setShowAddForm(false);
+    try {
+      const response = await referralService.createReferral(currentPatient.id, {
+        date: formData.date,
+        specialty: formData.specialty,
+        reason: formData.reason,
+        diagnosis: formData.diagnosis || undefined,
+        priority: formData.priority,
+        status: "pending",
+        referringPhysicianId: currentUser?.id,
+        referredToProviderId: formData.referredToProviderId || undefined,
+        referredToProvider: formData.referredToProvider || undefined,
+        referredToFacility: formData.referredToFacility || undefined,
+        referredToAddress: formData.referredToAddress || undefined,
+        referredToPhone: formData.referredToPhone || undefined,
+        appointmentDate: formData.appointmentDate || undefined,
+        appointmentTime: formData.appointmentTime || undefined,
+        notes: formData.notes || undefined,
+        insurancePreAuth: formData.insurancePreAuth,
+        preAuthNumber: formData.preAuthNumber || undefined,
+        followUpRequired: formData.followUpRequired,
+        followUpDate: formData.followUpDate || undefined,
+      });
+
+      if (response.data) {
+        // Transform backend data to match frontend Referral type
+        const newReferral: Referral = {
+          ...response.data,
+          date: response.data.date ? (typeof response.data.date === 'string' ? response.data.date : new Date(response.data.date).toISOString().split('T')[0]) : formData.date,
+          appointmentDate: response.data.appointmentDate ? (typeof response.data.appointmentDate === 'string' ? response.data.appointmentDate : new Date(response.data.appointmentDate).toISOString().split('T')[0]) : undefined,
+          followUpDate: response.data.followUpDate ? (typeof response.data.followUpDate === 'string' ? response.data.followUpDate : new Date(response.data.followUpDate).toISOString().split('T')[0]) : undefined,
+          referringPhysician: response.data.referringPhysician ? (typeof response.data.referringPhysician === 'string' ? response.data.referringPhysician : `${(response.data.referringPhysician as any).firstName} ${(response.data.referringPhysician as any).lastName}`) : (currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined),
+          referredToProvider: response.data.referredToProvider ? (typeof response.data.referredToProvider === 'string' ? response.data.referredToProvider : `${(response.data.referredToProvider as any).firstName} ${(response.data.referredToProvider as any).lastName}`) : formData.referredToProvider || undefined,
+        };
+
+        setReferrals([...referrals, newReferral]);
+        addTimelineEvent(currentPatient.id, {
+          date: newReferral.date,
+          type: "referral",
+          title: `Referral to ${formData.specialty} - ${formData.reason}`,
+          description: `Priority: ${formData.priority}`,
+          icon: "arrow-right",
+        });
+
+        setFormData({
+          date: new Date().toISOString().split("T")[0],
+          specialty: "" as SpecialtyType | "",
+          reason: "",
+          diagnosis: "",
+          priority: "routine",
+          referredToProvider: "",
+          referredToProviderId: null,
+          referredToFacility: "",
+          referredToAddress: "",
+          referredToPhone: "",
+          appointmentDate: "",
+          appointmentTime: "",
+          notes: "",
+          insurancePreAuth: false,
+          preAuthNumber: "",
+          followUpRequired: false,
+          followUpDate: "",
+        });
+        setShowAddForm(false);
+      }
+    } catch (err: any) {
+      console.error('Failed to create referral:', err);
+      setError(err?.message || 'Failed to create referral');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePrintFromPreview = () => {
@@ -173,29 +237,152 @@ export default function Referrals({ patient }: ReferralsProps) {
   };
 
   const handlePrint = (ref: Referral) => {
+    const orgHeader = getOrganizationHeader();
+    const orgFooter = getOrganizationFooter();
+    
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
           <title>Referral - ${ref.specialty}</title>
           <style>
-            @page { margin: 1in; size: letter; }
-            body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
-            .header h1 { margin: 0; font-size: 24px; color: #1e40af; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
-            .info-item { padding: 10px; background: #f9fafb; border-radius: 4px; }
-            .info-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-            .info-value { font-size: 14px; font-weight: 600; color: #111827; }
-            .section { margin: 30px 0; }
-            .section-title { font-size: 16px; font-weight: 600; color: #1e40af; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
-            .content { background: #f9fafb; padding: 15px; border-radius: 4px; margin: 20px 0; white-space: pre-wrap; }
-            .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #6b7280; text-align: center; }
+            @page { 
+              margin: 0.75in; 
+              size: letter; 
+            }
+            body { 
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              max-width: 800px; 
+              margin: 0 auto; 
+              padding: 0; 
+            }
+            .org-header {
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+              text-align: center;
+            }
+            .org-name {
+              font-size: 22px;
+              font-weight: 700;
+              color: #1e40af;
+              margin: 0 0 5px 0;
+            }
+            .org-type {
+              font-size: 14px;
+              color: #4b5563;
+              margin: 0 0 8px 0;
+              font-weight: 500;
+            }
+            .org-details {
+              font-size: 11px;
+              color: #6b7280;
+              line-height: 1.5;
+              margin: 0;
+            }
+            .document-header {
+              text-align: center;
+              margin: 25px 0;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .document-header h1 {
+              margin: 0;
+              font-size: 20px;
+              color: #1e40af;
+              font-weight: 600;
+            }
+            .document-header h2 {
+              margin: 8px 0 0 0;
+              font-size: 16px;
+              color: #4b5563;
+              font-weight: normal;
+            }
+            .info-grid { 
+              display: grid; 
+              grid-template-columns: 1fr 1fr; 
+              gap: 15px; 
+              margin: 25px 0; 
+            }
+            .info-item { 
+              padding: 10px; 
+              background: #f9fafb; 
+              border-radius: 4px; 
+              border: 1px solid #e5e7eb;
+            }
+            .info-label { 
+              font-size: 11px; 
+              color: #6b7280; 
+              text-transform: uppercase; 
+              letter-spacing: 0.5px; 
+              margin-bottom: 5px; 
+              font-weight: 600;
+            }
+            .info-value { 
+              font-size: 14px; 
+              font-weight: 600; 
+              color: #111827; 
+            }
+            .section { 
+              margin: 30px 0; 
+            }
+            .section-title { 
+              font-size: 16px; 
+              font-weight: 600; 
+              color: #1e40af; 
+              margin-bottom: 15px; 
+              padding-bottom: 8px; 
+              border-bottom: 2px solid #e5e7eb; 
+            }
+            .content { 
+              background: #f9fafb; 
+              padding: 15px; 
+              border-radius: 4px; 
+              margin: 20px 0; 
+              white-space: pre-wrap; 
+            }
+            .signature-section {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+            }
+            .signature-line {
+              margin-top: 50px;
+              border-top: 1px solid #333;
+              width: 300px;
+            }
+            .signature-label {
+              font-size: 11px;
+              color: #6b7280;
+              margin-top: 5px;
+            }
+            .footer { 
+              margin-top: 40px; 
+              padding-top: 20px; 
+              border-top: 1px solid #e5e7eb; 
+              font-size: 11px; 
+              color: #6b7280; 
+              text-align: center; 
+            }
+            @media print {
+              .no-print {
+                display: none;
+              }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="org-header">
+            <div class="org-name">${orgHeader.split('\n')[0]}</div>
+            <div class="org-type">${orgHeader.split('\n')[1] || ''}</div>
+            <div class="org-details">${orgHeader.split('\n').slice(2).join('<br>')}</div>
+          </div>
+
+          <div class="document-header">
             <h1>MEDICAL REFERRAL</h1>
+            <h2>${ref.specialty}</h2>
           </div>
           <div class="info-grid">
             <div class="info-item">
@@ -205,10 +392,6 @@ export default function Referrals({ patient }: ReferralsProps) {
             <div class="info-item">
               <div class="info-label">Referral Date</div>
               <div class="info-value">${new Date(ref.date).toLocaleDateString()}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Specialty</div>
-              <div class="info-value">${ref.specialty}</div>
             </div>
             <div class="info-item">
               <div class="info-label">Priority</div>
@@ -228,7 +411,7 @@ export default function Referrals({ patient }: ReferralsProps) {
             ` : ""}
             ${ref.referredToFacility ? `
             <div class="info-item">
-              <div class="info-label">Facility</div>
+              <div class="info-label">Referred To Facility</div>
               <div class="info-value">${ref.referredToFacility}</div>
             </div>
             ` : ""}
@@ -249,9 +432,16 @@ export default function Referrals({ patient }: ReferralsProps) {
             <div class="content">${ref.notes}</div>
           </div>
           ` : ""}
+
+          <div class="signature-section">
+            <div class="signature-line"></div>
+            <div class="signature-label">${ref.referringPhysician || 'Referring Physician'} Signature</div>
+          </div>
+
           <div class="footer">
-            Generated: ${new Date().toLocaleString()}<br>
-            Bluequee2.0 - Electronic Health Record System
+            <div>Generated: ${new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</div>
+            <div style="margin-top: 5px;">${orgFooter}</div>
+            <div style="margin-top: 5px; font-size: 9px;">Confidential Medical Document - For Authorized Personnel Only</div>
           </div>
         </body>
       </html>
@@ -294,6 +484,16 @@ export default function Referrals({ patient }: ReferralsProps) {
           New Referral
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+            <AlertCircle size={18} />
+            <span className="font-medium">{error}</span>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
@@ -340,7 +540,11 @@ export default function Referrals({ patient }: ReferralsProps) {
 
       {/* Referrals List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {filteredReferrals.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <p>Loading referrals...</p>
+          </div>
+        ) : filteredReferrals.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <ArrowRight size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <p className="text-lg font-medium mb-2">No Referrals Found</p>
@@ -376,10 +580,20 @@ export default function Referrals({ patient }: ReferralsProps) {
                         <Calendar size={14} />
                         {new Date(ref.date).toLocaleDateString()}
                       </span>
+                      {ref.referringPhysician && (
+                        <span className="flex items-center gap-1">
+                          <User size={14} />
+                          Referring: {ref.referringPhysician}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Building2 size={14} />
+                        From: {getOrganizationDetails().name}
+                      </span>
                       {ref.referredToProvider && (
                         <span className="flex items-center gap-1">
                           <User size={14} />
-                          {ref.referredToProvider}
+                          To: {ref.referredToProvider}
                         </span>
                       )}
                       {ref.referredToFacility && (
@@ -698,7 +912,7 @@ export default function Referrals({ patient }: ReferralsProps) {
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Referral Details</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {getSpecialtyTemplate(selectedReferral.specialty)?.name || selectedReferral.specialty}
+                  {getSpecialtyTemplate(selectedReferral.specialty as SpecialtyType)?.name || selectedReferral.specialty}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -773,42 +987,71 @@ export default function Referrals({ patient }: ReferralsProps) {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedReferral.referringPhysician && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <User size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-400">Referring Physician:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referringPhysician}</span>
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Referring Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedReferral.referringPhysician && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <User size={16} className="text-gray-400 mt-0.5" />
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Referring Physician:</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referringPhysician}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2 text-sm">
+                    <Building2 size={16} className="text-gray-400 mt-0.5" />
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400 block">Referring Organization:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{getOrganizationDetails().name}</span>
+                      {getOrganizationDetails().type && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400"> ({getOrganizationDetails().type})</span>
+                      )}
+                    </div>
                   </div>
-                )}
-                {selectedReferral.referredToProvider && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <User size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-400">Referred To:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referredToProvider}</span>
-                  </div>
-                )}
-                {selectedReferral.referredToFacility && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Building2 size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-400">Facility:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referredToFacility}</span>
-                  </div>
-                )}
-                {selectedReferral.referredToPhone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-400">Phone:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referredToPhone}</span>
-                  </div>
-                )}
-                {selectedReferral.referredToAddress && (
-                  <div className="flex items-center gap-2 text-sm md:col-span-2">
-                    <MapPin size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-400">Address:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referredToAddress}</span>
-                  </div>
-                )}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Referred To Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedReferral.referredToProvider && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <User size={16} className="text-gray-400 mt-0.5" />
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Referred To Provider:</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referredToProvider}</span>
+                      </div>
+                    </div>
+                  )}
+                  {selectedReferral.referredToFacility && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <Building2 size={16} className="text-gray-400 mt-0.5" />
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Facility:</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referredToFacility}</span>
+                      </div>
+                    </div>
+                  )}
+                  {selectedReferral.referredToPhone && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <Phone size={16} className="text-gray-400 mt-0.5" />
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Phone:</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referredToPhone}</span>
+                      </div>
+                    </div>
+                  )}
+                  {selectedReferral.referredToAddress && (
+                    <div className="flex items-start gap-2 text-sm md:col-span-2">
+                      <MapPin size={16} className="text-gray-400 mt-0.5" />
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Address:</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{selectedReferral.referredToAddress}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {selectedReferral.insurancePreAuth && (

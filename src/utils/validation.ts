@@ -5,6 +5,7 @@
 
 import { BackendPatientSchema } from '../schemas/patient.schema';
 import { Patient } from '../types';
+import { logger } from './logger';
 
 /**
  * Transform backend patient data to frontend format
@@ -86,12 +87,12 @@ export function validatePatient(patient: unknown): Patient | null {
     
     // Only log in development to avoid console noise
     if (import.meta.env.DEV) {
-      console.warn('Invalid patient data:', backendValidated.error);
+      logger.warn('Invalid patient data:', backendValidated.error);
     }
     return null;
   } catch (error) {
     if (import.meta.env.DEV) {
-      console.warn('Error validating patient:', error);
+      logger.warn('Error validating patient:', error);
     }
     return null;
   }
@@ -115,14 +116,45 @@ export function validatePartialPatient(patient: unknown): Partial<Patient> | nul
     // The input might be in frontend format or backend format
     const data = patient as any;
     
+    // Convert frontend format to backend format
+    const backendData: any = { ...data };
+    
+    // Convert dob to dateOfBirth
+    if (data.dob && !data.dateOfBirth) {
+      // If dob is a string, try to convert to ISO string
+      if (typeof data.dob === 'string') {
+        const dobDate = new Date(data.dob);
+        if (!isNaN(dobDate.getTime())) {
+          backendData.dateOfBirth = dobDate.toISOString();
+        } else {
+          backendData.dateOfBirth = data.dob; // Assume it's already ISO string
+        }
+      } else if (data.dob instanceof Date) {
+        backendData.dateOfBirth = data.dob.toISOString();
+      } else {
+        backendData.dateOfBirth = data.dob;
+      }
+      delete backendData.dob;
+    }
+    
+    // Convert bp to bloodPressure
+    if (data.bp !== undefined && data.bloodPressure === undefined) {
+      backendData.bloodPressure = data.bp || null;
+      delete backendData.bp;
+    }
+    
+    // Remove frontend-only fields that backend doesn't need
+    delete backendData.age; // Backend calculates this from dateOfBirth
+    delete backendData.risk; // Backend uses riskScore
+    
     // If it looks like backend format (has dateOfBirth), return it as-is for backend
-    if (data.dateOfBirth && !data.age && !data.bp) {
+    if (backendData.dateOfBirth && !backendData.age && !backendData.bp) {
       // This is backend format, return it directly (backend will validate)
-      return data as Partial<Patient>;
+      return backendData as Partial<Patient>;
     }
     
     // Otherwise, try to transform it
-    const transformed = transformBackendPatient(data);
+    const transformed = transformBackendPatient(backendData);
     // Return only the fields that exist
     const partial: Partial<Patient> = {};
     Object.keys(transformed).forEach((key) => {
@@ -134,9 +166,28 @@ export function validatePartialPatient(patient: unknown): Partial<Patient> | nul
     return partial;
   } catch (error) {
     if (import.meta.env.DEV) {
-      console.warn('Error validating partial patient:', error);
+      logger.warn('Error validating partial patient:', error);
     }
     // For create operations, be more lenient - return the original data
+    // But still try to convert dob to dateOfBirth
+    const data = patient as any;
+    if (data.dob && !data.dateOfBirth) {
+      const converted = { ...data };
+      if (typeof data.dob === 'string') {
+        const dobDate = new Date(data.dob);
+        converted.dateOfBirth = !isNaN(dobDate.getTime()) ? dobDate.toISOString() : data.dob;
+      } else if (data.dob instanceof Date) {
+        converted.dateOfBirth = data.dob.toISOString();
+      } else {
+        converted.dateOfBirth = data.dob;
+      }
+      delete converted.dob;
+      if (converted.bp !== undefined && converted.bloodPressure === undefined) {
+        converted.bloodPressure = converted.bp || null;
+        delete converted.bp;
+      }
+      return converted as Partial<Patient>;
+    }
     return patient as Partial<Patient>;
   }
 }

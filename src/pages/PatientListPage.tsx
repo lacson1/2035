@@ -1,12 +1,15 @@
-import { useState, useMemo } from "react";
-import { X, Plus, RefreshCw, ArrowLeft, Users, AlertTriangle, TrendingUp, Activity, LayoutDashboard } from "lucide-react";
+import { useState } from "react";
+import { X, Plus, RefreshCw, ArrowLeft } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
+import { useToast } from "../context/ToastContext";
 import { Patient } from "../types";
 import PatientList from "../components/PatientList";
 import UserSelector from "../components/UserSelector";
 import { patientService } from "../services/patients";
 import PatientDirectoryAnalytics from "../components/PatientDirectoryAnalytics";
 import DashboardEmptyState from "../components/DashboardEmptyState";
+import { PatientCardSkeleton } from "../components/SkeletonLoader";
+import { logger } from "../utils/logger";
 
 interface PatientListPageProps {
   onSelectPatient: () => void; // Callback when patient is selected
@@ -14,6 +17,7 @@ interface PatientListPageProps {
 
 export default function PatientListPage({ onSelectPatient }: PatientListPageProps) {
   const { patients, selectedPatient, setSelectedPatient, refreshPatients, isLoading, error } = useDashboard();
+  const toast = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -24,7 +28,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
     try {
       await refreshPatients();
     } catch (error) {
-      console.error("Failed to refresh patients:", error);
+      logger.error("Failed to refresh patients:", error);
     } finally {
       setIsRefreshing(false);
     }
@@ -49,9 +53,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
 
   const handleSelectPatient = (patient: Patient) => {
     if (!patient || !patient.id) {
-      if (import.meta.env.DEV) {
-        console.error("Invalid patient selected:", patient);
-      }
+      logger.warn("Invalid patient selected:", patient);
       return;
     }
     setSelectedPatient(patient);
@@ -65,7 +67,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
     try {
       // Validate required fields
       if (!formData.name || !formData.dateOfBirth || !formData.gender) {
-        alert("Please fill in all required fields: Name, Date of Birth, and Gender");
+        toast.warning("Please fill in all required fields: Name, Date of Birth, and Gender");
         setIsCreating(false);
         return;
       }
@@ -73,7 +75,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
       // Convert date to ISO string format for backend
       const dobDate = new Date(formData.dateOfBirth);
       if (isNaN(dobDate.getTime())) {
-        alert("Invalid date format. Please select a valid date.");
+        toast.warning("Invalid date format. Please select a valid date.");
         setIsCreating(false);
         return;
       }
@@ -148,6 +150,9 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
         setSelectedPatient(response.data);
         onSelectPatient();
         
+        // Show success message
+        toast.success(`Patient "${response.data.name}" created successfully!`);
+        
         // Reset form and close modal
         setFormData({
           name: "",
@@ -183,11 +188,9 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
         errorMessage = error;
       }
 
-      if (import.meta.env.DEV) {
-        console.error("Failed to create patient:", error);
-      }
+      logger.error("Failed to create patient:", error);
       
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsCreating(false);
     }
@@ -220,12 +223,12 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
         className={`
           fixed md:static inset-y-0 left-0 z-50
           w-64 md:w-64 md:h-full
-          bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
-          border-r border-gray-200/50 dark:border-gray-700/50
-          shadow-xl md:shadow-none
-          pt-3 md:pt-3 px-3 pb-3
-          transform transition-transform duration-300 ease-in-out
-          overflow-y-auto
+          bg-white/98 dark:bg-gray-900/98 backdrop-blur-lg
+          border-r border-gray-200/60 dark:border-gray-700/60
+          shadow-xl md:shadow-sm
+          pt-5 md:pt-5 px-5 pb-5
+          transform transition-transform duration-300 ease-out
+          overflow-y-auto overflow-x-hidden
           flex flex-col
           flex-shrink-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -234,160 +237,53 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
         {/* Close button for mobile */}
         <button
           onClick={() => setSidebarOpen(false)}
-          className="md:hidden absolute top-3 right-3 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="md:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-all duration-200"
           aria-label="Close menu"
         >
           <X size={18} />
         </button>
 
         {/* Header */}
-        <div className="flex flex-col gap-2.5 mb-5">
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight m-0">
-              Bluequee2.0
-            </h1>
-          </div>
-          <span className="px-2.5 py-1 text-xs font-bold bg-teal-500 text-white rounded-lg shadow-sm w-fit">
-            Bluequee 2.0
-          </span>
+        <div className="mb-5">
+          <h1 className="text-lg md:text-xl font-bold text-gradient leading-tight">
+            Bluequee2.0
+          </h1>
         </div>
 
         {/* Navigation to Workspace (if patient selected) */}
         {selectedPatient && (
           <button
             onClick={onSelectPatient}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 mb-4 rounded-lg bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-sm font-medium transition-all duration-200 border border-teal-200 dark:border-teal-800 hover:shadow-sm group"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 mb-5 rounded-xl bg-gradient-to-r from-primary-50 to-success-50 dark:from-primary-900/20 dark:to-success-900/20 hover:from-primary-100 hover:to-success-100 dark:hover:from-primary-900/30 dark:hover:to-success-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium transition-all duration-200 border border-primary-200/60 dark:border-primary-800/60 hover:shadow-sm active:scale-[0.98] group"
           >
-            <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-200" />
             <span className="flex-1 text-left">Back to Workspace</span>
           </button>
         )}
 
-        {/* Patient Statistics */}
-        {(() => {
-          const stats = useMemo(() => {
-            const total = patients.length;
-            const highRisk = patients.filter(p => p.risk >= 60).length;
-            const mediumRisk = patients.filter(p => p.risk >= 40 && p.risk < 60).length;
-            const lowRisk = patients.filter(p => p.risk < 40).length;
-            const uniqueConditions = new Set(patients.map(p => p.condition).filter(Boolean)).size;
-            
-            return { total, highRisk, mediumRisk, lowRisk, uniqueConditions };
-          }, [patients]);
-
-          return (
-            <div className="mb-5 space-y-3">
-              <div className="flex items-center gap-2 mb-3">
-                <Users size={16} className="text-gray-600 dark:text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Statistics</h3>
-              </div>
-              
-              {/* Total Patients */}
-              <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-gray-600 dark:text-gray-400">Total Patients</span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{stats.total}</span>
-                </div>
-              </div>
-
-              {/* Risk Distribution */}
-              {stats.total > 0 && (
-                <div className="space-y-2">
-                  <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <AlertTriangle size={14} className="text-red-600 dark:text-red-400" />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">High Risk</span>
-                      </div>
-                      <span className="text-xs font-semibold text-red-700 dark:text-red-300">{stats.highRisk}</span>
-                    </div>
-                  </div>
-                  <div className="p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <TrendingUp size={14} className="text-yellow-600 dark:text-yellow-400" />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">Medium Risk</span>
-                      </div>
-                      <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">{stats.mediumRisk}</span>
-                    </div>
-                  </div>
-                  <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Activity size={14} className="text-green-600 dark:text-green-400" />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">Low Risk</span>
-                      </div>
-                      <span className="text-xs font-semibold text-green-700 dark:text-green-300">{stats.lowRisk}</span>
-                    </div>
-                  </div>
-                  {stats.uniqueConditions > 0 && (
-                    <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-700 dark:text-gray-300">Conditions</span>
-                        <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">{stats.uniqueConditions}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* Quick Actions */}
-        <div className="mb-5 space-y-2">
-          <div className="flex items-center gap-2 mb-2">
-            <LayoutDashboard size={16} className="text-gray-600 dark:text-gray-400" />
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Quick Actions</h3>
-          </div>
-          
-          <button
-            onClick={() => {
-              setShowNewPatientModal(true);
-              setSidebarOpen(false);
-            }}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
-          >
-            <Plus size={16} />
-            <span>New Patient</span>
-          </button>
-          
-          <button
-            onClick={() => {
-              handleRefresh();
-              setSidebarOpen(false);
-            }}
-            disabled={isRefreshing}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
-            <span>Refresh</span>
-          </button>
-        </div>
-
-        {/* User Profile - Moved to bottom */}
-        <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+        {/* User Profile - At bottom */}
+        <div className="mt-auto pt-5 border-t border-gray-200/40 dark:border-gray-700/40">
           <UserSelector />
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 md:min-w-0 px-3 md:px-4 pb-3 md:pb-4 pt-3 md:pt-3 overflow-y-auto">
-        <div className="w-full">
-          {/* Header */}
-          <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <main className="flex-1 md:min-w-0 px-4 md:px-6 pb-4 md:pb-6 pt-4 md:pt-6 overflow-y-auto">
+        <div className="w-full max-w-7xl mx-auto">
+          {/* Header - Streamlined */}
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2 flex-wrap items-baseline">
-                <h2 className="text-lg md:text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent leading-tight m-0">
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="text-xl md:text-2xl font-bold text-gradient">
                   Patient Directory
                 </h2>
                 {patients.length > 0 && (
                   <span className="px-2.5 py-1 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full">
-                    {patients.length} {patients.length === 1 ? 'patient' : 'patients'}
+                    {patients.length}
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-tight">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Select a patient to view their medical information and care plan
               </p>
             </div>
@@ -403,7 +299,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
               </button>
               <button
                 onClick={() => setShowNewPatientModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
+                className="btn-primary flex items-center gap-2"
               >
                 <Plus size={18} />
                 <span>New Patient</span>
@@ -411,11 +307,19 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
             </div>
           </div>
 
-          {/* Dashboard Analytics */}
-          {patients.length > 0 && <PatientDirectoryAnalytics patients={patients} />}
+          {/* Dashboard Analytics - Compact */}
+          {patients.length > 0 && (
+            <div className="mb-6">
+              <PatientDirectoryAnalytics patients={patients} />
+            </div>
+          )}
 
           {/* Patient List or Empty State */}
-          {isLoading || error || patients.length === 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <PatientCardSkeleton count={6} />
+            </div>
+          ) : error || patients.length === 0 ? (
             <DashboardEmptyState />
           ) : (
             <PatientList
@@ -438,20 +342,20 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
           }}
         >
           <div
-            className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            className="glass-strong rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-primary-200/30 dark:border-primary-700/30"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold">Add New Patient</h4>
+            <div className="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
+              <h4 className="text-lg font-semibold text-gradient">Add New Patient</h4>
               <button
                 onClick={() => setShowNewPatientModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
                 disabled={isCreating}
               >
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleCreatePatient} className="space-y-6">
+            <form onSubmit={handleCreatePatient} className="p-6 space-y-5">
               {/* Basic Information Section */}
               <div>
                 <h5 className="text-base font-semibold mb-4 text-gray-700 dark:text-gray-300">Basic Information</h5>
@@ -464,7 +368,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Patient name"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     />
                   </div>
@@ -475,7 +379,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       required
                       value={formData.dateOfBirth}
                       onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     />
                   </div>
@@ -485,7 +389,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       required
                       value={formData.gender}
                       onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     >
                       <option value="">Select gender</option>
@@ -500,7 +404,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                     <select
                       value={formData.preferredLanguage}
                       onChange={(e) => setFormData({ ...formData, preferredLanguage: e.target.value })}
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     >
                       <option value="English">English</option>
@@ -525,7 +429,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     />
                   </div>
@@ -536,7 +440,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="patient@example.com"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     />
                   </div>
@@ -547,7 +451,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       placeholder="123 Main St, City, State ZIP"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     />
                   </div>
@@ -565,7 +469,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.bloodPressure}
                       onChange={(e) => setFormData({ ...formData, bloodPressure: e.target.value })}
                       placeholder="e.g., 120/80"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     />
                   </div>
@@ -576,7 +480,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.condition}
                       onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                       placeholder="e.g., Type 2 Diabetes"
-                      className="w-full px-4 py-3 text-base border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-4 py-3"
                       disabled={isCreating}
                     />
                   </div>
@@ -587,7 +491,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.allergies}
                       onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
                       placeholder="e.g., Penicillin, Latex (comma-separated)"
-                      className="w-full px-3 py-2 text-sm border rounded dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="input-base px-3 py-2 text-sm"
                       disabled={isCreating}
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Separate multiple allergies with commas</p>
@@ -606,7 +510,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.emergencyContactName}
                       onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
                       placeholder="Emergency contact name"
-                      className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                      className="input-base p-2 text-sm"
                       disabled={isCreating}
                     />
                   </div>
@@ -617,7 +521,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.emergencyContactRelationship}
                       onChange={(e) => setFormData({ ...formData, emergencyContactRelationship: e.target.value })}
                       placeholder="e.g., Spouse, Parent"
-                      className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                      className="input-base p-2 text-sm"
                       disabled={isCreating}
                     />
                   </div>
@@ -628,7 +532,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.emergencyContactPhone}
                       onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                      className="input-base p-2 text-sm"
                       disabled={isCreating}
                     />
                   </div>
@@ -646,7 +550,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.insuranceProvider}
                       onChange={(e) => setFormData({ ...formData, insuranceProvider: e.target.value })}
                       placeholder="Insurance provider name"
-                      className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                      className="input-base p-2 text-sm"
                       disabled={isCreating}
                     />
                   </div>
@@ -657,7 +561,7 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                       value={formData.insurancePolicyNumber}
                       onChange={(e) => setFormData({ ...formData, insurancePolicyNumber: e.target.value })}
                       placeholder="Policy number"
-                      className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+                      className="input-base p-2 text-sm"
                       disabled={isCreating}
                     />
                   </div>
@@ -667,14 +571,14 @@ export default function PatientListPage({ onSelectPatient }: PatientListPageProp
                 <button
                   type="button"
                   onClick={() => setShowNewPatientModal(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 hover:shadow-sm active:scale-95"
                   disabled={isCreating}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isCreating}
                 >
                   {isCreating ? "Creating..." : "Create Patient"}

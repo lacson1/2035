@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Apple,
   Plus,
@@ -17,6 +17,10 @@ import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
 import PrintPreview from "./PrintPreview";
 import { openPrintWindow } from "../utils/popupHandler";
+import { getOrganizationFooter, getOrganizationDetails } from "../utils/organization";
+import { nutritionService } from "../services/nutrition";
+import { useToast } from "../context/ToastContext";
+import { logger } from "../utils/logger";
 
 interface NutritionProps {
   patient?: Patient;
@@ -25,17 +29,67 @@ interface NutritionProps {
 export default function Nutrition({ patient }: NutritionProps) {
   const { selectedPatient, addTimelineEvent } = useDashboard();
   const currentPatient = patient || selectedPatient;
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | NutritionEntry["type"]>("all");
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<NutritionEntry | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { users } = useUsers();
-  const [nutritionEntries, setNutritionEntries] = useState<NutritionEntry[]>(
-    currentPatient?.nutritionEntries || []
-  );
+  const [nutritionEntries, setNutritionEntries] = useState<NutritionEntry[]>([]);
+
+  // Load nutrition entries from API when patient changes
+  useEffect(() => {
+    const loadNutritionEntries = async () => {
+      if (!currentPatient?.id) {
+        setNutritionEntries([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await nutritionService.getPatientNutritionEntries(currentPatient.id);
+        if (response.data) {
+          const transformedEntries: NutritionEntry[] = response.data.map((entry: any) => ({
+            id: entry.id,
+            date: typeof entry.date === 'string' ? entry.date.split('T')[0] : entry.date,
+            type: entry.type,
+            dietitian: entry.dietitian ? `${entry.dietitian.firstName} ${entry.dietitian.lastName}` : entry.dietitianName,
+            dietitianId: entry.dietitianId || entry.dietitian?.id,
+            dietaryRestrictions: entry.dietaryRestrictions || [],
+            allergies: entry.allergies || [],
+            currentDiet: entry.currentDiet,
+            recommendedDiet: entry.recommendedDiet,
+            nutritionalGoals: entry.nutritionalGoals || [],
+            caloricNeeds: entry.caloricNeeds,
+            proteinNeeds: entry.proteinNeeds,
+            fluidNeeds: entry.fluidNeeds,
+            supplements: entry.supplements ? (Array.isArray(entry.supplements) ? entry.supplements : JSON.parse(entry.supplements)) : undefined,
+            mealPlan: entry.mealPlan ? (Array.isArray(entry.mealPlan) ? entry.mealPlan : JSON.parse(entry.mealPlan)) : undefined,
+            weight: entry.weight,
+            height: entry.height,
+            bmi: entry.bmi,
+            notes: entry.notes,
+            followUpDate: entry.followUpDate ? (typeof entry.followUpDate === 'string' ? entry.followUpDate.split('T')[0] : entry.followUpDate) : undefined,
+          }));
+          setNutritionEntries(transformedEntries);
+        }
+      } catch (error) {
+        logger.error("Failed to load nutrition entries:", error);
+        toast.error("Failed to load nutrition entries");
+        if (currentPatient?.nutritionEntries) {
+          setNutritionEntries(currentPatient.nutritionEntries);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadNutritionEntries();
+  }, [currentPatient?.id, toast]);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -91,8 +145,14 @@ export default function Nutrition({ patient }: NutritionProps) {
     }
   };
 
-  const handleAddNutritionEntry = (e: React.FormEvent) => {
+  const handleAddNutritionEntry = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentPatient?.id) {
+      toast.error("No patient selected");
+      return;
+    }
+
     const dietitian = formData.dietitianId ? users.find((u: any) => u.id === formData.dietitianId) : null;
     
     const weightNum = formData.weight && formData.weight !== '' ? parseFloat(formData.weight) : NaN;
@@ -101,8 +161,9 @@ export default function Nutrition({ patient }: NutritionProps) {
       ? parseFloat(calculateBMI(weightNum, heightNum))
       : undefined;
 
-    const newEntry: NutritionEntry = {
-      id: `nutr-${Date.now()}`,
+    // Optimistic update
+    const tempEntry: NutritionEntry = {
+      id: `temp-${Date.now()}`,
       date: formData.date,
       type: formData.type,
       dietitian: dietitian ? `${dietitian.firstName} ${dietitian.lastName}` : undefined,
@@ -128,14 +189,75 @@ export default function Nutrition({ patient }: NutritionProps) {
       followUpDate: formData.followUpDate || undefined,
     };
 
-    setNutritionEntries([...nutritionEntries, newEntry]);
-    addTimelineEvent(currentPatient.id, {
-      date: newEntry.date,
-      type: "nutrition",
-      title: `Nutrition ${formData.type.charAt(0).toUpperCase() + formData.type.slice(1)}`,
-      description: formData.recommendedDiet || "Nutrition consultation",
-      icon: "apple",
-    });
+    setNutritionEntries([tempEntry, ...nutritionEntries]);
+
+    try {
+      const response = await nutritionService.createNutritionEntry(currentPatient.id, {
+        date: formData.date,
+        type: formData.type,
+        dietitianId: formData.dietitianId || undefined,
+        dietaryRestrictions: formData.dietaryRestrictions.length > 0 ? formData.dietaryRestrictions : undefined,
+        allergies: formData.allergies.length > 0 ? formData.allergies : undefined,
+        currentDiet: formData.currentDiet || undefined,
+        recommendedDiet: formData.recommendedDiet || undefined,
+        nutritionalGoals: formData.nutritionalGoals.length > 0 ? formData.nutritionalGoals : undefined,
+        caloricNeeds: formData.caloricNeeds ? parseInt(formData.caloricNeeds, 10) : undefined,
+        proteinNeeds: formData.proteinNeeds ? parseInt(formData.proteinNeeds, 10) : undefined,
+        fluidNeeds: formData.fluidNeeds ? parseInt(formData.fluidNeeds, 10) : undefined,
+        supplements: formData.supplements.length > 0 ? formData.supplements : undefined,
+        mealPlan: formData.mealPlan.length > 0 ? formData.mealPlan.map(m => ({
+          meal: m.meal,
+          description: m.description,
+          calories: m.calories !== undefined && m.calories !== null && String(m.calories) !== '' ? (typeof m.calories === 'number' ? m.calories : parseFloat(String(m.calories))) : undefined,
+        })) : undefined,
+        weight: formData.weight ? parseFloat(formData.weight) : undefined,
+        height: formData.height ? parseFloat(formData.height) : undefined,
+        bmi: bmi,
+        notes: formData.notes || undefined,
+        followUpDate: formData.followUpDate || undefined,
+      });
+
+      if (response.data) {
+        const realEntry: NutritionEntry = {
+          id: response.data.id,
+          date: typeof response.data.date === 'string' ? response.data.date.split('T')[0] : response.data.date,
+          type: response.data.type,
+          dietitian: response.data.dietitian ? (typeof response.data.dietitian === 'string' ? response.data.dietitian : `${(response.data.dietitian as any).firstName} ${(response.data.dietitian as any).lastName}`) : undefined,
+          dietitianId: response.data.dietitianId || (response.data.dietitian && typeof response.data.dietitian !== 'string' ? (response.data.dietitian as any).id : undefined),
+          dietaryRestrictions: response.data.dietaryRestrictions || [],
+          allergies: response.data.allergies || [],
+          currentDiet: response.data.currentDiet,
+          recommendedDiet: response.data.recommendedDiet,
+          nutritionalGoals: response.data.nutritionalGoals || [],
+          caloricNeeds: response.data.caloricNeeds,
+          proteinNeeds: response.data.proteinNeeds,
+          fluidNeeds: response.data.fluidNeeds,
+          supplements: response.data.supplements ? (Array.isArray(response.data.supplements) ? response.data.supplements : JSON.parse(response.data.supplements)) : undefined,
+          mealPlan: response.data.mealPlan ? (Array.isArray(response.data.mealPlan) ? response.data.mealPlan : JSON.parse(response.data.mealPlan)) : undefined,
+          weight: response.data.weight,
+          height: response.data.height,
+          bmi: response.data.bmi,
+          notes: response.data.notes,
+          followUpDate: response.data.followUpDate ? (typeof response.data.followUpDate === 'string' ? response.data.followUpDate.split('T')[0] : response.data.followUpDate) : undefined,
+        };
+        setNutritionEntries(prev => prev.map(e => e.id === tempEntry.id ? realEntry : e));
+        
+        addTimelineEvent(currentPatient.id, {
+          date: realEntry.date,
+          type: "nutrition",
+          title: `Nutrition ${formData.type.charAt(0).toUpperCase() + formData.type.slice(1)}`,
+          description: formData.recommendedDiet || "Nutrition consultation",
+          icon: "apple",
+        });
+        
+        toast.success("Nutrition entry created successfully");
+      }
+    } catch (error) {
+      setNutritionEntries(prev => prev.filter(e => e.id !== tempEntry.id));
+      logger.error("Failed to create nutrition entry:", error);
+      toast.error("Failed to create nutrition entry");
+      return;
+    }
 
     setFormData({
       date: new Date().toISOString().split("T")[0],
@@ -170,6 +292,9 @@ export default function Nutrition({ patient }: NutritionProps) {
   };
 
   const handlePrint = (entry: NutritionEntry) => {
+    const orgDetails = getOrganizationDetails();
+    const orgFooter = getOrganizationFooter();
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -178,8 +303,48 @@ export default function Nutrition({ patient }: NutritionProps) {
           <style>
             @page { margin: 1in; size: letter; }
             body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
-            .header h1 { margin: 0; font-size: 24px; color: #1e40af; }
+            .org-header {
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+              text-align: center;
+            }
+            .org-name {
+              font-size: 22px;
+              font-weight: 700;
+              color: #1e40af;
+              margin: 0 0 5px 0;
+            }
+            .org-type {
+              font-size: 14px;
+              color: #4b5563;
+              margin: 0 0 8px 0;
+              font-weight: 500;
+            }
+            .org-details {
+              font-size: 11px;
+              color: #6b7280;
+              line-height: 1.5;
+              margin: 0;
+            }
+            .document-header {
+              text-align: center;
+              margin: 25px 0;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .document-header h1 {
+              margin: 0;
+              font-size: 20px;
+              color: #1e40af;
+              font-weight: 600;
+            }
+            .document-header h2 {
+              margin: 8px 0 0 0;
+              font-size: 16px;
+              color: #4b5563;
+              font-weight: normal;
+            }
             .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
             .info-item { padding: 10px; background: #f9fafb; border-radius: 4px; }
             .info-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
@@ -194,7 +359,16 @@ export default function Nutrition({ patient }: NutritionProps) {
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="org-header">
+            <div class="org-name">${orgDetails.name}</div>
+            <div class="org-type">${orgDetails.type}</div>
+            <div class="org-details">
+              ${orgDetails.address}, ${orgDetails.city}, ${orgDetails.state} ${orgDetails.zipCode}<br>
+              Phone: ${orgDetails.phone}${orgDetails.fax ? ` | Fax: ${orgDetails.fax}` : ""}${orgDetails.email ? ` | Email: ${orgDetails.email}` : ""}
+            </div>
+          </div>
+
+          <div class="document-header">
             <h1>NUTRITION ${entry.type.toUpperCase()}</h1>
             <h2>${new Date(entry.date).toLocaleDateString()}</h2>
           </div>
@@ -349,8 +523,9 @@ export default function Nutrition({ patient }: NutritionProps) {
           </div>
           ` : ""}
           <div class="footer">
+            ${orgFooter}<br>
             Generated: ${new Date().toLocaleString()}<br>
-            Bluequee2.0 - Electronic Health Record System
+            This is an official nutrition document. Confidential medical information.
           </div>
         </body>
       </html>
@@ -426,7 +601,17 @@ export default function Nutrition({ patient }: NutritionProps) {
 
       {/* Nutrition Entries List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {filteredEntries.length === 0 ? (
+        {isLoading ? (
+          <div className="p-4">
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filteredEntries.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <Apple size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <p className="text-lg font-medium mb-2">No Nutrition Entries Found</p>

@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Phone, Stethoscope, Calendar, X, Plus, List, LayoutGrid } from "lucide-react";
 import { Patient } from "../types";
 import { useDashboard } from "../context/DashboardContext";
+import { careTeamService, CareTeamMember } from "../services/care-team";
+import { useToast } from "../context/ToastContext";
+import { logger } from "../utils/logger";
+import UserAssignment from "./UserAssignment";
 
 interface CareTeamProps {
   patient?: Patient;
@@ -17,6 +21,7 @@ interface TeamMember {
   department: string;
   assignedDate: string;
   notes?: string;
+  userId?: string;
 }
 
 type ViewMode = "list" | "grid";
@@ -24,55 +29,130 @@ type ViewMode = "list" | "grid";
 export default function CareTeam({ patient }: CareTeamProps) {
   const { selectedPatient } = useDashboard();
   const currentPatient = patient || selectedPatient;
+  const toast = useToast();
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
+    userId: "",
     role: "",
     specialty: "",
-    email: "",
-    phone: "",
-    department: "",
     notes: "",
   });
 
-  // Team members - loaded from patient data or API
-  // Note: careTeam might be stored in a different field or loaded separately
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(
-    (currentPatient as any)?.careTeam || []
-  );
+  // Load care team from API when patient changes
+  useEffect(() => {
+    const loadCareTeam = async () => {
+      if (!currentPatient?.id) {
+        setTeamMembers([]);
+        return;
+      }
 
-
-  const handleAddMember = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newMember: TeamMember = {
-      id: `tm-${Date.now()}`,
-      name: formData.name,
-      role: formData.role,
-      specialty: formData.specialty,
-      email: formData.email,
-      phone: formData.phone,
-      department: formData.department,
-      assignedDate: new Date().toISOString().split("T")[0],
-      notes: formData.notes || undefined,
+      setIsLoading(true);
+      try {
+        const response = await careTeamService.getPatientCareTeam(currentPatient.id);
+        if (response.data) {
+          // Transform API data to TeamMember format
+          const transformedMembers: TeamMember[] = response.data.map((member: CareTeamMember) => ({
+            id: member.id,
+            userId: member.userId,
+            name: member.user ? `${member.user.firstName} ${member.user.lastName}` : "Unknown",
+            role: member.role,
+            specialty: member.specialty || member.user?.specialty,
+            email: member.user?.email || "",
+            phone: member.user?.phone || "",
+            department: member.user?.department || "",
+            assignedDate: member.assignedDate,
+            notes: member.notes,
+          }));
+          setTeamMembers(transformedMembers);
+        }
+      } catch (error) {
+        logger.error("Failed to load care team:", error);
+        // Fallback to patient data if API fails
+        if ((currentPatient as any)?.careTeam) {
+          setTeamMembers((currentPatient as any).careTeam);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setTeamMembers([...teamMembers, newMember]);
-    setFormData({
-      name: "",
-      role: "",
-      specialty: "",
-      email: "",
-      phone: "",
-      department: "",
-      notes: "",
-    });
-    setAddMemberOpen(false);
+    loadCareTeam();
+  }, [currentPatient?.id]);
+
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.userId || !formData.role) {
+      toast.warning("Please select a user and specify a role");
+      return;
+    }
+
+    if (!currentPatient?.id) {
+      toast.error("No patient selected");
+      return;
+    }
+
+    try {
+      const response = await careTeamService.addCareTeamMember(currentPatient.id, {
+        userId: formData.userId,
+        role: formData.role,
+        specialty: formData.specialty || undefined,
+        notes: formData.notes || undefined,
+      });
+
+      if (response.data) {
+        // Transform API response to TeamMember format
+        const newMember: TeamMember = {
+          id: response.data.id,
+          userId: response.data.userId,
+          name: response.data.user ? `${response.data.user.firstName} ${response.data.user.lastName}` : "Unknown",
+          role: response.data.role,
+          specialty: response.data.specialty || response.data.user?.specialty,
+          email: response.data.user?.email || "",
+          phone: response.data.user?.phone || "",
+          department: response.data.user?.department || "",
+          assignedDate: response.data.assignedDate,
+          notes: response.data.notes,
+        };
+
+        setTeamMembers([...teamMembers, newMember]);
+        setFormData({
+          userId: "",
+          role: "",
+          specialty: "",
+          notes: "",
+        });
+        setAddMemberOpen(false);
+        toast.success("Care team member added successfully");
+      }
+    } catch (error: any) {
+      logger.error("Failed to add care team member:", error);
+      toast.error(error?.message || "Failed to add care team member. Please try again.");
+    }
   };
 
-  const handleRemoveMember = (id: string) => {
-    if (window.confirm("Are you sure you want to remove this team member?")) {
+  const handleRemoveMember = async (id: string) => {
+    if (!window.confirm("Are you sure you want to remove this team member?")) {
+      return;
+    }
+
+    if (!currentPatient?.id) {
+      toast.error("No patient selected");
+      return;
+    }
+
+    try {
+      await careTeamService.removeCareTeamMember(currentPatient.id, id);
       setTeamMembers(teamMembers.filter((m) => m.id !== id));
+      toast.success("Care team member removed successfully");
+    } catch (error: any) {
+      logger.error("Failed to remove care team member:", error);
+      toast.error(error?.message || "Failed to remove care team member. Please try again.");
     }
   };
 
@@ -422,14 +502,12 @@ export default function CareTeam({ patient }: CareTeamProps) {
             </div>
             <form onSubmit={handleAddMember} className="space-y-5">
               <div>
-                <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Name</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Dr. John Smith"
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                <UserAssignment
+                  assignedTo={formData.userId || null}
+                  allowedRoles={['physician', 'nurse', 'nurse_practitioner', 'physician_assistant', 'care_coordinator']}
+                  label="Select User"
+                  placeholder="Select a user to add to care team"
+                  onAssign={(userId) => setFormData({ ...formData, userId: userId || "" })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -458,41 +536,6 @@ export default function CareTeam({ patient }: CareTeamProps) {
                     value={formData.specialty}
                     onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
                     placeholder="Cardiology, etc."
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Department</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="Cardiology, Internal Medicine, etc."
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@hospital.com"
-                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="(555) 123-4567"
                     className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
                 </div>

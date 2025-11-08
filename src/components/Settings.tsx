@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { logger } from "../utils/logger";
 import {
   Settings as SettingsIcon,
   Bell,
@@ -16,6 +17,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
+import { useToast } from "../context/ToastContext";
 import { settingsService } from "../services/settings";
 import { ApiError } from "../services/api";
 import { MeasurementSystem, getMeasurementSystem, setMeasurementSystem } from "../utils/measurements";
@@ -46,7 +48,7 @@ interface UserPreferences {
 const DEFAULT_PREFERENCES: UserPreferences = {
   theme: "system",
   measurementSystem: "uk",
-  currency: "USD",
+  currency: "NGN",
   notifications: {
     email: true,
     inApp: true,
@@ -94,9 +96,7 @@ export default function Settings() {
       }
     } catch (error) {
       // Silently fail theme application
-      if (import.meta.env.DEV) {
-        console.warn("Failed to apply theme:", error);
-      }
+      logger.warn("Failed to apply theme:", error);
     }
   };
 
@@ -237,9 +237,7 @@ export default function Settings() {
         }
         } catch (error) {
         // Final fallback - use defaults
-        if (import.meta.env.DEV) {
-          console.error("Error loading settings:", error);
-        }
+        logger.error("Error loading settings:", error);
         const currentMeasurementSystem = getMeasurementSystem();
         const prefs = { ...DEFAULT_PREFERENCES, measurementSystem: currentMeasurementSystem };
         setPreferences(prefs);
@@ -252,6 +250,50 @@ export default function Settings() {
 
     loadPreferences();
   }, [currentUser?.id]);
+
+  // Apply theme immediately when preferences.theme changes
+  useEffect(() => {
+    if (preferences.theme) {
+      applyTheme(preferences.theme);
+    }
+  }, [preferences.theme]);
+
+  // Listen for system theme changes when using "system" theme
+  useEffect(() => {
+    if (preferences.theme !== "system") {
+      // If not system theme, don't set up listener
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    
+    const handleSystemThemeChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      // Apply system preference directly
+      // Effect re-runs if theme changes, so listener is removed if theme !== "system"
+      const systemPrefersDark = typeof e === "object" && "matches" in e 
+        ? e.matches 
+        : window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", systemPrefersDark);
+    };
+
+    // Apply initial system theme
+    const systemPrefersDark = mediaQuery.matches;
+    document.documentElement.classList.toggle("dark", systemPrefersDark);
+
+    // Listen for changes
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleSystemThemeChange);
+      return () => {
+        mediaQuery.removeEventListener("change", handleSystemThemeChange);
+      };
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handleSystemThemeChange);
+      return () => {
+        mediaQuery.removeListener(handleSystemThemeChange);
+      };
+    }
+  }, [preferences.theme]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -311,9 +353,7 @@ export default function Settings() {
         }
       } catch (apiError) {
         // API save failed, but continue to save locally
-        if (import.meta.env.DEV) {
-          console.log("Settings API unavailable, saving to localStorage only");
-        }
+        logger.info("Settings API unavailable, saving to localStorage only");
       }
       
       // Always save to localStorage as backup/primary storage
@@ -347,9 +387,7 @@ export default function Settings() {
           statusTimeoutRef.current = null;
         }, 3000);
       } catch (e) {
-        if (import.meta.env.DEV) {
-          console.error("Failed to save to localStorage", e);
-        }
+        logger.error("Failed to save to localStorage", e);
         statusTimeoutRef.current = setTimeout(() => {
           setSaveStatus("idle");
           setErrorMessage("");
@@ -378,9 +416,11 @@ export default function Settings() {
     });
   };
 
+  const toast = useToast();
+  
   const exportData = async () => {
     if (!currentUser?.id) {
-      alert("User not found. Please log in again.");
+      toast.error("User not found. Please log in again.");
       return;
     }
 
@@ -397,9 +437,9 @@ export default function Settings() {
       URL.revokeObjectURL(url);
     } catch (error) {
       if (error instanceof ApiError) {
-        alert(`Failed to export data: ${error.message}`);
+        toast.error(`Failed to export data: ${error.message}`);
       } else {
-        alert("Failed to export data. Please try again.");
+        toast.error("Failed to export data. Please try again.");
       }
       
       // Fallback to local export
@@ -420,7 +460,7 @@ export default function Settings() {
 
   const clearData = async () => {
     if (!currentUser?.id) {
-      alert("User not found. Please log in again.");
+      toast.error("User not found. Please log in again.");
       return;
     }
 
@@ -439,9 +479,9 @@ export default function Settings() {
         }, 3000);
       } catch (error) {
         if (error instanceof ApiError) {
-          alert(`Failed to clear preferences: ${error.message}`);
+          toast.error(`Failed to clear preferences: ${error.message}`);
         } else {
-          alert("Failed to clear preferences. Please try again.");
+          toast.error("Failed to clear preferences. Please try again.");
         }
         
         // Fallback to local clear

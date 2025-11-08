@@ -142,9 +142,21 @@ export class PasswordResetService {
    * Reset password using token
    */
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    // Validate password
-    if (!newPassword || newPassword.length < 8) {
-      throw new ValidationError('Password must be at least 8 characters long');
+    // Validate password with complexity requirements
+    if (!newPassword || newPassword.length < 8 || newPassword.length > 128) {
+      throw new ValidationError('Password must be between 8 and 128 characters');
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      throw new ValidationError('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      throw new ValidationError('Password must contain at least one lowercase letter');
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      throw new ValidationError('Password must contain at least one number');
+    }
+    if (!/[^A-Za-z0-9]/.test(newPassword)) {
+      throw new ValidationError('Password must contain at least one special character');
     }
 
     // Get token

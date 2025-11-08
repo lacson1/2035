@@ -143,6 +143,22 @@ enum TimelineEventType {
   lab
 }
 
+enum ReferralStatus {
+  pending
+  sent
+  accepted
+  completed
+  cancelled
+  declined
+}
+
+enum ReferralPriority {
+  routine
+  urgent
+  stat
+  emergency
+}
+
 enum InvoiceStatus {
   draft
   pending
@@ -192,6 +208,7 @@ model User {
   // Relations
   createdPatients       Patient[]            @relation("PatientCreatedBy")
   updatedPatients       Patient[]            @relation("PatientUpdatedBy")
+  recordedVitals        Vital[]              @relation("VitalRecordedBy")
   prescribedMedications Medication[]
   appointments          Appointment[]
   clinicalNotes         ClinicalNote[]
@@ -201,9 +218,19 @@ model User {
   uploadedDocuments     Document[]
   createdInvoices       Invoice[]            @relation("InvoiceCreatedBy")
   processedPayments     Payment[]            @relation("PaymentProcessedBy")
+  createdReferrals      Referral[]           @relation("ReferralCreatedBy")
+  referredToReferrals   Referral[]           @relation("ReferralReferredTo")
   auditLogs             AuditLog[]
   sessions              Session[]
   hubTeamMembers        HubTeamMember[]
+  consentPhysician      Consent[]            @relation("ConsentPhysician")
+  consentWitness        Consent[]            @relation("ConsentWitness")
+  consentSigner         Consent[]            @relation("ConsentSigner")
+  administeredVaccinations Vaccination[]     @relation("VaccinationAdministeredBy")
+  verifiedVaccinations  Vaccination[]        @relation("VaccinationVerifiedBy")
+  surgicalNoteSurgeon    SurgicalNote[]      @relation("SurgicalNoteSurgeon")
+  surgicalNoteAnesthesiologist SurgicalNote[] @relation("SurgicalNoteAnesthesiologist")
+  nutritionEntryDietitian NutritionEntry[]   @relation("NutritionEntryDietitian")
 
   @@index([email])
   @@index([role])
@@ -270,7 +297,13 @@ model Patient {
   timelineEvents  TimelineEvent[]
   careTeamMembers CareTeamAssignment[]
   invoices        Invoice[]
+  referrals       Referral[]
   auditLogs       AuditLog[]
+  vitals          Vital[]
+  consents        Consent[]
+  vaccinations    Vaccination[]
+  surgicalNotes   SurgicalNote[]
+  nutritionEntries NutritionEntry[]
 
   @@index([name])
   @@index([condition])
@@ -296,6 +329,30 @@ model Medication {
   @@index([patientId])
   @@index([status])
   @@map("medications")
+}
+
+model Vital {
+  id              String   @id @default(uuid())
+  patientId       String   @map("patient_id")
+  date            DateTime
+  time            String?
+  systolic        Int?
+  diastolic       Int?
+  heartRate       Int?     @map("heart_rate")
+  temperature     Float?
+  oxygen          Int?     // SpO2 percentage
+  notes           String?  @db.Text
+  recordedById    String?  @map("recorded_by_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  patient    Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  recordedBy User?   @relation("VitalRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([patientId])
+  @@index([date])
+  @@index([recordedById])
+  @@map("vitals")
 }
 
 model Appointment {
@@ -346,6 +403,44 @@ model ClinicalNote {
   @@index([authorId])
   @@index([date])
   @@map("clinical_notes")
+}
+
+model Referral {
+  id                    String           @id @default(uuid())
+  patientId             String           @map("patient_id")
+  date                  DateTime
+  specialty             String
+  reason                String           @db.Text
+  diagnosis             String?          @db.Text
+  priority              ReferralPriority
+  status                ReferralStatus  @default(pending)
+  referringPhysicianId  String?          @map("referring_physician_id")
+  referredToProviderId  String?          @map("referred_to_provider_id")
+  referredToProviderName String?          @map("referred_to_provider")
+  referredToFacility    String?          @map("referred_to_facility")
+  referredToAddress     String?          @map("referred_to_address")
+  referredToPhone       String?          @map("referred_to_phone")
+  appointmentDate       DateTime?        @map("appointment_date")
+  appointmentTime       String?          @map("appointment_time")
+  notes                 String?          @db.Text
+  attachments           String[]
+  insurancePreAuth      Boolean          @default(false) @map("insurance_pre_auth")
+  preAuthNumber         String?          @map("pre_auth_number")
+  followUpRequired      Boolean          @default(false) @map("follow_up_required")
+  followUpDate          DateTime?        @map("follow_up_date")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  patient           Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  referringPhysician User?   @relation("ReferralCreatedBy", fields: [referringPhysicianId], references: [id])
+  referredToProvider User?   @relation("ReferralReferredTo", fields: [referredToProviderId], references: [id])
+
+  @@index([patientId])
+  @@index([date])
+  @@index([status])
+  @@index([referringPhysicianId])
+  @@index([referredToProviderId])
+  @@map("referrals")
 }
 
 model ImagingStudy {
@@ -477,7 +572,7 @@ model Invoice {
   patientId         String        @map("patient_id")
   invoiceNumber     String        @unique @map("invoice_number")
   status            InvoiceStatus @default(draft)
-  currency          String        @default("USD") // ISO 4217 currency code (USD, NGN, EUR, etc.)
+  currency          String        @default("NGN") // ISO 4217 currency code (USD, NGN, EUR, etc.)
   subtotal          Decimal       @db.Decimal(15, 2) // Amount before tax/discount
   taxAmount         Decimal       @default(0) @db.Decimal(15, 2) @map("tax_amount")
   discountAmount    Decimal       @default(0) @db.Decimal(15, 2) @map("discount_amount")
@@ -533,7 +628,7 @@ model Payment {
   id            String        @id @default(uuid())
   invoiceId     String        @map("invoice_id")
   amount        Decimal       @db.Decimal(15, 2)
-  currency      String        @default("USD") // ISO 4217 currency code
+  currency      String        @default("NGN") // ISO 4217 currency code
   paymentMethod PaymentMethod @map("payment_method")
   status        PaymentStatus @default(pending)
   transactionId String?       @unique @map("transaction_id") // External payment gateway transaction ID
@@ -556,7 +651,7 @@ model Payment {
 model BillingSettings {
   id                String   @id @default(uuid())
   organizationName String?  @map("organization_name")
-  defaultCurrency   String   @default("USD") @map("default_currency") // ISO 4217 code
+  defaultCurrency   String   @default("NGN") @map("default_currency") // ISO 4217 code
   taxRate           Decimal  @default(0) @db.Decimal(5, 2) @map("tax_rate") // Default tax rate percentage
   taxEnabled        Boolean  @default(false) @map("tax_enabled")
   currencySymbols   Json?    @map("currency_symbols") // Map of currency codes to symbols: {"USD": "$", "NGN": "₦", "EUR": "€"}
@@ -718,4 +813,216 @@ model HubTeamMember {
   @@index([hubId])
   @@index([userId])
   @@map("hub_team_members")
+}
+
+enum ConsentType {
+  procedure
+  surgery
+  anesthesia
+  blood_transfusion
+  imaging_contrast
+  research
+  photography
+  other
+}
+
+enum ConsentStatus {
+  pending
+  signed
+  declined
+  expired
+  revoked
+}
+
+model Consent {
+  id              String        @id @default(uuid())
+  patientId       String        @map("patient_id")
+  date            DateTime
+  type            ConsentType
+  title           String
+  description     String        @db.Text
+  status          ConsentStatus @default(pending)
+  procedureName   String?       @map("procedure_name")
+  risks           String[]      // Array of risk descriptions
+  benefits        String[]      // Array of benefit descriptions
+  alternatives    String[]      // Array of alternative descriptions
+  signedBy        String?       @map("signed_by") // Patient or guardian name
+  signedById      String?       @map("signed_by_id")
+  witnessName     String?       @map("witness_name")
+  witnessId       String?       @map("witness_id")
+  physicianName   String?       @map("physician_name")
+  physicianId     String?       @map("physician_id")
+  signedDate      DateTime?     @map("signed_date")
+  signedTime      String?       @map("signed_time")
+  expirationDate  DateTime?     @map("expiration_date")
+  notes           String?       @db.Text
+  digitalSignature String?      @map("digital_signature") @db.Text
+  printedSignature Boolean      @default(false) @map("printed_signature")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  physician User?   @relation("ConsentPhysician", fields: [physicianId], references: [id])
+  witness   User?   @relation("ConsentWitness", fields: [witnessId], references: [id])
+  signer    User?   @relation("ConsentSigner", fields: [signedById], references: [id])
+
+  @@index([patientId])
+  @@index([date])
+  @@index([status])
+  @@index([type])
+  @@index([patientId, status])
+  @@index([patientId, date])
+  @@index([expirationDate])
+  @@map("consents")
+}
+
+enum VaccinationRoute {
+  intramuscular
+  subcutaneous
+  oral
+  intranasal
+  intradermal
+}
+
+model Vaccination {
+  id                String           @id @default(uuid())
+  patientId         String           @map("patient_id")
+  vaccineName       String           @map("vaccine_name")
+  vaccineCode       String?          @map("vaccine_code")
+  date              DateTime
+  administeredById  String?          @map("administered_by_id")
+  location          String?
+  route             VaccinationRoute?
+  site              String?
+  lotNumber         String?          @map("lot_number")
+  manufacturer      String?
+  expirationDate    DateTime?        @map("expiration_date")
+  doseNumber        Int?             @map("dose_number")
+  totalDoses        Int?             @map("total_doses")
+  nextDoseDate      DateTime?        @map("next_dose_date")
+  adverseReactions  String[]         @map("adverse_reactions")
+  notes             String?          @db.Text
+  verified          Boolean          @default(false)
+  verifiedBy        String?          @map("verified_by")
+  verifiedById      String?         @map("verified_by_id")
+  verifiedDate      DateTime?        @map("verified_date")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  patient        Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  administeredBy User?   @relation("VaccinationAdministeredBy", fields: [administeredById], references: [id])
+  verifiedByUser User?   @relation("VaccinationVerifiedBy", fields: [verifiedById], references: [id])
+
+  @@index([patientId])
+  @@index([date])
+  @@index([vaccineName])
+  @@index([vaccineCode])
+  @@index([patientId, date])
+  @@index([patientId, verified])
+  @@index([verified])
+  @@index([vaccineName, date])
+  @@map("vaccinations")
+}
+
+enum SurgicalProcedureType {
+  elective
+  emergency
+  urgent
+  scheduled
+}
+
+enum SurgicalStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+  postponed
+}
+
+model SurgicalNote {
+  id                    String                @id @default(uuid())
+  patientId             String                @map("patient_id")
+  date                  DateTime
+  procedureName         String                @map("procedure_name")
+  procedureType         SurgicalProcedureType  @map("procedure_type")
+  status                SurgicalStatus        @default(scheduled)
+  surgeonId             String?               @map("surgeon_id")
+  assistantSurgeons     String[]              @map("assistant_surgeons") // Array of user IDs
+  anesthesiologistId    String?               @map("anesthesiologist_id")
+  anesthesiaType        String?               @map("anesthesia_type")
+  indication            String                @db.Text
+  preoperativeDiagnosis String                @map("preoperative_diagnosis") @db.Text
+  postoperativeDiagnosis String?              @map("postoperative_diagnosis") @db.Text
+  procedureDescription  String                @map("procedure_description") @db.Text
+  findings              String?               @db.Text
+  complications         String?               @db.Text
+  estimatedBloodLoss    String?               @map("estimated_blood_loss")
+  specimens             String[]              // Array of specimen descriptions
+  drains                String?               @db.Text
+  postOpInstructions     String?               @map("post_op_instructions") @db.Text
+  recoveryNotes         String?               @map("recovery_notes") @db.Text
+  followUpDate          DateTime?             @map("follow_up_date")
+  operatingRoom         String?               @map("operating_room")
+  duration              Int?                   // Duration in minutes
+  startTime             String?                @map("start_time")
+  endTime              String?                @map("end_time")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+
+  patient         Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  surgeon         User?   @relation("SurgicalNoteSurgeon", fields: [surgeonId], references: [id])
+  anesthesiologist User?  @relation("SurgicalNoteAnesthesiologist", fields: [anesthesiologistId], references: [id])
+
+  @@index([patientId])
+  @@index([date])
+  @@index([status])
+  @@index([procedureType])
+  @@index([patientId, status])
+  @@index([patientId, date])
+  @@index([surgeonId, date])
+  @@index([date, status])
+  @@map("surgical_notes")
+}
+
+enum NutritionEntryType {
+  assessment
+  plan
+  consultation
+  monitoring
+}
+
+model NutritionEntry {
+  id                  String              @id @default(uuid())
+  patientId           String              @map("patient_id")
+  date                DateTime
+  type                NutritionEntryType
+  dietitianId         String?             @map("dietitian_id")
+  dietaryRestrictions String[]            @map("dietary_restrictions")
+  allergies           String[]            // Array of allergy descriptions
+  currentDiet         String?              @map("current_diet") @db.Text
+  recommendedDiet    String?             @map("recommended_diet") @db.Text
+  nutritionalGoals   String[]            @map("nutritional_goals")
+  caloricNeeds        Float?              @map("caloric_needs")
+  proteinNeeds        Float?              @map("protein_needs") // grams
+  fluidNeeds          Float?              @map("fluid_needs") // ml
+  supplements         Json?               // Array of { name, dosage, frequency, reason? }
+  mealPlan            Json?                @map("meal_plan") // Array of { meal, description, calories? }
+  weight              Float?               // kg
+  height              Float?              // cm
+  bmi                 Float?
+  notes               String?             @db.Text
+  followUpDate        DateTime?           @map("follow_up_date")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dietitian User?   @relation("NutritionEntryDietitian", fields: [dietitianId], references: [id])
+
+  @@index([patientId])
+  @@index([date])
+  @@index([type])
+  @@index([patientId, date])
+  @@index([patientId, type])
+  @@index([dietitianId, date])
+  @@map("nutrition_entries")
 }

@@ -5,14 +5,16 @@ import {
   X,
   List,
   LayoutGrid,
+  FileText,
 } from "lucide-react";
 import { Patient } from "../types";
 import { usePatientSearch } from "../hooks/usePatientSearch";
 import PatientListItem from "./PatientList/PatientListItem";
 import PatientGridItem from "./PatientList/PatientGridItem";
+import PatientDetailItem from "./PatientList/PatientDetailItem";
 import PatientListPagination from "./PatientList/PatientListPagination";
 
-type ViewMode = "list" | "grid";
+type ViewMode = "list" | "grid" | "detail";
 
 interface PatientListProps {
   patients: Patient[];
@@ -70,7 +72,7 @@ function PatientList({
           placeholder="Search patients..."
           value={filterState.searchQuery}
           onChange={(e) => updateFilter({ searchQuery: e.target.value })}
-          className="w-full pl-10 pr-10 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-normal min-h-[44px] focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+          className="input-base pl-10 pr-10 py-2.5 text-sm min-h-[44px]"
         />
         {filterState.searchQuery && (
           <button
@@ -93,7 +95,7 @@ function PatientList({
             <Filter size={16} />
             Filters
             {hasActiveFilters && (
-              <span className="px-1.5 py-0.5 text-xs bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300 rounded">
+              <span className="px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded">
                 Active
               </span>
             )}
@@ -104,7 +106,7 @@ function PatientList({
                 onClick={() => setViewMode("list")}
                 className={`p-1.5 rounded transition-colors ${
                   viewMode === "list"
-                    ? "bg-white dark:bg-gray-600 text-teal-600 dark:text-teal-400 shadow-sm"
+                    ? "bg-white dark:bg-gray-600 text-primary-600 dark:text-primary-400 shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 }`}
                 title="List view"
@@ -116,13 +118,25 @@ function PatientList({
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 rounded transition-colors ${
                   viewMode === "grid"
-                    ? "bg-white dark:bg-gray-600 text-teal-600 dark:text-teal-400 shadow-sm"
+                    ? "bg-white dark:bg-gray-600 text-primary-600 dark:text-primary-400 shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 }`}
                 title="Grid view"
                 aria-label="Grid view"
               >
                 <LayoutGrid size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode("detail")}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === "detail"
+                    ? "bg-white dark:bg-gray-600 text-primary-600 dark:text-primary-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+                title="Detailed view"
+                aria-label="Detailed view"
+              >
+                <FileText size={16} />
               </button>
             </div>
             <select
@@ -174,7 +188,7 @@ function PatientList({
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="w-full text-xs text-teal-600 dark:text-teal-400 hover:underline"
+                className="w-full text-xs text-primary-600 dark:text-primary-400 hover:underline"
               >
                 Clear All Filters
               </button>
@@ -202,9 +216,9 @@ function PatientList({
         )}
       </div>
 
-      {/* Patient List/Grid */}
+      {/* Patient List/Grid/Detail */}
       <div className={`max-h-[calc(100vh-400px)] md:max-h-[calc(100vh-500px)] overflow-y-auto ${
-        viewMode === "list" ? "space-y-3" : ""
+        viewMode === "list" || viewMode === "detail" ? "space-y-3" : ""
       }`}>
         {resultCount > 0 ? (
           <>
@@ -212,6 +226,17 @@ function PatientList({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {paginatedPatients.map((patient) => (
                   <PatientGridItem
+                    key={patient.id}
+                    patient={patient}
+                    isSelected={selectedPatient?.id === patient.id}
+                    onClick={() => onSelectPatient(patient)}
+                  />
+                ))}
+              </div>
+            ) : viewMode === "detail" ? (
+              <div className="space-y-3">
+                {paginatedPatients.map((patient) => (
+                  <PatientDetailItem
                     key={patient.id}
                     patient={patient}
                     isSelected={selectedPatient?.id === patient.id}
@@ -239,7 +264,7 @@ function PatientList({
                 <p>No patients match your filters</p>
                 <button
                   onClick={clearFilters}
-                  className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
+                  className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
                 >
                   Clear filters to see all patients
                 </button>

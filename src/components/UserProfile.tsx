@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Mail,
   Phone,
@@ -13,10 +13,17 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
+import { useAuth } from "../context/AuthContext";
 import { getRolePermissions, getRoleName } from "../data/roles";
+import { useToast } from "../context/ToastContext";
+import apiClient from "../services/api";
+import { ApiError } from "../services/api";
+import { logger } from "../utils/logger";
 
 export default function UserProfile() {
-  const { currentUser, setCurrentUser } = useUser();
+  const { currentUser } = useUser();
+  const { refreshUser } = useAuth();
+  const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,6 +34,20 @@ export default function UserProfile() {
     specialty: currentUser?.specialty || "",
     department: currentUser?.department || "",
   });
+
+  // Update form data when currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      setFormData({
+        firstName: currentUser.firstName || "",
+        lastName: currentUser.lastName || "",
+        email: currentUser.email || "",
+        phone: currentUser.phone || "",
+        specialty: currentUser.specialty || "",
+        department: currentUser.department || "",
+      });
+    }
+  }, [currentUser]);
 
   if (!currentUser) {
     return (
@@ -42,18 +63,39 @@ export default function UserProfile() {
     e.preventDefault();
     setIsSaving(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      // Call API to update user profile
+      const response = await apiClient.put(`/v1/auth/me`, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone || null,
+        specialty: formData.specialty || null,
+        department: formData.department || null,
+      });
 
-    const updatedUser = {
-      ...currentUser,
-      ...formData,
-      updatedAt: new Date().toISOString(),
-    };
-
-    setCurrentUser(updatedUser);
-    setIsEditing(false);
-    setIsSaving(false);
+      if (response.data) {
+        // Refresh user data from auth context
+        await refreshUser();
+        
+        toast.success("Profile updated successfully", { duration: 3000 });
+        setIsEditing(false);
+      } else {
+        throw new Error("No data received from server");
+      }
+    } catch (error: any) {
+      logger.error("Failed to update profile:", error);
+      
+      if (error instanceof ApiError) {
+        toast.error(error.message || "Failed to update profile. Please try again.", { duration: 5000 });
+      } else if (error?.message) {
+        toast.error(error.message, { duration: 5000 });
+      } else {
+        toast.error("Failed to update profile. Please try again.", { duration: 5000 });
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -71,7 +113,7 @@ export default function UserProfile() {
   return (
     <div className="space-y-6">
       {/* Profile Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6">
+      <div className="card-elevated p-6">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -80,7 +122,7 @@ export default function UserProfile() {
               </div>
               {isEditing && (
                 <button
-                  className="absolute bottom-0 right-0 p-2 bg-teal-500 text-white rounded-full hover:bg-teal-600 transition-colors"
+                  className="absolute bottom-0 right-0 p-2 bg-primary-500 text-white rounded-full hover:bg-primary-600 transition-colors"
                   title="Change avatar"
                 >
                   <Camera size={16} />
@@ -105,7 +147,7 @@ export default function UserProfile() {
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors"
+                className="btn-primary flex items-center gap-2"
               >
                 <Edit2 size={16} />
                 Edit Profile
@@ -114,7 +156,7 @@ export default function UserProfile() {
               <>
                 <button
                   onClick={handleCancel}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 hover:shadow-sm active:scale-95"
                 >
                   <X size={16} />
                   Cancel
@@ -122,7 +164,7 @@ export default function UserProfile() {
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save size={16} />
                   {isSaving ? "Saving..." : "Save Changes"}
@@ -170,21 +212,25 @@ export default function UserProfile() {
       </div>
 
       {/* Profile Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6">
+      <div className="card p-6">
         <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
         <form onSubmit={handleSave} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label htmlFor="firstName" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 First Name
               </label>
               {isEditing ? (
                 <input
+                  id="firstName"
                   type="text"
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   required
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                  aria-label="First Name"
+                  title="First Name"
+                  className="input-base px-4 py-3"
+                  placeholder="Enter first name"
                 />
               ) : (
                 <div className="px-4 py-3 text-base bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -194,16 +240,20 @@ export default function UserProfile() {
             </div>
 
             <div>
-              <label className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              <label htmlFor="lastName" className="block text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 Last Name
               </label>
               {isEditing ? (
                 <input
+                  id="lastName"
                   type="text"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   required
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                  aria-label="Last Name"
+                  title="Last Name"
+                  className="input-base px-4 py-3"
+                  placeholder="Enter last name"
                 />
               ) : (
                 <div className="px-4 py-3 text-base bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -213,17 +263,21 @@ export default function UserProfile() {
             </div>
 
             <div>
-              <label className="block text-base font-medium mb-2.5 flex items-center gap-2">
+              <label htmlFor="email" className="flex items-center gap-2 text-base font-medium mb-2.5 text-gray-700 dark:text-gray-200">
                 <Mail size={16} />
                 Email
               </label>
               {isEditing ? (
                 <input
+                  id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                  aria-label="Email"
+                  title="Email"
+                  className="input-base px-4 py-3"
+                  placeholder="Enter email address"
                 />
               ) : (
                 <div className="px-4 py-3 text-base bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -233,16 +287,19 @@ export default function UserProfile() {
             </div>
 
             <div>
-              <label className="block text-base font-medium mb-2.5 flex items-center gap-2">
+              <label htmlFor="phone" className="flex items-center gap-2 text-base font-medium mb-2.5 text-gray-700 dark:text-gray-200">
                 <Phone size={16} />
                 Phone
               </label>
               {isEditing ? (
                 <input
+                  id="phone"
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                  aria-label="Phone"
+                  title="Phone"
+                  className="input-base px-4 py-3"
                   placeholder="(555) 123-4567"
                 />
               ) : (
@@ -253,16 +310,19 @@ export default function UserProfile() {
             </div>
 
             <div>
-              <label className="block text-base font-medium mb-2.5 flex items-center gap-2">
+              <label htmlFor="specialty" className="flex items-center gap-2 text-base font-medium mb-2.5 text-gray-700 dark:text-gray-200">
                 <Briefcase size={16} />
                 Specialty
               </label>
               {isEditing ? (
                 <input
+                  id="specialty"
                   type="text"
                   value={formData.specialty}
                   onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                  aria-label="Specialty"
+                  title="Specialty"
+                  className="input-base px-4 py-3"
                   placeholder="e.g., Cardiology, Internal Medicine"
                 />
               ) : (
@@ -273,16 +333,19 @@ export default function UserProfile() {
             </div>
 
             <div>
-              <label className="block text-base font-medium mb-2.5 flex items-center gap-2">
+              <label htmlFor="department" className="flex items-center gap-2 text-base font-medium mb-2.5 text-gray-700 dark:text-gray-200">
                 <Building2 size={16} />
                 Department
               </label>
               {isEditing ? (
                 <input
+                  id="department"
                   type="text"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                  aria-label="Department"
+                  title="Department"
+                  className="input-base px-4 py-3"
                   placeholder="e.g., Cardiology, Emergency"
                 />
               ) : (
@@ -318,7 +381,7 @@ export default function UserProfile() {
               {rolePermissions?.slice(0, 10).map((permission, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-1 text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 rounded"
+                  className="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 rounded"
                 >
                   {permission.replace(/_/g, " ")}
                 </span>

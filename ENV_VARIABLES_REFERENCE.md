@@ -45,8 +45,10 @@ RATE_LIMIT_WINDOW_MS=60000
 # Maximum requests per window (default: 100)
 RATE_LIMIT_MAX_REQUESTS=100
 
-# Optional: Sentry Configuration (for error tracking)
-# SENTRY_DSN=your-sentry-dsn-here
+# Sentry Configuration (for error tracking - RECOMMENDED for production)
+# Get your DSN from https://sentry.io after creating a project
+# Format: https://xxx@xxx.ingest.sentry.io/xxx
+SENTRY_DSN=https://your-dsn@sentry.io/project-id
 
 # Optional: Email Configuration (for password reset, notifications)
 # SMTP_HOST=smtp.example.com

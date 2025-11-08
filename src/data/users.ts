@@ -7,6 +7,8 @@
  * Components should load users from the API endpoint: GET /api/v1/users
  */
 
+import { logger } from '../utils/logger';
+
 export const users: any[] = [];
 
 // These functions are deprecated - use API service instead
@@ -15,10 +17,10 @@ export function getCurrentUser(): any {
 }
 
 export function setCurrentUser(_userId: string): void {
-  console.warn('setCurrentUser is deprecated, use AuthContext instead');
+  logger.warn('setCurrentUser is deprecated, use AuthContext instead');
 }
 
 export function clearCurrentUser(): void {
-  console.warn('clearCurrentUser is deprecated, use AuthContext logout instead');
+  logger.warn('clearCurrentUser is deprecated, use AuthContext logout instead');
 }
 

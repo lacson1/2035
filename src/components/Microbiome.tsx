@@ -65,89 +65,16 @@ export default function Microbiome({}: MicrobiomeProps) {
     notes: "",
   });
 
-  const [tests, setTests] = useState<MicrobiomeTest[]>([
-    {
-      id: "micro-001",
-      date: "2025-01-10",
-      diversityScore: 85,
-      beneficialBacteria: 78,
-      harmfulBacteria: 12,
-      overallHealth: "good",
-      notes: "Improving diversity after probiotic regimen",
-      status: "reviewed",
-      orderedDate: "2025-01-05",
-      collectedDate: "2025-01-08",
-      completedDate: "2025-01-10",
-      reviewedDate: "2025-01-10",
-    },
-    {
-      id: "micro-002",
-      date: "2024-12-05",
-      diversityScore: 72,
-      beneficialBacteria: 65,
-      harmfulBacteria: 18,
-      overallHealth: "moderate",
-      status: "reviewed",
-      orderedDate: "2024-11-28",
-      collectedDate: "2024-12-03",
-      completedDate: "2024-12-05",
-      reviewedDate: "2024-12-05",
-    },
-  ]);
+  // Initialize with empty arrays - data should come from API or patient data
+  const [tests, setTests] = useState<MicrobiomeTest[]>([]);
   
-  const [pendingOrders, setPendingOrders] = useState<MicrobiomeTest[]>([
-    {
-      id: "micro-pending-001",
-      date: "",
-      diversityScore: 0,
-      beneficialBacteria: 0,
-      harmfulBacteria: 0,
-      overallHealth: "moderate",
-      status: "ordered",
-      orderedDate: new Date().toISOString().split("T")[0],
-    },
-  ]);
+  const [pendingOrders, setPendingOrders] = useState<MicrobiomeTest[]>([]);
 
-  const [bacteriaTypes, _setBacteriaTypes] = useState<BacteriaType[]>([
-    {
-      name: "Lactobacillus",
-      category: "beneficial",
-      abundance: 82,
-      status: "optimal",
-      impact: "Supports digestion and immune function",
-    },
-    {
-      name: "Bifidobacterium",
-      category: "beneficial",
-      abundance: 75,
-      status: "optimal",
-      impact: "Aids in nutrient absorption",
-    },
-    {
-      name: "Akkermansia",
-      category: "beneficial",
-      abundance: 68,
-      status: "normal",
-      impact: "Maintains gut barrier integrity",
-    },
-    {
-      name: "E. coli",
-      category: "harmful",
-      abundance: 8,
-      status: "normal",
-      impact: "Low levels - no concern",
-    },
-    {
-      name: "Clostridium difficile",
-      category: "harmful",
-      abundance: 4,
-      status: "optimal",
-      impact: "Well-controlled",
-    },
-  ]);
+  // Initialize with empty array - data should come from API or patient data
+  const [bacteriaTypes, _setBacteriaTypes] = useState<BacteriaType[]>([]);
 
-  const latestTest = tests[0];
-  const previousTest = tests[1];
+  const latestTest = tests.length > 0 ? tests[0] : undefined;
+  const previousTest = tests.length > 1 ? tests[1] : undefined;
   
   const allTests = useMemo(() => {
     return [...tests, ...pendingOrders].sort((a, b) => {
@@ -212,7 +139,7 @@ export default function Microbiome({}: MicrobiomeProps) {
 
 
   const calculateDiversityTrend = () => {
-    if (!previousTest) return "stable";
+    if (!latestTest || !previousTest) return "stable";
     const diff = latestTest.diversityScore - previousTest.diversityScore;
     if (diff > 5) return "improving";
     if (diff < -5) return "declining";
@@ -555,6 +482,7 @@ export default function Microbiome({}: MicrobiomeProps) {
         </div>
       ) : (
         /* Overview View */
+        <>
         <div className="space-y-6">
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -569,6 +497,8 @@ export default function Microbiome({}: MicrobiomeProps) {
               <Activity size={16} className="text-gray-500" />
             )}
           </div>
+          {latestTest ? (
+            <>
           <p className="text-3xl font-bold text-green-700 dark:text-green-400 font-sans">
             {latestTest.diversityScore}
             <span className="text-lg ml-1">/100</span>
@@ -578,11 +508,17 @@ export default function Microbiome({}: MicrobiomeProps) {
               {diversityTrend === "improving" && "+"}
               {latestTest.diversityScore - previousTest.diversityScore} from last test
             </p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-sans">No test data</p>
           )}
         </div>
 
         <div className="card hover:shadow-lg transition-all duration-300">
           <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 font-sans">Beneficial Bacteria</p>
+          {latestTest ? (
+            <>
           <p className="text-3xl font-bold text-teal-700 dark:text-teal-400 font-sans">
             {latestTest.beneficialBacteria}
             <span className="text-lg ml-1">%</span>
@@ -590,10 +526,16 @@ export default function Microbiome({}: MicrobiomeProps) {
           <p className="text-xs text-gray-600 dark:text-gray-400 mt-3 font-sans">
             {beneficialBacteria.length} species identified
           </p>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-sans">No test data</p>
+          )}
         </div>
 
         <div className="card hover:shadow-lg transition-all duration-300">
           <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 font-sans">Harmful Bacteria</p>
+          {latestTest ? (
+            <>
           <p className="text-3xl font-bold text-red-700 dark:text-red-400 font-sans">
             {latestTest.harmfulBacteria}
             <span className="text-lg ml-1">%</span>
@@ -601,10 +543,15 @@ export default function Microbiome({}: MicrobiomeProps) {
           <p className="text-xs text-gray-600 dark:text-gray-400 mt-3 font-sans">
             {harmfulBacteria.length} species monitored
           </p>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-sans">No test data</p>
+          )}
         </div>
       </div>
 
       {/* Overall Health Status */}
+      {latestTest && (
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold flex items-center gap-2 font-sans">
@@ -620,6 +567,8 @@ export default function Microbiome({}: MicrobiomeProps) {
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 font-sans">Latest Test Results</p>
             <div className="space-y-3">
+              {latestTest ? (
+                <>
               <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
                 <span className="text-sm text-gray-600 dark:text-gray-400 font-sans">Test Date:</span>
                 <span className="font-semibold font-sans">{new Date(latestTest.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
@@ -632,9 +581,14 @@ export default function Microbiome({}: MicrobiomeProps) {
                 <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-xl text-sm font-sans">
                   {latestTest.notes}
                 </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-sans">No test data available</p>
               )}
             </div>
           </div>
+          {latestTest && (
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 font-sans">Health Assessment</p>
             <div className="space-y-2">
@@ -660,8 +614,10 @@ export default function Microbiome({}: MicrobiomeProps) {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
+      )}
 
       {/* Bacteria Types */}
       <div className="card">
@@ -913,6 +869,7 @@ export default function Microbiome({}: MicrobiomeProps) {
         </div>
       </div>
         </div>
+        </>
       )}
 
       {/* Order Test Modal */}

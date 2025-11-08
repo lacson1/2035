@@ -40,6 +40,36 @@ export const authenticate = (
   }
 };
 
+/**
+ * Optional authentication middleware
+ * Sets req.user if token is provided, but doesn't fail if missing
+ * Useful for public endpoints that can work with or without auth
+ */
+export const optionalAuthenticate = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
+        req.user = decoded;
+      } catch (error) {
+        // Invalid token, but continue without user
+        req.user = undefined;
+      }
+    }
+    next();
+  } catch (error) {
+    // Continue without authentication
+    next();
+  }
+};
+
 export const requireRole = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {

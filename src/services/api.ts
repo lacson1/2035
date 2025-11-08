@@ -4,6 +4,7 @@
  */
 
 import { debugApiRequest, debugApiResponse, debugApiError } from '../utils/debug';
+import { logger } from '../utils/logger';
 
 export interface ApiResponse<T> {
   data: T;
@@ -37,58 +38,80 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
 
-    // Add auth token if available
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      defaultHeaders['Authorization'] = `Bearer ${token}`;
+    // Public endpoints that don't require authentication
+    const publicEndpoints = ['/v1/hubs'];
+    const isPublicEndpoint = publicEndpoints.some(publicPath => endpoint.startsWith(publicPath));
+
+    // Add auth token if available and endpoint is not public
+    // Access token is stored in memory (via AuthContext), refresh token is in httpOnly cookie
+    if (!isPublicEndpoint) {
+      // Try to get token from a global store or pass it as a parameter
+      // For now, we'll check localStorage as fallback (will be removed after AuthContext update)
+      const token = (window as any).__authToken || localStorage.getItem('authToken');
+      if (token) {
+        defaultHeaders['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     const config: RequestInit = {
       ...options,
+      credentials: 'include', // Include cookies (for refresh token)
       headers: {
         ...defaultHeaders,
         ...options.headers,
       },
     };
 
-    // Debug log request in development (only if debug info is enabled)
-    if (import.meta.env.DEV && localStorage.getItem('showDebugInfo') === 'true') {
-      debugApiRequest(options.method || 'GET', url, options.body ? JSON.parse(options.body as string) : undefined);
+    // Debug log request in development
+    if (import.meta.env.DEV) {
+      const debugEnabled = localStorage.getItem('showDebugInfo') === 'true';
+      if (debugEnabled) {
+        try {
+          const requestBody = options.body ? JSON.parse(options.body as string) : undefined;
+          debugApiRequest(options.method || 'GET', url, requestBody);
+        } catch (e) {
+          // Body might not be JSON, log as-is
+          debugApiRequest(options.method || 'GET', url, options.body);
+        }
+      }
+      // Always log basic request info in dev mode (without sensitive data)
+      logger.debug(`API Request: ${options.method || 'GET'} ${url}`);
     }
 
     try {
       const response = await fetch(url, config);
 
-      // Handle 401 Unauthorized - try to refresh token
-      if (response.status === 401 && retry) {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          try {
-            const refreshResponse = await fetch(`${this.baseURL}/v1/auth/refresh`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ refreshToken }),
-            });
+      // Handle 401 Unauthorized - try to refresh token (but not for public endpoints or auth endpoints)
+      // Refresh token is now in httpOnly cookie, so we don't need to send it in body
+      if (response.status === 401 && retry && !isPublicEndpoint && !endpoint.includes('/auth/me') && !endpoint.includes('/auth/refresh')) {
+        try {
+          const refreshResponse = await fetch(`${this.baseURL}/v1/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include', // Include cookies (refresh token)
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            // No body needed - refresh token is in httpOnly cookie
+          });
 
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              // Handle both nested and flat response formats
-              const newToken = refreshData.data?.accessToken || refreshData.accessToken;
-              if (newToken) {
-                localStorage.setItem('authToken', newToken);
-                // Retry original request with new token
-                return this.request<T>(endpoint, options, false);
-              }
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            // Handle both nested and flat response formats
+            const newToken = refreshData.data?.accessToken || refreshData.accessToken;
+            if (newToken) {
+              // Store access token in memory (via global variable for now, will be updated in AuthContext)
+              (window as any).__authToken = newToken;
+              localStorage.setItem('authToken', newToken); // Temporary fallback
+              // Retry original request with new token
+              return this.request<T>(endpoint, options, false);
             }
-          } catch (refreshError) {
-            // Refresh failed, clear tokens
-            // Don't log here to avoid console noise - token refresh failures are expected
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('refreshToken');
-            // Don't redirect here, let the app handle it
           }
+        } catch (refreshError) {
+          // Refresh failed, clear tokens
+          // Don't log here to avoid console noise - token refresh failures are expected
+          delete (window as any).__authToken;
+          localStorage.removeItem('authToken');
+          // Don't redirect here, let the app handle it
         }
       }
 
@@ -100,11 +123,52 @@ class ApiClient {
           // Response might not be JSON
         }
         
-        throw new ApiError(
+        // For 401 on public endpoints or /auth/me, don't throw a noisy error - just return a clean error
+        // This prevents console spam when tokens are invalid/expired
+        if (response.status === 401 && (isPublicEndpoint || endpoint.includes('/auth/me'))) {
+          const apiError = new ApiError(
+            'Unauthorized - please login again',
+            response.status,
+            errorData.errors
+          );
+          throw apiError;
+        }
+        
+        const apiError = new ApiError(
           errorData.message || `HTTP error! status: ${response.status}`,
           response.status,
           errorData.errors
         );
+        
+        // Attach full response data for debugging
+        (apiError as any).response = {
+          status: response.status,
+          statusText: response.statusText,
+          data: errorData,
+          headers: Object.fromEntries(response.headers.entries()),
+        };
+        
+        // Log error details in development
+        if (import.meta.env.DEV) {
+          console.error('API Error Response:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData,
+            endpoint: url,
+          });
+        }
+        
+        // Add retry-after information for rate limiting (429)
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After');
+          if (retryAfter) {
+            (apiError as any).retryAfter = parseInt(retryAfter, 10);
+          } else if (errorData.retryAfter) {
+            (apiError as any).retryAfter = errorData.retryAfter;
+          }
+        }
+        
+        throw apiError;
       }
 
       const responseData = await response.json();
@@ -119,7 +183,12 @@ class ApiClient {
 
       // Debug log response in development
       if (import.meta.env.DEV) {
+        const debugEnabled = localStorage.getItem('showDebugInfo') === 'true';
+        if (debugEnabled) {
         debugApiResponse(options.method || 'GET', url, result);
+        }
+        // Always log basic response info in dev mode
+        logger.debug(`API Response: ${options.method || 'GET'} ${url} - Status: ${response.status}`);
       }
 
       return result;
@@ -160,8 +229,8 @@ Once the server is running, try logging in again.`;
         const showDebugInfo = localStorage.getItem('showDebugInfo') === 'true';
         debugApiError(options.method || 'GET', url, error);
         if (statusCode === 0 && showDebugInfo) {
-          console.error('Attempted URL:', url);
-          console.error('API Base URL:', this.baseURL);
+          logger.error('Attempted URL:', url);
+          logger.error('API Base URL:', this.baseURL);
         }
       }
       

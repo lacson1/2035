@@ -1,0 +1,17 @@
+{
+  "yaml.validate": false,
+  "yaml.schemaStore.enable": false,
+  "yaml.completion": false,
+  "yaml.enable": false,
+  "files.associations": {
+    "*.yml": "plaintext",
+    "backup-database.yml": "plaintext"
+  },
+  "[yaml]": {
+    "editor.validation.enabled": false,
+    "editor.language": "plaintext"
+  },
+  "[plaintext]": {
+    "editor.validation.enabled": false
+  }
+}

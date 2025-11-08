@@ -4,6 +4,7 @@ import { useAuth } from "./context/AuthContext";
 import PatientListPage from "./pages/PatientListPage";
 import WorkspacePage from "./pages/WorkspacePage";
 import Login from "./components/Login";
+import { initializeHubs } from "./data/hubs";
 
 type ViewMode = "patients" | "workspace";
 
@@ -13,16 +14,30 @@ function App() {
   const { selectedPatient: _selectedPatient } = useDashboard();
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Initialize hubs when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      initializeHubs().catch(err => {
+        console.warn('Failed to initialize hubs:', err);
+      });
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     const stored = localStorage.getItem("theme");
     setDarkMode(stored === "dark");
     
-    // If a patient is selected, default to workspace view
-    const storedView = localStorage.getItem("viewMode") as ViewMode | null;
-    if (storedView && (storedView === "patients" || storedView === "workspace")) {
-      setViewMode(storedView);
+    // Only restore view mode if authenticated, otherwise default to patients
+    if (isAuthenticated) {
+      const storedView = localStorage.getItem("viewMode") as ViewMode | null;
+      if (storedView && (storedView === "patients" || storedView === "workspace")) {
+        setViewMode(storedView);
+      }
+    } else {
+      // Reset to patients view when not authenticated
+      setViewMode("patients");
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -47,8 +62,11 @@ function App() {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-700">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+          <div className="text-gray-700 dark:text-gray-300">Loading application...</div>
+        </div>
       </div>
     );
   }

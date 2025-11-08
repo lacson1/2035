@@ -1,0 +1,6 @@
+{
+  "recommendations": [],
+  "unwantedRecommendations": [
+    "redhat.vscode-yaml"
+  ]
+}

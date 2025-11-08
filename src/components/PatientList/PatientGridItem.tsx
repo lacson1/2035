@@ -1,14 +1,16 @@
 import { memo } from "react";
 import {
-  User,
   Calendar,
-  Phone,
-  Mail,
-  MapPin,
+  Circle,
+  Square,
 } from "lucide-react";
 import { Patient } from "../../types";
-import { getRiskColorClasses, getRiskLabel } from "../../utils/riskUtils";
-import { getUpcomingAppointmentsCount, getActiveMedicationsCount } from "../../utils/patientUtils";
+import { getRiskColorClasses } from "../../utils/riskUtils";
+import { getUpcomingAppointmentsCount } from "../../utils/patientUtils";
+import { getConditionIcon } from "../../utils/patientConditionIcons";
+import PatientHoverTooltip from "../PatientHoverTooltip";
+import { useDashboard } from "../../context/DashboardContext";
+import { PatientRiskBadge } from "../PatientRiskIndicator";
 
 interface PatientGridItemProps {
   patient: Patient;
@@ -17,8 +19,20 @@ interface PatientGridItemProps {
 }
 
 const PatientGridItem = memo(({ patient, isSelected, onClick }: PatientGridItemProps) => {
+  const { setSelectedPatient, setActiveTab } = useDashboard();
   const upcomingApts = getUpcomingAppointmentsCount(patient);
+  const genderLower = patient.gender?.toLowerCase() || "";
+  const isMale = genderLower.includes("male") || genderLower === "m";
+  const GenderIcon = isMale ? Square : Circle;
+  const conditionIcon = getConditionIcon(patient);
+  const ConditionIcon = conditionIcon.icon;
   // const recentDays = getRecentActivity(patient); // Unused for now
+
+  const handleEdit = () => {
+    setSelectedPatient(patient);
+    setActiveTab("overview");
+    onClick();
+  };
 
   return (
     <button
@@ -28,100 +42,68 @@ const PatientGridItem = memo(({ patient, isSelected, onClick }: PatientGridItemP
         e.stopPropagation();
         onClick();
       }}
-      className={`w-full text-left p-4 rounded-xl border transition-all duration-200 ${
+      className={`w-full text-left p-4 rounded-xl border transition-all duration-300 relative ${
         isSelected
-          ? "border-teal-500 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 shadow-md ring-2 ring-teal-200 dark:ring-teal-800"
-          : "border-gray-200/50 dark:border-gray-700/50 hover:border-teal-300 dark:hover:border-teal-700 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 hover:shadow-sm"
+          ? "border-primary-500 bg-gradient-to-br from-primary-50 via-white to-success-50 dark:from-primary-900/30 dark:via-gray-800 dark:to-success-900/20 shadow-lg ring-2 ring-primary-200 dark:ring-primary-800"
+          : "border-gray-200/60 dark:border-gray-700/60 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-gradient-to-br hover:from-gray-50 hover:to-primary-50/30 dark:hover:from-gray-800 dark:hover:to-primary-900/10 hover:shadow-md"
       }`}
     >
-      <div className="flex justify-between items-start mb-3">
+      <PatientRiskBadge patient={patient} />
+      <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className={`p-2 rounded-lg ${
+          <div className={`p-2 rounded-lg transition-all duration-300 flex-shrink-0 ${
             isSelected 
-              ? "bg-teal-200 dark:bg-teal-800" 
-              : "bg-gray-100 dark:bg-gray-700"
+              ? "bg-gradient-to-br from-primary-500 to-success-500 shadow-md" 
+              : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600"
           }`}>
-            <User size={18} className="text-gray-600 dark:text-gray-300" />
+            <div title={conditionIcon.label}>
+              <ConditionIcon 
+                size={16} 
+                className={isSelected ? "text-white" : `${conditionIcon.color} ${conditionIcon.darkColor}`}
+              />
+            </div>
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm truncate">{patient.name}</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {patient.age}y • {patient.gender}
-            </p>
+            <PatientHoverTooltip patient={patient} onEdit={handleEdit}>
+              <h4 
+                className="font-semibold text-sm truncate cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {patient.name}
+              </h4>
+            </PatientHoverTooltip>
           </div>
         </div>
+        <span
+          className={`text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 ${getRiskColorClasses(
+            patient.risk
+          )}`}
+        >
+          {patient.risk}%
+        </span>
       </div>
 
-      <div className="space-y-2 mb-3">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{patient.condition}</span>
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 ${getRiskColorClasses(
-              patient.risk
-            )}`}
-          >
-            {patient.risk}%
+          <span className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+            {patient.age}y
+            <GenderIcon 
+              size={12} 
+              className={isMale ? "text-blue-500 dark:text-blue-400" : "text-pink-500 dark:text-pink-400"} 
+            />
+            {patient.gender}
           </span>
-        </div>
-        {/* Contact Information */}
-        <div className="space-y-1.5">
-          {patient.address && (
-            <div className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-              <MapPin size={12} className="text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
-              <span className="truncate line-clamp-1">{patient.address}</span>
-            </div>
-          )}
-          {patient.phone && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-              <Phone size={12} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
-              <span className="truncate">{patient.phone}</span>
-            </div>
-          )}
-          {patient.email && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-              <Mail size={12} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
-              <span className="truncate">{patient.email}</span>
-            </div>
-          )}
-        </div>
-        {/* Extra details chips */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded border border-gray-200 dark:border-gray-700">
-            ID: {patient.id.length > 8 ? `***${patient.id.slice(-4)}` : `***${patient.id.slice(-4)}`}
-          </span>
-          {Array.isArray(patient.allergies) && patient.allergies.length > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded border border-gray-200 dark:border-gray-700">
-              {patient.allergies.length} allergies
-            </span>
-          )}
-          {patient.insurance?.provider && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded border border-gray-200 dark:border-gray-700 truncate max-w-[150px]">
-              {patient.insurance.provider}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Status Indicators */}
-      <div className="flex items-center justify-between pt-2 border-t dark:border-gray-700">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-xs px-1.5 py-0.5 rounded ${getRiskColorClasses(patient.risk)}`}>
-            {getRiskLabel(patient.risk)}
-          </span>
-          {getActiveMedicationsCount(patient) > 0 && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {getActiveMedicationsCount(patient)} meds
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
           {upcomingApts > 0 && (
-            <span className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
+            <span className="flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400">
               <Calendar size={12} />
               {upcomingApts}
             </span>
           )}
         </div>
+        <span className="text-xs text-gray-700 dark:text-gray-300 font-medium truncate block">
+          {patient.condition || "No condition"}
+        </span>
       </div>
     </button>
   );

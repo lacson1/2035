@@ -15,36 +15,36 @@ const DEFAULT_PERMISSIONS = [
   { code: 'patients:read', name: 'Read Patients', category: 'patients', description: 'View patient information' },
   { code: 'patients:write', name: 'Write Patients', category: 'patients', description: 'Create and edit patient records' },
   { code: 'patients:delete', name: 'Delete Patients', category: 'patients', description: 'Delete patient records' },
-  
+
   // Medications
   { code: 'medications:read', name: 'Read Medications', category: 'medications', description: 'View medication information' },
   { code: 'medications:write', name: 'Write Medications', category: 'medications', description: 'Prescribe and manage medications' },
-  
+
   // Appointments
   { code: 'appointments:read', name: 'Read Appointments', category: 'appointments', description: 'View appointment schedules' },
   { code: 'appointments:write', name: 'Write Appointments', category: 'appointments', description: 'Schedule and manage appointments' },
-  
+
   // Clinical Notes
   { code: 'clinical_notes:read', name: 'Read Clinical Notes', category: 'clinical_notes', description: 'View clinical notes' },
   { code: 'clinical_notes:write', name: 'Write Clinical Notes', category: 'clinical_notes', description: 'Create and edit clinical notes' },
-  
+
   // Imaging
   { code: 'imaging:read', name: 'Read Imaging', category: 'imaging', description: 'View imaging studies' },
   { code: 'imaging:write', name: 'Write Imaging', category: 'imaging', description: 'Order and manage imaging studies' },
-  
+
   // Users
   { code: 'users:read', name: 'Read Users', category: 'users', description: 'View user information' },
   { code: 'users:write', name: 'Write Users', category: 'users', description: 'Create and edit users' },
   { code: 'users:delete', name: 'Delete Users', category: 'users', description: 'Delete users' },
-  
+
   // Settings
   { code: 'settings:read', name: 'Read Settings', category: 'settings', description: 'View system settings' },
   { code: 'settings:write', name: 'Write Settings', category: 'settings', description: 'Modify system settings' },
-  
+
   // Billing
   { code: 'billing:read', name: 'Read Billing', category: 'billing', description: 'View billing information' },
   { code: 'billing:write', name: 'Write Billing', category: 'billing', description: 'Create and manage invoices' },
-  
+
   // Roles & Permissions
   { code: 'roles:read', name: 'Read Roles', category: 'roles', description: 'View roles and permissions' },
   { code: 'roles:write', name: 'Write Roles', category: 'roles', description: 'Manage roles and permissions' },
@@ -262,7 +262,7 @@ async function main() {
   console.log('👥 Seeding roles...');
   for (const roleData of DEFAULT_ROLES) {
     const { permissions, ...roleInfo } = roleData;
-    
+
     const role = await prisma.role.upsert({
       where: { code: roleData.code },
       update: {
@@ -310,19 +310,123 @@ async function main() {
   }
   console.log(`✅ Created/updated ${DEFAULT_ROLES.length} roles`);
 
+  // Seed Hubs (always seed, doesn't require users)
+  console.log('🏥 Seeding hubs...');
+  const defaultHubs = [
+    {
+      id: 'cardiology',
+      name: 'Cardiology',
+      description: 'Heart and cardiovascular care, including heart disease management, cardiac procedures, and cardiovascular monitoring.',
+      color: 'red',
+      specialties: ['cardiology', 'cardiac', 'cardiac_surgery'],
+    },
+    {
+      id: 'oncology',
+      name: 'Oncology',
+      description: 'Cancer care and treatment, including chemotherapy, radiation therapy, and cancer screening programs.',
+      color: 'purple',
+      specialties: ['oncology', 'cancer'],
+    },
+    {
+      id: 'pediatrics',
+      name: 'Pediatrics',
+      description: 'Medical care for infants, children, and adolescents, including well-child visits and pediatric specialty care.',
+      color: 'blue',
+      specialties: ['pediatrics', 'pediatric'],
+    },
+    {
+      id: 'orthopedics',
+      name: 'Orthopedics',
+      description: 'Musculoskeletal care, including joint replacement, sports medicine, and fracture management.',
+      color: 'green',
+      specialties: ['orthopedics', 'orthopedic'],
+    },
+    {
+      id: 'neurology',
+      name: 'Neurology',
+      description: 'Brain and nervous system care, including stroke management, epilepsy treatment, and neurological disorders.',
+      color: 'indigo',
+      specialties: ['neurology', 'neurological'],
+    },
+    {
+      id: 'psychiatry',
+      name: 'Psychiatry',
+      description: 'Mental health care, including therapy, medication management, and psychiatric evaluation.',
+      color: 'pink',
+      specialties: ['psychiatry', 'psychiatric'],
+    },
+    {
+      id: 'dermatology',
+      name: 'Dermatology',
+      description: 'Skin care and treatment, including dermatological conditions, skin cancer screening, and cosmetic procedures.',
+      color: 'orange',
+      specialties: ['dermatology', 'dermatological'],
+    },
+    {
+      id: 'endocrinology',
+      name: 'Endocrinology',
+      description: 'Hormone and metabolic care, including diabetes management, thyroid disorders, and hormone therapy.',
+      color: 'cyan',
+      specialties: ['endocrinology', 'endocrinology_diabetes'],
+    },
+    {
+      id: 'gastroenterology',
+      name: 'Gastroenterology',
+      description: 'Digestive system care, including gastrointestinal disorders, endoscopy, and liver disease management.',
+      color: 'yellow',
+      specialties: ['gastroenterology', 'gi', 'gastro'],
+    },
+    {
+      id: 'emergency',
+      name: 'Emergency Medicine',
+      description: 'Acute care and emergency response, including trauma care, urgent medical conditions, and emergency procedures.',
+      color: 'red',
+      specialties: ['emergency', 'emergency_medicine'],
+    },
+    {
+      id: 'general_surgery',
+      name: 'General Surgery',
+      description: 'Surgical care and procedures, including general surgery, minimally invasive surgery, and surgical consultations.',
+      color: 'teal',
+      specialties: ['general_surgery', 'surgery', 'surgical'],
+    },
+  ];
+
+  for (const hubData of defaultHubs) {
+    await prisma.hub.upsert({
+      where: { id: hubData.id },
+      update: {
+        name: hubData.name,
+        description: hubData.description,
+        color: hubData.color,
+        specialties: hubData.specialties,
+        isActive: true,
+      },
+      create: {
+        id: hubData.id,
+        name: hubData.name,
+        description: hubData.description,
+        color: hubData.color,
+        specialties: hubData.specialties,
+        isActive: true,
+      },
+    });
+  }
+  console.log(`✅ Created/updated ${defaultHubs.length} hubs`);
+
   // Note: Users should be created through the registration API endpoint
   // This seed script only creates sample data (patients, medications, etc.)
   // No test users are created - users must register through the sign-up form
-  
+
   console.log('ℹ️  Skipping user creation - users must register through the sign-up form');
 
   // Check if any users exist - if not, skip sample data creation
   // (Sample data requires users to be created by registered users)
   const userCount = await prisma.user.count();
-  
+
   if (userCount === 0) {
     console.log('ℹ️  No users found. Sample data will be created once users register.');
-    console.log('🎉 Seeding completed (no data created - users must register first)');
+    console.log('🎉 Seeding completed (hubs created, waiting for users to register)');
     return;
   }
 

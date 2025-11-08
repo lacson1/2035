@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Search, CheckCircle, X, HelpCircle } from "lucide-react";
+import { useState, useRef, useEffect, useId } from "react";
+import { Search, CheckCircle, X, HelpCircle, Loader2 } from "lucide-react";
 import { AutocompleteOption, searchAutocomplete, getFieldHint } from "../utils/formHelpers";
 
 interface FormAutocompleteProps {
@@ -15,7 +15,9 @@ interface FormAutocompleteProps {
   maxSuggestions?: number;
   onSelect?: (option: AutocompleteOption) => void;
   disabled?: boolean;
+  loading?: boolean;
   error?: string;
+  ariaLabel?: string;
 }
 
 export default function FormAutocomplete({
@@ -31,25 +33,38 @@ export default function FormAutocomplete({
   maxSuggestions = 10,
   onSelect,
   disabled = false,
+  loading = false,
   error,
+  ariaLabel,
 }: FormAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<AutocompleteOption[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fieldId = useId();
+  const errorId = useId();
+  const helpId = useId();
+  const listboxId = useId();
 
   const hint = fieldName ? getFieldHint(fieldName) : null;
 
   useEffect(() => {
     if (value.length >= 1) {
-      const results = searchAutocomplete(value, options, maxSuggestions);
-      setSuggestions(results);
-      setShowSuggestions(results.length > 0);
+      setIsSearching(true);
+      // Simulate async search for better UX (can be replaced with actual async search)
+      setTimeout(() => {
+        const results = searchAutocomplete(value, options, maxSuggestions);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+        setIsSearching(false);
+      }, 100);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
+      setIsSearching(false);
     }
     setSelectedIndex(-1);
   }, [value, options, maxSuggestions]);
@@ -104,15 +119,21 @@ export default function FormAutocomplete({
   return (
     <div className={`relative ${className}`} ref={containerRef}>
       {label && (
-        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+        <label 
+          htmlFor={fieldId}
+          className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300"
+        >
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
           {showHelp && hint && (
             <button
               type="button"
               onClick={() => setHelpVisible(!helpVisible)}
               className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               title="Show help"
+              aria-label="Show help for this field"
+              aria-expanded={helpVisible}
+              aria-controls={helpId}
             >
               <HelpCircle size={14} />
             </button>
@@ -121,14 +142,23 @@ export default function FormAutocomplete({
       )}
       
       {helpVisible && hint && (
-        <div className="mb-2 p-2 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded text-xs text-teal-800 dark:text-teal-200">
+        <div 
+          id={helpId}
+          className="mb-2 p-2 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded text-xs text-teal-800 dark:text-teal-200"
+          role="tooltip"
+        >
           {hint}
         </div>
       )}
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        <Search 
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" 
+          size={18} 
+          aria-hidden="true"
+        />
         <input
+          id={fieldId}
           ref={inputRef}
           type="text"
           value={value}
@@ -136,14 +166,35 @@ export default function FormAutocomplete({
           onFocus={() => value.length >= 1 && setShowSuggestions(suggestions.length > 0)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={disabled || loading}
+          aria-label={ariaLabel || label || "Autocomplete input"}
+          aria-required={required}
+          aria-invalid={!!error}
+          aria-autocomplete="list"
+          aria-expanded={showSuggestions}
+          aria-controls={listboxId}
+          aria-describedby={
+            [
+              error ? errorId : undefined,
+              helpVisible && hint ? helpId : undefined,
+            ]
+              .filter(Boolean)
+              .join(" ") || undefined
+          }
           className={`w-full pl-10 pr-10 py-2 text-sm border rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 transition-all ${
             error
               ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
               : "border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500"
-          } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          } ${disabled || loading ? "opacity-50 cursor-not-allowed" : ""} ${
+            (isSearching || loading) ? "pr-20" : ""
+          }`}
         />
-        {value && !disabled && (
+        {(isSearching || loading) && (
+          <div className="absolute right-10 top-1/2 -translate-y-1/2">
+            <Loader2 className="animate-spin text-teal-500" size={18} />
+          </div>
+        )}
+        {value && !disabled && !loading && (
           <button
             type="button"
             onClick={() => {
@@ -152,6 +203,7 @@ export default function FormAutocomplete({
               inputRef.current?.focus();
             }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            aria-label="Clear input"
           >
             <X size={18} />
           </button>
@@ -159,17 +211,30 @@ export default function FormAutocomplete({
       </div>
 
       {error && (
-        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p 
+          id={errorId}
+          className="mt-1 text-sm text-red-600 dark:text-red-400"
+          role="alert"
+        >
+          {error}
+        </p>
       )}
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+        <div 
+          id={listboxId}
+          role="listbox"
+          aria-label="Suggestions"
+          className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+        >
           {suggestions.map((option, index) => (
             <button
               key={`${option.value}-${index}`}
               type="button"
               onClick={() => handleSelect(option)}
-              className={`w-full px-4 py-3 text-left hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0 ${
+              role="option"
+              aria-selected={index === selectedIndex || value === option.value}
+              className={`w-full px-4 py-3 text-left hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0 focus:outline-none focus:bg-teal-50 dark:focus:bg-teal-900/20 ${
                 index === selectedIndex ? "bg-teal-50 dark:bg-teal-900/20" : ""
               }`}
             >
@@ -184,7 +249,7 @@ export default function FormAutocomplete({
                   )}
                 </div>
                 {value === option.value && (
-                  <CheckCircle className="text-green-500 ml-2" size={18} />
+                  <CheckCircle className="text-green-500 ml-2" size={18} aria-hidden="true" />
                 )}
               </div>
             </button>

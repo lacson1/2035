@@ -104,7 +104,7 @@ export const CURRENCIES: Record<string, CurrencyInfo> = {
  */
 export function getCurrencyInfo(code: string): CurrencyInfo {
   const upperCode = code.toUpperCase();
-  return CURRENCIES[upperCode] || CURRENCIES.USD;
+  return CURRENCIES[upperCode] || CURRENCIES.NGN;
 }
 
 /**

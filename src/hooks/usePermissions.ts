@@ -1,5 +1,6 @@
 import { useUser } from "../context/UserContext";
 import { hasPermission } from "../data/roles";
+import { logger } from "../utils/logger";
 
 export const usePermissions = () => {
   const { currentUser } = useUser();
@@ -15,9 +16,7 @@ export const usePermissions = () => {
 
   const requirePermission = (permission: string): boolean => {
     if (!checkPermission(permission)) {
-      if (import.meta.env.DEV) {
-        console.warn(`Permission denied: ${permission} for user ${currentUser?.role}`);
-      }
+      logger.debug(`Permission denied: ${permission} for user ${currentUser?.role}`);
       return false;
     }
     return true;

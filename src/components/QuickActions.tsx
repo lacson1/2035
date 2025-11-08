@@ -86,7 +86,7 @@ const workflowActions: Record<string, QuickAction[]> = {
       id: "vitals",
       label: "Record Vitals",
       icon: <Activity size={20} />,
-      color: "bg-teal-500 hover:bg-teal-600",
+      color: "bg-primary-500 hover:bg-primary-600",
       onClick: () => {},
       priority: "high",
       category: "Assessment",
@@ -178,7 +178,7 @@ const workflowActions: Record<string, QuickAction[]> = {
       id: "imaging",
       label: "Order Imaging",
       icon: <Scan size={20} />,
-      color: "bg-teal-600 hover:bg-teal-700",
+      color: "bg-primary-600 hover:bg-primary-700",
       onClick: () => {},
       priority: "high",
       category: "Diagnostics",
@@ -202,7 +202,7 @@ const workflowActions: Record<string, QuickAction[]> = {
       id: "telemedicine",
       label: "Video Call",
       icon: <Video size={20} />,
-      color: "bg-teal-500 hover:bg-teal-600",
+      color: "bg-primary-500 hover:bg-primary-600",
       onClick: () => {},
       priority: "medium",
       category: "Advanced",
@@ -623,7 +623,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
       id: "imaging",
       label: "Imaging",
       icon: <Scan size={20} />,
-      color: "bg-teal-600 hover:bg-teal-700",
+      color: "bg-primary-600 hover:bg-primary-700",
       onClick: () => onAction("imaging"),
       description: actionDescriptions.imaging,
       shortcut: actionShortcuts.imaging,
@@ -645,22 +645,22 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
   return (
     <>
       <div className={`border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-200 ${isCollapsed ? 'p-1.5' : 'p-3'}`}>
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center justify-between flex-wrap gap-1.5">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-1.5 py-0.5 transition-colors flex-shrink-0"
             title={isCollapsed ? "Expand Quick Actions" : "Collapse Quick Actions"}
           >
             {isCollapsed ? (
-              <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" />
+              <ChevronDown size={14} className="text-gray-600 dark:text-gray-400" />
             ) : (
-              <ChevronUp size={16} className="text-gray-600 dark:text-gray-400" />
+              <ChevronUp size={14} className="text-gray-600 dark:text-gray-400" />
             )}
-            <h3 className={`font-semibold flex items-center gap-2 ${isCollapsed ? 'text-sm' : 'text-base'}`}>
-              <span className="text-teal-600 dark:text-teal-400">⚡</span>
+            <h3 className={`font-semibold flex items-center gap-1.5 ${isCollapsed ? 'text-xs' : 'text-sm'}`}>
+              <span className="text-primary-600 dark:text-primary-400">⚡</span>
               <span>Quick Actions</span>
               {!isCollapsed && workflowGroup && (
-                <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
+                <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">
                   ({currentTabLabel})
                 </span>
               )}
@@ -698,7 +698,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
 
         {/* Search Bar */}
         {!isCollapsed && showSearch && (
-          <div className="mb-2 mt-2 relative">
+          <div className="mb-1.5 mt-1.5 relative">
             <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               ref={searchInputRef}
@@ -713,7 +713,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
                 onClick={() => setSearchQuery("")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             )}
           </div>
@@ -721,28 +721,28 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
 
         {/* Recent Actions Section */}
         {!isCollapsed && recentActionsList.length > 0 && !searchQuery && activeTab === "overview" && (
-          <div className="mb-3 mt-3 border-b border-gray-200 dark:border-gray-700 pb-3">
+          <div className="mb-2 mt-2 border-b border-gray-200 dark:border-gray-700 pb-2">
             <button
               onClick={() => {
                 const recentCategory = "Recently Used";
                 toggleCategory(recentCategory);
               }}
-              className="w-full flex items-center justify-between px-2 py-1.5 mb-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-md transition-colors"
+              className="w-full flex items-center justify-between px-1.5 py-1 mb-1.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-md transition-colors"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <History size={12} className="text-gray-500 dark:text-gray-400" />
-                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
                   Recently Used
                 </span>
               </div>
               {collapsedCategories.has("Recently Used") ? (
-                <ChevronDown size={14} className="text-gray-500 dark:text-gray-400" />
+                <ChevronDown size={12} className="text-gray-500 dark:text-gray-400" />
               ) : (
-                <ChevronUp size={14} className="text-gray-500 dark:text-gray-400" />
+                <ChevronUp size={12} className="text-gray-500 dark:text-gray-400" />
               )}
             </button>
             {!collapsedCategories.has("Recently Used") && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 pl-1">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1.5 pl-0.5">
                 {recentActionsList.slice(0, 6).map((action) => {
                   const actionWithHandler = actionsWithHandlers.find(a => a.id === action.id);
                   if (!actionWithHandler) return null;
@@ -786,29 +786,29 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
         {!isCollapsed && (
           showCategories ? (
             // Grouped by category
-            <div className="space-y-2 mt-3">
+            <div className="space-y-1.5 mt-2">
               {Object.entries(groupedActions).map(([category, categoryActions]) => {
                 const isCategoryCollapsed = collapsedCategories.has(category);
                 return (
-                  <div key={category} className="space-y-1.5">
+                  <div key={category} className="space-y-1">
                     <button
                       onClick={() => toggleCategory(category)}
-                      className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors border border-gray-200 dark:border-gray-700"
+                      className="w-full flex items-center justify-between px-2 py-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors border border-gray-200 dark:border-gray-700"
                     >
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                      <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                         {category}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">
                         {categoryActions.length}
                       </span>
                       {isCategoryCollapsed ? (
-                        <ChevronDown size={14} className="text-gray-500 dark:text-gray-400" />
+                        <ChevronDown size={12} className="text-gray-500 dark:text-gray-400" />
                       ) : (
-                        <ChevronUp size={14} className="text-gray-500 dark:text-gray-400" />
+                        <ChevronUp size={12} className="text-gray-500 dark:text-gray-400" />
                       )}
                     </button>
                     {!isCategoryCollapsed && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 pl-1">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1.5 pl-0.5">
                         {categoryActions.map((action) => (
                           <button
                             key={action.id}
@@ -847,14 +847,14 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
             </div>
           ) : (
             // Regular grid
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 mt-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1.5 mt-2">
               {displayActions.map((action) => {
                 const badge = 'badge' in action ? action.badge : undefined;
                 return (
                 <button
                   key={action.id}
                   onClick={action.onClick}
-                  className={`${action.color} text-white p-1.5 rounded-md flex flex-col items-center justify-center gap-0.5 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md relative group`}
+                  className={`${action.color} text-white p-2 rounded-lg flex flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-110 active:scale-95 shadow-md hover:shadow-xl relative group backdrop-blur-sm border border-white/20`}
                   title={action.description || action.label}
                 >
                   {React.isValidElement(action.icon) ? React.cloneElement(action.icon, { size: 14 }) : action.icon}

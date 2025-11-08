@@ -1,16 +1,24 @@
 import { useState, useMemo, useEffect } from "react";
-import { FileText, Plus, User, Calendar, Printer, X, Zap, Copy } from "lucide-react";
+import { FileText, Plus, User, Calendar, Printer, X, Zap, Copy, RotateCcw, Save } from "lucide-react";
 import { Patient, ClinicalNote } from "../types";
 import { useDashboard } from "../context/DashboardContext";
+import { sortByDateDesc } from "../utils/patientUtils";
 import { getOrganizationHeader, getOrganizationFooter } from "../utils/organization";
 import FormAutocomplete from "./FormAutocomplete";
+import InteractiveNoteEditor from "./InteractiveNoteEditor";
+import FormProgressIndicator from "./FormProgressIndicator";
 import { commonDiagnoses, commonSymptoms, getPatientHistorySuggestions } from "../utils/formHelpers";
+import { useFormDraft } from "../hooks/useFormDraft";
+import { useToast } from "../context/ToastContext";
 import {
   getMeasurementSystem,
   formatTemperature,
 } from "../utils/measurements";
 import { openPrintWindow } from "../utils/popupHandler";
 import PrintPreview from "./PrintPreview";
+import { logger } from "../utils/logger";
+import { processTemplateShortcuts, hasShortcuts } from "../utils/templateShortcuts";
+import TemplateShortcutsHelper from "./TemplateShortcutsHelper";
 
 interface ClinicalNotesProps {
   patient: Patient;
@@ -19,9 +27,11 @@ interface ClinicalNotesProps {
 
 export default function ClinicalNotes({ patient, onNoteAdded }: ClinicalNotesProps) {
   const { addClinicalNote } = useDashboard();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [printPreview, setPrintPreview] = useState<{ content: string; title: string } | null>(null);
   const [measurementSystem, setMeasurementSystem] = useState(() => getMeasurementSystem());
+  const [hasDraft, setHasDraft] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -33,6 +43,53 @@ export default function ClinicalNotes({ patient, onNoteAdded }: ClinicalNotesPro
     assessment: "",
     plan: "",
   });
+
+  // Auto-save draft
+  const { clearDraft, getDraft } = useFormDraft(`clinical_note_${patient.id}`, formData, open);
+
+  // Restore draft when modal opens
+  useEffect(() => {
+    if (open && !hasDraft) {
+      const draft = getDraft();
+      if (draft && Object.values(draft).some(v => v && (typeof v === 'string' ? v.trim().length > 0 : true))) {
+        setFormData(draft);
+        setHasDraft(true);
+        toast.info("Draft restored", { duration: 3000 });
+      }
+    }
+  }, [open]);
+
+  // Check for draft on mount
+  useEffect(() => {
+    const draft = getDraft();
+    if (draft && Object.values(draft).some(v => v && (typeof v === 'string' ? v.trim().length > 0 : true))) {
+      setHasDraft(true);
+    }
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+S or Cmd+S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const form = document.querySelector('form');
+        if (form) {
+          const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+          form.dispatchEvent(submitEvent);
+        }
+      }
+      // Escape to close
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
 
   // Listen for measurement system changes
   useEffect(() => {
@@ -125,6 +182,73 @@ PLAN:
 ${formData.plan || "Pending plan"}`;
   };
 
+  // Copy from last note
+  const copyFromLastNote = () => {
+    const lastNote = patient.clinicalNotes?.[0];
+    if (lastNote) {
+      const parsed = parseNoteContent(lastNote.content);
+      setFormData(prev => ({
+        ...prev,
+        chiefComplaint: parsed.chiefComplaint || prev.chiefComplaint,
+        hpi: parsed.hpi || prev.hpi,
+        physicalExam: parsed.physicalExam || prev.physicalExam,
+        assessment: parsed.assessment || prev.assessment,
+        plan: parsed.plan || prev.plan,
+      }));
+      toast.success("Copied sections from last note");
+    } else {
+      toast.warning("No previous note found");
+    }
+  };
+
+  const parseNoteContent = (content: string) => {
+    const sections: Record<string, string> = {};
+    const lines = content.split("\n");
+    let currentSection: string | null = null;
+    let currentText: string[] = [];
+
+    for (const line of lines) {
+      const upperLine = line.toUpperCase().trim();
+      
+      if (upperLine.includes("CHIEF COMPLAINT")) {
+        if (currentSection) sections[currentSection] = currentText.join("\n").trim();
+        currentSection = "chiefComplaint";
+        currentText = [];
+        continue;
+      } else if (upperLine.includes("HISTORY OF PRESENT ILLNESS") || upperLine.includes("HPI")) {
+        if (currentSection) sections[currentSection] = currentText.join("\n").trim();
+        currentSection = "hpi";
+        currentText = [];
+        continue;
+      } else if (upperLine.includes("PHYSICAL EXAM")) {
+        if (currentSection) sections[currentSection] = currentText.join("\n").trim();
+        currentSection = "physicalExam";
+        currentText = [];
+        continue;
+      } else if (upperLine.includes("ASSESSMENT")) {
+        if (currentSection) sections[currentSection] = currentText.join("\n").trim();
+        currentSection = "assessment";
+        currentText = [];
+        continue;
+      } else if (upperLine.includes("PLAN")) {
+        if (currentSection) sections[currentSection] = currentText.join("\n").trim();
+        currentSection = "plan";
+        currentText = [];
+        continue;
+      }
+
+      if (currentSection && line.trim()) {
+        currentText.push(line);
+      }
+    }
+
+    if (currentSection) {
+      sections[currentSection] = currentText.join("\n").trim();
+    }
+
+    return sections;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -132,6 +256,37 @@ ${formData.plan || "Pending plan"}`;
     let finalContent = formData.content;
     if (!finalContent || finalContent.trim() === "") {
       finalContent = combineSOAPSections();
+    }
+    
+    // Process template shortcuts before saving
+    if (hasShortcuts(finalContent)) {
+      finalContent = processTemplateShortcuts(finalContent, patient);
+    }
+    
+    // Also process shortcuts in individual sections
+    let processedHpi = formData.hpi;
+    if (hasShortcuts(processedHpi)) {
+      processedHpi = processTemplateShortcuts(processedHpi, patient);
+    }
+    
+    let processedAssessment = formData.assessment;
+    if (hasShortcuts(processedAssessment)) {
+      processedAssessment = processTemplateShortcuts(processedAssessment, patient);
+    }
+    
+    let processedPlan = formData.plan;
+    if (hasShortcuts(processedPlan)) {
+      processedPlan = processTemplateShortcuts(processedPlan, patient);
+    }
+    
+    // Combine processed sections if content was empty
+    if (!formData.content || formData.content.trim() === "") {
+      finalContent = [
+        processedHpi && `History of Present Illness:\n${processedHpi}`,
+        formData.physicalExam && `Physical Exam:\n${formData.physicalExam}`,
+        processedAssessment && `Assessment:\n${processedAssessment}`,
+        processedPlan && `Plan:\n${processedPlan}`,
+      ].filter(Boolean).join("\n\n");
     }
     
     const noteTitle = formData.title || `${formData.type.charAt(0).toUpperCase() + formData.type.slice(1)} Note`;
@@ -166,11 +321,12 @@ ${formData.plan || "Pending plan"}`;
       });
     } catch (apiError) {
       // API save failed, but continue with local update
-      if (import.meta.env.DEV) {
-        console.warn('Failed to save clinical note to API, using local update only:', apiError);
-      }
+      logger.warn('Failed to save clinical note to API, using local update only:', apiError);
     }
 
+    // Clear draft on successful save
+    clearDraft();
+    setHasDraft(false);
     setFormData({ 
       title: "", 
       content: "", 
@@ -188,7 +344,7 @@ ${formData.plan || "Pending plan"}`;
   const getTypeColor = (type: string) => {
     switch (type) {
       case "visit":
-        return "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200";
+        return "bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200";
       case "consultation":
         return "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200";
       case "procedure":
@@ -400,7 +556,7 @@ ${formData.plan || "Pending plan"}`;
         <h3 className="text-lg font-semibold">Clinical Notes</h3>
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600"
+          className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} /> Add Note
         </button>
@@ -408,14 +564,14 @@ ${formData.plan || "Pending plan"}`;
 
       <div className="space-y-3">
         {patient.clinicalNotes && patient.clinicalNotes.length > 0 ? (
-          patient.clinicalNotes.map((note) => (
+          sortByDateDesc(patient.clinicalNotes).map((note) => (
             <div
               key={note.id}
               className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg space-y-2"
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2">
-                  <FileText size={16} className="text-teal-600 dark:text-teal-400" />
+                  <FileText size={16} className="text-primary-600 dark:text-primary-400" />
                   <h4 className="font-semibold">{note.title}</h4>
                 </div>
                 <div className="flex items-center gap-2">
@@ -467,20 +623,80 @@ ${formData.plan || "Pending plan"}`;
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <div>
-                <h4 className="text-lg font-semibold">Add Clinical Note</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Structured clinical documentation with SOAP format
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="text-lg font-semibold">Add Clinical Note</h4>
+                  <TemplateShortcutsHelper
+                    onShortcutSelect={(shortcut) => {
+                      // Insert shortcut into content field
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        content: (prev.content || "") + (prev.content ? " " : "") + shortcut + " "
+                      }));
+                    }}
+                  />
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Structured clinical documentation with SOAP format. Use shortcuts like #diabetes or @bp
                 </p>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                {hasDraft && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearDraft();
+                      setHasDraft(false);
+                      setFormData({ 
+                        title: "", 
+                        content: "", 
+                        type: "visit",
+                        chiefComplaint: "",
+                        vitalSigns: "",
+                        hpi: "",
+                        physicalExam: "",
+                        assessment: "",
+                        plan: "",
+                      });
+                      toast.success("Draft cleared");
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                    title="Clear draft"
+                  >
+                    <RotateCcw size={12} />
+                    Clear Draft
+                  </button>
+                )}
+                {patient.clinicalNotes && patient.clinicalNotes.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={copyFromLastNote}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
+                    title="Copy from last note"
+                  >
+                    <Copy size={12} />
+                    Copy Last
+                  </button>
+                )}
+                <button
+                  onClick={() => setOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Form Progress Indicator */}
+              <FormProgressIndicator
+                sections={[
+                  { id: "basic", label: "Basic Info", fields: ["title", "type"] },
+                  { id: "soap", label: "SOAP Sections", fields: ["chiefComplaint", "hpi", "physicalExam", "assessment", "plan"] },
+                  { id: "content", label: "Full Content", fields: ["content"] },
+                ]}
+                formData={formData}
+                requiredFields={["title", "content"]}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Note Title</label>
@@ -490,7 +706,7 @@ ${formData.plan || "Pending plan"}`;
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="e.g., Follow-up Visit - Diabetes Management"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                    className="input-base"
                   />
                 </div>
                 <div>
@@ -503,7 +719,7 @@ ${formData.plan || "Pending plan"}`;
                         type: e.target.value as "visit" | "consultation" | "procedure" | "follow-up" | "general_consultation" | "specialty_consultation",
                       })
                     }
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                    className="input-base"
                   >
                     <option value="visit">Visit</option>
                     <option value="consultation">Consultation</option>
@@ -518,7 +734,7 @@ ${formData.plan || "Pending plan"}`;
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 grid grid-cols-4 gap-2">
                     <div className="text-center">
-                      <div className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wide mb-1">S</div>
+                      <div className="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wide mb-1">S</div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">Subjective</div>
                     </div>
                     <div className="text-center">
@@ -540,7 +756,7 @@ ${formData.plan || "Pending plan"}`;
                       const combined = combineSOAPSections();
                       setFormData(prev => ({ ...prev, content: combined }));
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-700 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
                   >
                     <Copy size={12} />
                     Combine SOAP
@@ -586,14 +802,14 @@ ${formData.plan || "Pending plan"}`;
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-medium text-teal-600 dark:text-teal-400">
+                    <label className="block text-xs font-medium text-primary-600 dark:text-primary-400">
                       History of Present Illness (HPI)
                     </label>
                     {patientData.allergies && (
                       <button
                         type="button"
                         onClick={quickFillAllergies}
-                        className="flex items-center gap-1 px-2 py-0.5 text-xs bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300 rounded hover:bg-teal-200 dark:hover:bg-teal-800"
+                        className="flex items-center gap-1 px-2 py-0.5 text-xs bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded hover:bg-primary-200 dark:hover:bg-primary-800"
                         title="Add allergies"
                       >
                         <Zap size={10} />
@@ -606,7 +822,7 @@ ${formData.plan || "Pending plan"}`;
                     onChange={(e) => setFormData({ ...formData, hpi: e.target.value })}
                     placeholder="Detailed history, onset, duration, severity, associated symptoms..."
                     rows={3}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
+                    className="input-base"
                   />
                 </div>
 
@@ -676,35 +892,45 @@ ${formData.plan || "Pending plan"}`;
                 </div>
               </div>
 
-              {/* Full Content */}
+              {/* Full Content - Interactive Section-Based Editor */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  Full Note Content <span className="text-xs text-gray-500">(Required - can combine SOAP sections above)</span>
+                <label className="block text-sm font-medium mb-3">
+                  Full Note Content <span className="text-xs text-gray-500">(Click sections to add content with auto-suggestions)</span>
                 </label>
-                <textarea
-                  required
+                <InteractiveNoteEditor
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="Enter full clinical note details or combine SOAP sections above..."
-                  rows={8}
-                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
+                  onChange={(value) => setFormData({ ...formData, content: value })}
+                  patient={patient}
+                  placeholder="Click on a section to start writing..."
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="px-4 py-2 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition-colors"
-                >
-                  Save Note
-                </button>
+              <div className="flex justify-between items-center pt-2 border-t">
+                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs">Ctrl</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs">S</kbd>
+                  <span>to save</span>
+                  <span className="mx-2">•</span>
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs">Esc</kbd>
+                  <span>to close</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="px-4 py-2 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    <Save size={14} />
+                    Save Note
+                  </button>
+                </div>
               </div>
             </form>
           </div>
