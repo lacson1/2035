@@ -121,11 +121,16 @@ app.use(sanitizeInput);
 // Metrics collection
 app.use(metricsMiddleware);
 
-// Initialize Redis (non-blocking)
-try {
-  createRedisClient();
-} catch (error) {
-  logger.warn('Redis not available, continuing without cache');
+// Initialize Redis (non-blocking, optional)
+// Only initialize if REDIS_URL is explicitly set and not default localhost
+if (config.redis.url && config.redis.url !== 'redis://localhost:6379') {
+  try {
+    createRedisClient();
+  } catch (error) {
+    logger.warn('Redis not available, continuing without cache');
+  }
+} else {
+  logger.info('ℹ️  Redis not configured, skipping initialization');
 }
 
 // Apply global rate limiting to all API routes (except health check)
