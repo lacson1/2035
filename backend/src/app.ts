@@ -113,7 +113,7 @@ const corsOptions = {
 
     // Check wildcard patterns (e.g., *.vercel.app)
     const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed.includes('*')) {
+      if (typeof allowed === 'string' && allowed.includes('*')) {
         const pattern = allowed.replace(/\*/g, '.*');
         const regex = new RegExp(`^${pattern}$`);
         return regex.test(origin);
@@ -125,9 +125,15 @@ const corsOptions = {
       return callback(null, true);
     }
 
+    // Log for debugging
+    console.log(`[CORS] Origin not allowed: ${origin}`);
+    console.log(`[CORS] Allowed origins:`, allowedOrigins);
+    
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 
 app.use(cors(corsOptions));
