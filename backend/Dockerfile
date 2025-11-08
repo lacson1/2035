@@ -37,12 +37,12 @@ FROM node:18-slim AS production
 
 WORKDIR /app
 
-# Install OpenSSL 1.1 and other dependencies for Prisma
-# Prisma requires libssl.so.1.1, so we install openssl1.1-compat or use compatible version
+# Install OpenSSL and other dependencies for Prisma
+# Try to install libssl1.1 first, fallback to default openssl if not available
 RUN apt-get update && \
-    apt-get install -y openssl ca-certificates libssl1.1 && \
-    rm -rf /var/lib/apt/lists/* || \
-    (apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*)
+    (apt-get install -y openssl ca-certificates libssl1.1 2>/dev/null || \
+     apt-get install -y openssl ca-certificates) && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies only (including Prisma CLI for migrations)
 COPY package*.json ./
