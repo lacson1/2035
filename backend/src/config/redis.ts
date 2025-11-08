@@ -4,40 +4,57 @@ import { logger } from '../utils/logger';
 
 let redis: Redis | null = null;
 
-export const createRedisClient = (): Redis => {
+export const createRedisClient = (): Redis | null => {
+  // Skip Redis if URL is not set or is default localhost
+  if (!config.redis.url || config.redis.url === 'redis://localhost:6379') {
+    logger.info('ℹ️  Redis not configured, skipping connection');
+    return null;
+  }
+
   if (redis) {
     return redis;
   }
 
-  redis = new Redis(config.redis.url, {
-    maxRetriesPerRequest: 3,
-    retryStrategy: (times) => {
-      const delay = Math.min(times * 50, 2000);
-      return delay;
-    },
-    reconnectOnError: (err) => {
-      const targetError = 'READONLY';
-      if (err.message.includes(targetError)) {
-        return true; // Reconnect on READONLY error
-      }
-      return false;
-    },
-  });
+  try {
+    redis = new Redis(config.redis.url, {
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      },
+      reconnectOnError: (err) => {
+        const targetError = 'READONLY';
+        if (err.message.includes(targetError)) {
+          return true; // Reconnect on READONLY error
+        }
+        return false;
+      },
+      lazyConnect: true, // Don't connect immediately
+    });
 
-  redis.on('connect', () => {
-    logger.info('✅ Redis connected successfully');
-  });
+    redis.on('connect', () => {
+      logger.info('✅ Redis connected successfully');
+    });
 
-  redis.on('error', (err) => {
-    logger.error('❌ Redis connection error:', err);
-    // Don't throw - allow app to continue without Redis
-  });
+    redis.on('error', (err) => {
+      logger.warn('⚠️  Redis connection error (non-critical):', err.message);
+      // Don't throw - allow app to continue without Redis
+    });
 
-  redis.on('close', () => {
-    logger.warn('⚠️ Redis connection closed');
-  });
+    redis.on('close', () => {
+      logger.warn('⚠️  Redis connection closed');
+    });
 
-  return redis;
+    // Attempt to connect, but don't fail if it doesn't work
+    redis.connect().catch(() => {
+      logger.warn('⚠️  Redis connection failed, continuing without cache');
+    });
+
+    return redis;
+  } catch (error) {
+    logger.warn('⚠️  Failed to create Redis client, continuing without cache:', error);
+    return null;
+  }
 };
 
 export const getRedisClient = (): Redis | null => {
