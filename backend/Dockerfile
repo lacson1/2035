@@ -5,6 +5,11 @@ FROM node:18-slim AS builder
 
 WORKDIR /app
 
+# Install OpenSSL for Prisma in builder stage too
+RUN apt-get update && \
+    apt-get install -y openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -13,7 +18,9 @@ COPY prisma ./prisma/
 RUN npm ci
 
 # Generate Prisma Client (after installing dependencies, before building)
-RUN npx prisma generate
+# Force Debian binary target in builder stage too
+ENV PRISMA_BINARY_TARGETS=debian-openssl-3.0.x
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copy source code
 COPY . .
@@ -47,7 +54,9 @@ RUN npm install -g prisma@^5.7.1
 COPY --from=builder /app/prisma ./prisma
 # Regenerate Prisma Client for Debian platform (ensures correct binary, not Alpine/musl)
 # This must happen AFTER installing dependencies and BEFORE copying dist
-RUN npx prisma generate
+# Force Debian binary target explicitly
+ENV PRISMA_BINARY_TARGETS=debian-openssl-3.0.x
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
