@@ -73,8 +73,12 @@ export const config = {
   },
 };
 
-// Validate required environment variables
-if (!config.database.url) {
-  throw new Error('DATABASE_URL is required');
+// Validate required environment variables (only in production)
+// Allow empty DATABASE_URL in development for local testing without DB
+if (config.nodeEnv === 'production' && !config.database.url) {
+  console.error('❌ ERROR: DATABASE_URL is required in production');
+  console.error('   Please set DATABASE_URL in your Render environment variables');
+  console.error('   Format: postgresql://user:password@host:port/database');
+  process.exit(1);
 }
 

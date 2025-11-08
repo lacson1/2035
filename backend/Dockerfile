@@ -37,10 +37,12 @@ FROM node:18-slim AS production
 
 WORKDIR /app
 
-# Install OpenSSL and other dependencies for Prisma
+# Install OpenSSL 1.1 and other dependencies for Prisma
+# Prisma requires libssl.so.1.1, so we install openssl1.1-compat or use compatible version
 RUN apt-get update && \
-    apt-get install -y openssl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y openssl ca-certificates libssl1.1 && \
+    rm -rf /var/lib/apt/lists/* || \
+    (apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*)
 
 # Install production dependencies only (including Prisma CLI for migrations)
 COPY package*.json ./
@@ -54,8 +56,8 @@ RUN npm install -g prisma@^5.7.1
 COPY --from=builder /app/prisma ./prisma
 # Regenerate Prisma Client for Debian platform (ensures correct binary, not Alpine/musl)
 # This must happen AFTER installing dependencies and BEFORE copying dist
-# Force Debian binary target explicitly
-ENV PRISMA_BINARY_TARGETS=debian-openssl-3.0.x
+# Use debian-openssl-1.1.x for compatibility with libssl.so.1.1
+ENV PRISMA_BINARY_TARGETS=debian-openssl-1.1.x,debian-openssl-3.0.x
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copy built files from builder
