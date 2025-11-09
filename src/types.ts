@@ -386,35 +386,65 @@ export interface Vaccination {
   verifiedDate?: string;
 }
 
-export type HubId = 
-  | "mental-health"
-  | "msk"
-  | "gynae"
-  | "cardiology"
-  | "pediatrics"
-  | "oncology"
-  | "primary-care"
-  | "ophthalmology"
-  | "emergency"
-  | "dermatology"
-  | "gastroenterology"
-  | "neurology"
-  | "nephrology"
-  | "pulmonology"
-  | "endocrinology"
-  | "urology"
-  | "infectious-disease"
-  | "allergy-immunology"
-  | "pain-management"
-  | "sleep-medicine"
-  | "critical-care"
-  | "surgery";
+export type HubId = string;
+
+export interface Hub {
+  id: HubId;
+  name: string;
+  description: string;
+  color: string;
+  specialties: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface HubFunction {
   id: string;
+  hubId: HubId;
   name: string;
-  description: string;
-  category?: string;
+  description?: string | null;
+  category?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HubResource {
+  id: string;
+  hubId: HubId;
+  title: string;
+  type: "protocol" | "guideline" | "reference" | "tool" | "link" | string;
+  url?: string | null;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HubNote {
+  id: string;
+  hubId: HubId;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HubTemplate {
+  id: string;
+  hubId?: HubId | null;
+  name: string;
+  description?: string | null;
+  template: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HubTeamMember {
+  id: string;
+  hubId: HubId;
+  userId: string;
+  role?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Patient {
