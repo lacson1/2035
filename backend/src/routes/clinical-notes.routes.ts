@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { clinicalNotesController } from '../controllers/clinical-notes.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/auth.middleware';
+import { auditMiddleware } from '../middleware/audit.middleware';
 
 const router = Router({ mergeParams: true });
 
 // All routes require authentication
 router.use(authenticate);
+router.use(auditMiddleware);
 
 // GET /patients/:patientId/notes - Get all notes for a patient
 router.get('/', clinicalNotesController.getPatientNotes.bind(clinicalNotesController));
