@@ -6,8 +6,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    host: true,
-    open: true, // Auto-open browser
+    host: '0.0.0.0', // Bind to all interfaces for better connectivity
+    open: false, // Disable auto-open browser (causes errors in headless environments)
+    hmr: {
+      host: 'localhost',
+      port: 5173,
+    },
   },
   build: {
     sourcemap: true, // Enable source maps for debugging
