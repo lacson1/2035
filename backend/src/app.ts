@@ -11,6 +11,8 @@ import { auditMiddleware } from './middleware/audit.middleware';
 import { apiRateLimiter, authRateLimiter } from './middleware/rateLimit.middleware';
 import { sanitizeInput } from './middleware/sanitize.middleware';
 import { metricsMiddleware } from './middleware/metrics.middleware';
+import { requestIdMiddleware } from './middleware/requestId.middleware';
+import { securityHeaders } from './middleware/security.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
@@ -34,8 +36,12 @@ import permissionsRoutes from './routes/permissions.routes';
 
 const app = express();
 
+// Request ID middleware (must be early for tracing)
+app.use(requestIdMiddleware);
+
 // Security middleware
 app.use(helmet());
+app.use(securityHeaders);
 
 // CORS
 app.use(

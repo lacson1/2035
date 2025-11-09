@@ -22,6 +22,7 @@ import { getSpecialtyTemplate, getAllSpecialties } from "../data/specialtyTempla
 import UserAssignment from "./UserAssignment";
 import { useUsers } from "../hooks/useUsers";
 import { useDashboard } from "../context/DashboardContext";
+import { useAuth } from "../context/AuthContext";
 import { getOrganizationHeader, getOrganizationFooter } from "../utils/organization";
 import {
   getMeasurementSystem,
@@ -41,6 +42,7 @@ export default function Consultation({
 }: ConsultationProps) {
   const { addAppointment, addClinicalNote, updatePatient } = useDashboard();
   const { users } = useUsers();
+  const { user } = useAuth();
   const [openSchedule, setOpenSchedule] = useState(false);
   const [openNote, setOpenNote] = useState(false);
   const [filterType, setFilterType] = useState<"all" | ConsultationType>("all");
@@ -245,7 +247,7 @@ export default function Consultation({
         date: formData.date,
         time: formData.time,
         type: appointmentType,
-        providerId: "current-user-id", // TODO: Get actual provider ID from user context
+        providerId: user?.id || "",
         status: "scheduled",
         consultationType: formData.consultationType,
         specialty: formData.specialty || undefined,

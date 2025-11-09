@@ -43,7 +43,26 @@ export class EmailService {
     }
 
     // Production: Use actual email service
-    // TODO: Integrate with your email provider (SendGrid, AWS SES, etc.)
+    // 
+    // To integrate with an email provider:
+    // 
+    // Option 1: SendGrid (Recommended)
+    //   1. Install: npm install @sendgrid/mail
+    //   2. Set env: SENDGRID_API_KEY=your_api_key
+    //   3. Import and configure:
+    //      import sgMail from '@sendgrid/mail';
+    //      sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+    //      await sgMail.send({ to, from: process.env.EMAIL_FROM, subject, html });
+    //
+    // Option 2: AWS SES
+    //   1. Install: npm install aws-sdk
+    //   2. Set env: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
+    //   3. Use AWS SES SDK to send emails
+    //
+    // Option 3: SMTP (Nodemailer)
+    //   1. Install: npm install nodemailer
+    //   2. Set env: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+    //   3. See commented code below for implementation
     
     // Example with Nodemailer (if SMTP configured):
     if (process.env.SMTP_HOST) {

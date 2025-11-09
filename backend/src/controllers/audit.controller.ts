@@ -1,8 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import { auditService } from '../services/audit.service';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
+import prisma from '../config/database';
 
 export class AuditController {
+  /**
+   * Check if user has access to a patient
+   * Users have access if they are:
+   * - Admin role
+   * - In the patient's care team (active assignment)
+   */
+  private async checkPatientAccess(userId: string, patientId: string): Promise<boolean> {
+    // Admin has access to all patients
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === 'admin') {
+      return true;
+    }
+
+    // Check if user is in patient's care team
+    const careTeamAssignment = await prisma.careTeamAssignment.findFirst({
+      where: {
+        patientId,
+        userId,
+        isActive: true,
+      },
+    });
+
+    return !!careTeamAssignment;
+  }
+
   /**
    * Get audit logs for a specific patient
    * Only accessible to admin or users with access to that patient
@@ -20,8 +50,10 @@ export class AuditController {
       // Only admin can view audit logs for any patient
       // Other users can only view logs for patients they have access to
       if (req.user.role !== 'admin') {
-        // TODO: Add check for patient access permissions
-        // For now, allow all authenticated users
+        const hasAccess = await this.checkPatientAccess(req.user.userId, patientId);
+        if (!hasAccess) {
+          throw new ForbiddenError('You do not have access to this patient\'s audit logs');
+        }
       }
 
       const logs = await auditService.getPatientAuditLogs(patientId, limit, offset);
