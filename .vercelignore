@@ -1,0 +1,44 @@
+# Vercel ignore file
+# Files to exclude from Vercel deployment
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Node modules
+node_modules
+
+# Build outputs
+dist
+build
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Testing
+coverage
+.nyc_output
+playwright-report
+test-results
+tests
+e2e
+
+# Backend directory
+backend
+
+# Documentation (optional - comment out if you want to include docs)
+*.md
+!README.md
+
+# Development files
+.vscode
+.idea
+.DS_Store
+*.sw?
+
+# Temporary files
+tmp
+temp
