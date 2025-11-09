@@ -209,6 +209,30 @@ export class UsersController {
       next(error);
     }
   }
+
+  /**
+   * Reset user password (admin only)
+   */
+  async resetUserPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { newPassword } = req.body;
+
+      if (!newPassword) {
+        throw new (await import('../utils/errors')).ValidationError(
+          'New password is required'
+        );
+      }
+
+      await usersService.resetUserPassword(id, newPassword);
+
+      res.json({
+        message: 'Password reset successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const usersController = new UsersController();

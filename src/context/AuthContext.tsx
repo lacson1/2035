@@ -13,6 +13,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -280,9 +282,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         throw new Error('No access token received');
       }
-    } catch (error) {
-      // Refresh failed, logout user
-      logger.error('Token refresh failed:', error);
+    } catch (error: any) {
+      // Refresh failed - this is expected when user is not logged in
+      // Only log if it's not a 401 (unauthorized) error
+      if (error?.status !== 401) {
+        logger.error('Token refresh failed:', error);
+      }
       // Clear tokens and user state without calling logout to avoid recursion
       setAccessTokenState(null);
       localStorage.removeItem('authToken');
@@ -297,6 +302,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await fetchCurrentUser();
   }, [fetchCurrentUser]);
 
+  const requestPasswordReset = async (email: string) => {
+    try {
+      await apiClient.post('/v1/auth/password-reset/request', { email });
+    } catch (error: any) {
+      let errorMessage = 'Failed to send reset email. Please try again.';
+      
+      if (error?.status === 0) {
+        errorMessage = 'Unable to connect to server. Please ensure the backend server is running.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      throw new Error(errorMessage);
+    }
+  };
+
+  const resetPassword = async (token: string, password: string) => {
+    try {
+      await apiClient.post('/v1/auth/password-reset/reset', { token, password });
+    } catch (error: any) {
+      let errorMessage = 'Failed to reset password. Please try again.';
+      
+      if (error?.status === 0) {
+        errorMessage = 'Unable to connect to server. Please ensure the backend server is running.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.errors && typeof error.errors === 'object') {
+        const firstError = Object.values(error.errors)[0];
+        if (Array.isArray(firstError) && firstError.length > 0) {
+          errorMessage = firstError[0];
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -308,6 +350,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logout,
         refreshToken,
         refreshUser,
+        requestPasswordReset,
+        resetPassword,
       }}
     >
       {children}

@@ -15,12 +15,14 @@ import {
   EyeOff,
   Save,
   UserPlus,
+  Key,
 } from "lucide-react";
 import { User, UserRole } from "../types";
 import { useUsers } from "../hooks/useUsers";
 import { useToast } from "../context/ToastContext";
 import { getAllRoles, getRoleName, getRolePermissions, hasPermission } from "../data/roles";
 import { logger } from "../utils/logger";
+import { userService } from "../services/users";
 
 interface UserManagementProps {
   currentUser: User | null;
@@ -59,6 +61,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [openAddEdit, setOpenAddEdit] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showPermissions, setShowPermissions] = useState<string | null>(null);
+  const [showResetPassword, setShowResetPassword] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const canManageUsers = currentUser && hasPermission(currentUser.role, "manage_users");
 
@@ -179,6 +185,34 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     setUsers(
       users.map((u) => (u.id === userId ? { ...u, isActive: !u.isActive } : u))
     );
+  };
+
+  const handleResetPassword = async () => {
+    if (!showResetPassword || !newPassword || !confirmPassword) return;
+    
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      await userService.resetUserPassword(showResetPassword, newPassword);
+      toast.success("Password reset successfully");
+      setShowResetPassword(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      logger.error('Failed to reset password:', error);
+      toast.error(error?.message || 'Failed to reset password');
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   const getRoleColor = (role: UserRole) => {
@@ -435,6 +469,17 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                           title="Edit User"
                         >
                           <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowResetPassword(user.id);
+                            setNewPassword("");
+                            setConfirmPassword("");
+                          }}
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                          title="Reset Password"
+                        >
+                          <Key size={16} />
                         </button>
                         <button
                           onClick={() => handleToggleActive(user.id)}
@@ -714,6 +759,121 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetPassword && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowResetPassword(null);
+              setNewPassword("");
+              setConfirmPassword("");
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-lg font-semibold flex items-center gap-2">
+                <Key size={20} className="text-blue-600 dark:text-blue-400" />
+                Reset Password
+              </h4>
+              <button
+                onClick={() => {
+                  setShowResetPassword(null);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+                aria-label="Close password reset form"
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            {(() => {
+              const user = users.find((u) => u.id === showResetPassword);
+              return (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Reset password for <strong>{user?.firstName} {user?.lastName}</strong> ({user?.email})
+                  </p>
+                  
+                  <div>
+                    <label htmlFor="newPassword" className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                      New Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="newPassword"
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password (min 8 characters)"
+                      minLength={8}
+                      className="w-full px-4 py-2 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Must contain uppercase, lowercase, number, and special character
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                      Confirm Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      minLength={8}
+                      className="w-full px-4 py-2 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      disabled={isResettingPassword || !newPassword || !confirmPassword}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isResettingPassword ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Resetting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Key size={16} />
+                          <span>Reset Password</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowResetPassword(null);
+                        setNewPassword("");
+                        setConfirmPassword("");
+                      }}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

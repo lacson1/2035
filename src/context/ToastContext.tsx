@@ -98,7 +98,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
+            className="fixed top-3 right-3 z-[9999] flex flex-col gap-1.5 pointer-events-none"
             aria-live="polite"
             aria-atomic="true"
           >

@@ -123,9 +123,14 @@ class ApiClient {
           // Response might not be JSON
         }
         
-        // For 401 on public endpoints or /auth/me, don't throw a noisy error - just return a clean error
-        // This prevents console spam when tokens are invalid/expired
-        if (response.status === 401 && (isPublicEndpoint || endpoint.includes('/auth/me'))) {
+        // For 401 on auth endpoints (login, refresh, me), suppress console errors
+        // These are expected when user is not logged in or token is expired
+        const isAuthEndpoint = endpoint.includes('/auth/login') || 
+                               endpoint.includes('/auth/refresh') || 
+                               endpoint.includes('/auth/me');
+        const shouldSuppressError = response.status === 401 && (isPublicEndpoint || isAuthEndpoint);
+        
+        if (shouldSuppressError) {
           const apiError = new ApiError(
             'Unauthorized - please login again',
             response.status,
@@ -148,8 +153,8 @@ class ApiClient {
           headers: Object.fromEntries(response.headers.entries()),
         };
         
-        // Log error details in development
-        if (import.meta.env.DEV) {
+        // Log error details in development (but suppress expected 401s on auth endpoints)
+        if (import.meta.env.DEV && !shouldSuppressError) {
           console.error('API Error Response:', {
             status: response.status,
             statusText: response.statusText,

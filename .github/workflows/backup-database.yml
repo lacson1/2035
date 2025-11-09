@@ -48,7 +48,7 @@ jobs:
           ls -lh backend/backups/
 
       - name: Upload backup to artifacts (for manual download)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: database-backup-$(date +%Y%m%d)
           path: backend/backups/*.sql.gz

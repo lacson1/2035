@@ -82,7 +82,7 @@ export default function WorkspacePage({
   }, []);
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-row relative overflow-hidden">
+    <div className="h-screen dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-row relative overflow-hidden" style={{ backgroundColor: '#f8fcff' }}>
       {/* Left Sidebar - Navigation */}
       <LeftSidebar 
         isOpen={leftSidebarOpen}

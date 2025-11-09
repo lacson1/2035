@@ -27,7 +27,32 @@ A modern full-stack healthcare dashboard application built with React, TypeScrip
 - 🔍 Search and filtering
 - 📊 Pagination support
 
-## Quick Start
+## 🚀 Deployment
+
+### Production Deployment (Vercel + Fly.io)
+
+The application is configured for deployment on:
+- **Frontend**: Vercel
+- **Backend**: Fly.io
+
+📚 **Quick Deploy**: See [`DEPLOY_NOW.md`](./DEPLOY_NOW.md) for 5-minute deployment guide
+
+📚 **Full Guide**: See [`VERCEL_FLYIO_DEPLOYMENT.md`](./VERCEL_FLYIO_DEPLOYMENT.md) for complete instructions
+
+📋 **Checklist**: See [`DEPLOYMENT_CHECKLIST.md`](./DEPLOYMENT_CHECKLIST.md) for step-by-step verification
+
+```bash
+# Use interactive deployment script
+./deploy-vercel-flyio.sh
+```
+
+**Live URLs** (after deployment):
+- Frontend: `https://your-app.vercel.app`
+- Backend: `https://physician-dashboard-backend.fly.dev`
+
+---
+
+## Quick Start (Local Development)
 
 ### Option 1: Automated Startup (Easiest)
 

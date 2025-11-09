@@ -4,6 +4,8 @@ import { useAuth } from "./context/AuthContext";
 import PatientListPage from "./pages/PatientListPage";
 import WorkspacePage from "./pages/WorkspacePage";
 import Login from "./components/Login";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 import { initializeHubs } from "./data/hubs";
 import { usePerformanceMonitor } from "./hooks/usePerformanceMonitor";
 
@@ -12,11 +14,28 @@ type ViewMode = "patients" | "workspace";
 function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("patients");
+  const [currentRoute, setCurrentRoute] = useState<string>("");
   const { selectedPatient: _selectedPatient } = useDashboard();
   const { isAuthenticated, isLoading } = useAuth();
 
   // Performance monitoring
   usePerformanceMonitor();
+
+  // Handle routing based on URL path
+  useEffect(() => {
+    const path = window.location.pathname;
+    setCurrentRoute(path);
+    
+    // Listen for popstate events (back/forward button)
+    const handlePopState = () => {
+      setCurrentRoute(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   // Initialize hubs when authenticated
   useEffect(() => {
@@ -66,13 +85,22 @@ function App() {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-primary-50 dark:bg-primary-950">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f8fcff' }}>
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           <div className="text-gray-700 dark:text-gray-300">Loading application...</div>
         </div>
       </div>
     );
+  }
+
+  // Handle public routes (forgot password, reset password)
+  if (currentRoute === '/forgot-password') {
+    return <ForgotPassword />;
+  }
+  
+  if (currentRoute === '/reset-password') {
+    return <ResetPassword />;
   }
 
   // Show login if not authenticated

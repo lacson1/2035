@@ -16,8 +16,8 @@ export const RATE_LIMIT = {
   API_WINDOW_MS: 60000, // 1 minute
   API_MAX_REQUESTS: 100,
   API_MAX_REQUESTS_DEV: 1000, // Very lenient for development (React StrictMode causes double requests)
-  AUTH_WINDOW_MS_DEV: 5 * 60 * 1000, // 5 minutes in development
-  AUTH_WINDOW_MS_PROD: 15 * 60 * 1000, // 15 minutes in production
+  AUTH_WINDOW_MS_DEV: 10 * 1000, // 10 seconds in development
+  AUTH_WINDOW_MS_PROD: 10 * 1000, // 10 seconds in production
   AUTH_MAX_REQUESTS_DEV: 500, // Very lenient for testing
   AUTH_MAX_REQUESTS_PROD: 5, // Strict in production
   WRITE_WINDOW_MS: 60000, // 1 minute

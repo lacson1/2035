@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, UserPlus, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import SmartFormField from './SmartFormField';
 
 export default function Login() {
@@ -122,28 +122,11 @@ export default function Login() {
     setRateLimitCooldown(0);
   };
 
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError('');
-    setIsLoading(true);
-
-    try {
-      await login(demoEmail, demoPassword);
-      setEmail('');
-      setPassword('');
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Demo login failed. Please try again.';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden">
       {/* Modern animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-teal-50 via-white to-emerald-50 dark:from-gray-900 dark:via-gray-800 dark:to-slate-900"></div>
+      <div className="absolute inset-0 dark:from-gray-900 dark:via-gray-800 dark:to-slate-900" style={{ background: 'linear-gradient(to bottom right, #f8fcff, #ffffff, #f8fcff)' }}></div>
 
       {/* Animated gradient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -319,6 +302,23 @@ export default function Login() {
               )}
             </button>
 
+            {/* Forgot Password Link (only on login) */}
+            {!isSignUp && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Navigate to forgot password
+                    window.history.pushState({}, '', '/forgot-password');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  className="text-sm text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             {/* Toggle Sign Up/Login */}
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
@@ -341,50 +341,6 @@ export default function Login() {
               </div>
             )}
           </form>
-
-          {/* Demo Login Section */}
-          {!isSignUp && (
-            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3 text-center">
-                Quick Demo Login
-              </p>
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('sarah.johnson@hospital2035.com', 'password123')}
-                  disabled={isLoading || isRateLimited}
-                  className="w-full px-4 py-2.5 text-sm bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">Login as Doctor</span>
-                  <span className="text-xs opacity-75">(sarah.johnson@hospital2035.com)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('patricia.williams@hospital2035.com', 'password123')}
-                  disabled={isLoading || isRateLimited}
-                  className="w-full px-4 py-2.5 text-sm bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">Login as Nurse</span>
-                  <span className="text-xs opacity-75">(patricia.williams@hospital2035.com)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('admin@hospital2035.com', 'admin123')}
-                  disabled={isLoading || isRateLimited}
-                  className="w-full px-4 py-2.5 text-sm bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">Login as Admin</span>
-                  <span className="text-xs opacity-75">(admin@hospital2035.com)</span>
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-                These are demo accounts for testing. Make sure the backend is seeded with these users.
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Footer */}

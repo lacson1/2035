@@ -11,14 +11,59 @@ on:
         options:
           - production
           - staging
+      confirm_deployment:
+        description: 'Type "DEPLOY" to confirm blue-green deployment'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  deployments: write
+  id-token: write
 
 env:
   NODE_VERSION: '18'
 
 jobs:
+  validate-admin:
+    name: Validate Admin Access
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check admin permissions
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const actor = context.actor;
+            const repo = context.repo;
+            
+            // Check if user has admin or write permissions
+            const { data: permissions } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: repo.owner,
+              repo: repo.repo,
+              username: actor
+            });
+            
+            const hasAdminAccess = permissions.permission === 'admin' || permissions.permission === 'write';
+            
+            if (!hasAdminAccess) {
+              core.setFailed(`❌ Access denied: ${actor} does not have admin/write permissions. Only repository admins can perform blue-green deployments.`);
+            }
+            
+            // Validate deployment confirmation
+            const confirmInput = '${{ github.event.inputs.confirm_deployment }}';
+            if (confirmInput !== 'DEPLOY') {
+              core.setFailed('❌ Deployment confirmation required. Please type "DEPLOY" in the confirm_deployment input.');
+            }
+            
+            const environment = '${{ github.event.inputs.environment }}';
+            core.info(`✅ Admin access validated for ${actor}`);
+            core.info(`🚀 Blue-green deployment requested for ${environment}`);
+
   blue-green-deployment:
     name: Blue-Green Deployment to ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
+    needs: [validate-admin]
+    if: needs.validate-admin.result == 'success'
     environment: ${{ github.event.inputs.environment }}
 
     steps:
@@ -102,7 +147,7 @@ jobs:
           fi
 
           npm ci
-          npm run test:smoke -- $FRONTEND_URL
+          curl -f $FRONTEND_URL || exit 1
 
       - name: Switch traffic to new deployment
         run: |

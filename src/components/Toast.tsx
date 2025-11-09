@@ -27,39 +27,39 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
   }, [id, duration, onDismiss]);
 
   const icons = {
-    success: <CheckCircle2 size={20} className="text-green-600 dark:text-green-400" />,
-    error: <AlertCircle size={20} className="text-red-600 dark:text-red-400" />,
-    warning: <AlertTriangle size={20} className="text-amber-600 dark:text-amber-400" />,
-    info: <Info size={20} className="text-blue-600 dark:text-blue-400" />,
-    loading: <Loader2 size={20} className="text-gray-600 dark:text-gray-400 animate-spin" />,
+    success: <CheckCircle2 size={16} className="text-green-500 dark:text-green-400" />,
+    error: <AlertCircle size={16} className="text-red-500 dark:text-red-400" />,
+    warning: <AlertTriangle size={16} className="text-amber-500 dark:text-amber-400" />,
+    info: <Info size={16} className="text-blue-500 dark:text-blue-400" />,
+    loading: <Loader2 size={16} className="text-gray-500 dark:text-gray-400 animate-spin" />,
   };
 
   const styles = {
-    success: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800",
-    error: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800",
-    warning: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800",
-    info: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800",
-    loading: "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800",
+    success: "bg-white/90 dark:bg-slate-800/90 border-slate-200/50 dark:border-slate-700/50",
+    error: "bg-white/90 dark:bg-slate-800/90 border-red-200/50 dark:border-red-800/50",
+    warning: "bg-white/90 dark:bg-slate-800/90 border-amber-200/50 dark:border-amber-800/50",
+    info: "bg-white/90 dark:bg-slate-800/90 border-blue-200/50 dark:border-blue-800/50",
+    loading: "bg-white/90 dark:bg-slate-800/90 border-slate-200/50 dark:border-slate-700/50",
   };
 
   const toastContent = (
     <>
-      <div className="flex-shrink-0 mt-0.5 p-1.5 rounded-lg bg-white/50 dark:bg-gray-800/50">
+      <div className="flex-shrink-0 mt-0.5">
         {icons[type]}
       </div>
 
       <div className="flex-1 min-w-0">
         {toast.title && (
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+          <h4 className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-0.5">
             {toast.title}
           </h4>
         )}
-        <p className="text-sm text-gray-700 dark:text-gray-300">
+        <p className="text-xs text-slate-600 dark:text-slate-400">
           {message}
         </p>
 
         {action && (
-          <div className="mt-3">
+          <div className="mt-2">
             <button
               onClick={() => {
                 action.onClick();
@@ -67,7 +67,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
                   onDismiss(id);
                 }
               }}
-              className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 underline"
+              className="text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline"
             >
               {action.label}
             </button>
@@ -77,21 +77,21 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
 
       <button
         onClick={() => onDismiss(id)}
-        className="flex-shrink-0 p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+        className="flex-shrink-0 p-1 rounded hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors"
         aria-label="Dismiss notification"
       >
-        <X size={16} className="text-gray-500 dark:text-gray-400" />
+        <X size={14} className="text-slate-400 dark:text-slate-500" />
       </button>
 
-      {/* Progress bar for auto-dismiss - Enhanced */}
+      {/* Progress bar for auto-dismiss - Subtle */}
       {duration > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/10 rounded-b-xl overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-200/30 dark:bg-slate-700/30 rounded-b-xl overflow-hidden">
           <div
-            className={`h-full animate-shrink ${type === 'success' ? 'bg-green-500' :
-              type === 'error' ? 'bg-red-500' :
-                type === 'warning' ? 'bg-amber-500' :
-                  type === 'info' ? 'bg-blue-500' :
-                    'bg-gray-400 dark:bg-gray-500'
+            className={`h-full animate-shrink ${type === 'success' ? 'bg-green-400/60' :
+              type === 'error' ? 'bg-red-400/60' :
+                type === 'warning' ? 'bg-amber-400/60' :
+                  type === 'info' ? 'bg-blue-400/60' :
+                    'bg-slate-400/60'
               }`}
           />
         </div>
@@ -108,10 +108,10 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
         data-duration={duration > 0 ? duration : undefined}
         style={duration > 0 ? { "--toast-duration": `${duration}ms` } as React.CSSProperties : undefined}
         className={`
-          relative flex items-start gap-3 p-4 rounded-xl border shadow-xl
-          animate-slide-up max-w-md backdrop-blur-sm
+          relative flex items-start gap-2.5 p-3 rounded-lg border shadow-sm
+          animate-slide-up max-w-sm backdrop-blur-md
           ${styles[type]}
-          hover:shadow-2xl transition-shadow duration-300
+          hover:shadow-md transition-all duration-200
         `}
       >
         {toastContent}
@@ -126,10 +126,10 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
       data-duration={duration > 0 ? duration : undefined}
       style={duration > 0 ? { "--toast-duration": `${duration}ms` } as React.CSSProperties : undefined}
       className={`
-        relative flex items-start gap-3 p-4 rounded-xl border shadow-xl
-        animate-slide-up max-w-md backdrop-blur-sm
+        relative flex items-start gap-2.5 p-3 rounded-lg border shadow-sm
+        animate-slide-up max-w-sm backdrop-blur-md
         ${styles[type]}
-        hover:shadow-2xl transition-shadow duration-300
+        hover:shadow-md transition-all duration-200
       `}
     >
       {toastContent}

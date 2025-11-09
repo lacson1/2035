@@ -50,15 +50,13 @@ export const apiRateLimiter = createRateLimiter(
 
 /**
  * Strict rate limiter for authentication endpoints
- * Development: 500 attempts per 5 minutes per IP (very lenient for testing)
- * Production: 5 attempts per 15 minutes per IP
+ * Development: 500 attempts per 10 seconds per IP (very lenient for testing)
+ * Production: 5 attempts per 10 seconds per IP
  */
 export const authRateLimiter = createRateLimiter(
   config.nodeEnv === 'production' ? RATE_LIMIT.AUTH_WINDOW_MS_PROD : RATE_LIMIT.AUTH_WINDOW_MS_DEV,
   config.nodeEnv === 'production' ? RATE_LIMIT.AUTH_MAX_REQUESTS_PROD : RATE_LIMIT.AUTH_MAX_REQUESTS_DEV,
-  config.nodeEnv === 'production' 
-    ? 'Too many login attempts. Please try again in 15 minutes.'
-    : 'Too many login attempts. Please try again in 5 minutes.'
+  'Too many login attempts. Please try again in 10 seconds.'
 );
 
 /**

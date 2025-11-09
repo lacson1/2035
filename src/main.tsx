@@ -23,13 +23,25 @@ try {
 // Global error handlers to prevent unhandled errors from appearing in console
 window.addEventListener('error', (event) => {
   // Filter out known browser extension errors
+  const filename = event.filename || '';
+  const message = event.message || '';
+  
   if (
-    (event.filename && event.filename.includes('chrome-extension://')) ||
-    (event.message && (
-      event.message.includes('chrome-extension://') ||
-      event.message.includes('ERR_FILE_NOT_FOUND') ||
-      event.message.includes('pejdijmoenmkgeppbflobdenhhabjlaj')
-    ))
+    filename.includes('chrome-extension://') ||
+    filename.includes('content_script.js') ||
+    filename.includes('background.js') ||
+    filename.includes('completion_list.html') ||
+    message.includes('chrome-extension://') ||
+    message.includes('ERR_FILE_NOT_FOUND') ||
+    message.includes('pejdijmoenmkgeppbflobdenhhabjlaj') ||
+    message.includes('runtime.lastError') ||
+    message.includes('message port closed') ||
+    message.includes('Receiving end does not exist') ||
+    message.includes('Untrusted event') ||
+    message.includes('content.js') ||
+    message.includes('content_script.js') ||
+    message.includes('FrameDoesNotExistError') ||
+    (message.includes('Cannot read properties of undefined') && message.includes('content_script'))
   ) {
     event.preventDefault();
     return;
@@ -64,7 +76,14 @@ window.addEventListener('unhandledrejection', (event) => {
     reasonStr.includes('chrome-extension://') ||
     reasonStr.includes('Extension context invalidated') ||
     reasonStr.includes('ERR_FILE_NOT_FOUND') ||
-    reasonStr.includes('pejdijmoenmkgeppbflobdenhhabjlaj')
+    reasonStr.includes('pejdijmoenmkgeppbflobdenhhabjlaj') ||
+    reasonStr.includes('runtime.lastError') ||
+    reasonStr.includes('message port closed') ||
+    reasonStr.includes('Receiving end does not exist') ||
+    reasonStr.includes('FrameDoesNotExistError') ||
+    reasonStr.includes('content_script.js') ||
+    reasonStr.includes('background.js') ||
+    (reasonStr.includes('Cannot read properties of undefined') && reasonStr.includes('content_script'))
   ) {
     event.preventDefault();
     return;
@@ -76,7 +95,14 @@ window.addEventListener('unhandledrejection', (event) => {
       message.includes('chrome-extension://') ||
       message.includes('Extension context invalidated') ||
       message.includes('ERR_FILE_NOT_FOUND') ||
-      message.includes('pejdijmoenmkgeppbflobdenhhabjlaj')
+      message.includes('pejdijmoenmkgeppbflobdenhhabjlaj') ||
+      message.includes('runtime.lastError') ||
+      message.includes('message port closed') ||
+      message.includes('Receiving end does not exist') ||
+      message.includes('FrameDoesNotExistError') ||
+      message.includes('content_script.js') ||
+      message.includes('background.js') ||
+      (message.includes('Cannot read properties of undefined') && message.includes('content_script'))
     ) {
       event.preventDefault();
       return;
@@ -119,6 +145,16 @@ const isChromeExtensionError = (arg: any): boolean => {
       arg.includes('ERR_FILE_NOT_FOUND') ||
       arg.includes('pejdijmoenmkgeppbflobdenhhabjlaj') ||
       arg.includes('Failed to load resource') ||
+      arg.includes('runtime.lastError') ||
+      arg.includes('message port closed') ||
+      arg.includes('Receiving end does not exist') ||
+      arg.includes('Untrusted event') ||
+      arg.includes('content.js') ||
+      arg.includes('content_script.js') ||
+      arg.includes('background.js') ||
+      arg.includes('completion_list.html') ||
+      arg.includes('FrameDoesNotExistError') ||
+      (arg.includes('Cannot read properties of undefined') && arg.includes('content_script')) ||
       arg.match(/chrome-extension:\/\/[^/]+\//)
     );
   }
@@ -127,7 +163,13 @@ const isChromeExtensionError = (arg: any): boolean => {
     return (
       str.includes('chrome-extension://') ||
       str.includes('ERR_FILE_NOT_FOUND') ||
-      str.includes('pejdijmoenmkgeppbflobdenhhabjlaj')
+      str.includes('pejdijmoenmkgeppbflobdenhhabjlaj') ||
+      str.includes('runtime.lastError') ||
+      str.includes('message port closed') ||
+      str.includes('Receiving end does not exist') ||
+      str.includes('FrameDoesNotExistError') ||
+      str.includes('content_script.js') ||
+      str.includes('background.js')
     );
   }
   return false;

@@ -413,6 +413,51 @@ export class UsersService {
 
     return rolePermissions.map((rp) => rp.permission.code);
   }
+
+  /**
+   * Reset user password (admin only)
+   */
+  async resetUserPassword(userId: string, newPassword: string): Promise<void> {
+    const { AuthService } = await import('./auth.service');
+    const authService = new AuthService();
+
+    // Validate password with complexity requirements
+    if (!newPassword || newPassword.length < 8 || newPassword.length > 128) {
+      throw new ValidationError('Password must be between 8 and 128 characters');
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      throw new ValidationError('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      throw new ValidationError('Password must contain at least one lowercase letter');
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      throw new ValidationError('Password must contain at least one number');
+    }
+    if (!/[^A-Za-z0-9]/.test(newPassword)) {
+      throw new ValidationError('Password must contain at least one special character');
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', userId);
+    }
+
+    // Hash new password
+    const passwordHash = await authService.hashPassword(newPassword);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    logger.info(`Password reset by admin for user: ${user.email}`);
+  }
 }
 
 export const usersService = new UsersService();
