@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    open: true, // Auto-open browser
+    open: false, // Disable auto-open browser (causes errors in headless environments)
   },
   build: {
     sourcemap: true, // Enable source maps for debugging
