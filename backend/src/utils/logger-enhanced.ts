@@ -1,4 +1,14 @@
-import { config } from '../config/env';
+/**
+ * Enhanced Logger with Winston
+ * 
+ * This is an enhanced version that can be used when Winston is installed.
+ * To use: Install winston and winston-daily-rotate-file, then replace logger.ts imports.
+ * 
+ * Installation:
+ *   npm install winston winston-daily-rotate-file
+ *   npm install --save-dev @types/winston
+ */
+
 import path from 'path';
 import fs from 'fs';
 
@@ -7,8 +17,6 @@ const logsDir = path.join(process.cwd(), 'logs');
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
-
-const isDevelopment = config.nodeEnv === 'development';
 
 // Try to use Winston if available, fallback to console
 let winston: any = null;
@@ -94,9 +102,7 @@ class Logger {
     if (this.logger) {
       this.logger.info(message, context);
     } else {
-      if (isDevelopment || process.env.NODE_ENV === 'production') {
-        console.log(`[INFO] ${this.formatMessage(message, context)}`);
-      }
+      console.log(`[INFO] ${this.formatMessage(message, context)}`);
     }
   }
 
@@ -119,7 +125,7 @@ class Logger {
   debug(message: string, context?: LogContext): void {
     if (this.logger) {
       this.logger.debug(message, context);
-    } else if (isDevelopment) {
+    } else if (process.env.NODE_ENV === 'development') {
       console.debug(`[DEBUG] ${this.formatMessage(message, context)}`);
     }
   }
@@ -149,4 +155,3 @@ export const logger = new Logger();
 export const logWithRequestId = (requestId: string) => {
   return logger.child({ requestId });
 };
-

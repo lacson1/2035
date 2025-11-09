@@ -5,12 +5,15 @@ import morgan from 'morgan';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error.middleware';
 import { logger } from './utils/logger';
+import { initSentry } from './utils/sentry';
 import prisma from './config/database';
 import { createRedisClient } from './config/redis';
 import { auditMiddleware } from './middleware/audit.middleware';
 import { apiRateLimiter, authRateLimiter } from './middleware/rateLimit.middleware';
 import { sanitizeInput } from './middleware/sanitize.middleware';
 import { metricsMiddleware } from './middleware/metrics.middleware';
+import { requestIdMiddleware } from './middleware/requestId.middleware';
+import { securityHeaders } from './middleware/security.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
@@ -34,8 +37,15 @@ import permissionsRoutes from './routes/permissions.routes';
 
 const app = express();
 
+// Initialize Sentry early (before other middleware)
+initSentry();
+
+// Request ID middleware (must be early for tracing)
+app.use(requestIdMiddleware);
+
 // Security middleware
 app.use(helmet());
+app.use(securityHeaders);
 
 // CORS
 app.use(
