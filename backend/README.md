@@ -2,6 +2,17 @@
 
 Backend API for the Physician Dashboard 2035 application.
 
+## 🚀 Quick Deploy to Fly.io
+
+```bash
+cd backend
+./scripts/deploy-flyio.sh
+```
+
+See [FLY_IO_QUICKSTART.md](./FLY_IO_QUICKSTART.md) for details.
+
+---
+
 ## Tech Stack
 
 - **Node.js** + **TypeScript**
