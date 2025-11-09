@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error.middleware';
 import { logger } from './utils/logger';
+import { initSentry } from './utils/sentry';
 import prisma from './config/database';
 import { createRedisClient } from './config/redis';
 import { auditMiddleware } from './middleware/audit.middleware';
@@ -35,6 +36,9 @@ import rolesRoutes from './routes/roles.routes';
 import permissionsRoutes from './routes/permissions.routes';
 
 const app = express();
+
+// Initialize Sentry early (before other middleware)
+initSentry();
 
 // Request ID middleware (must be early for tracing)
 app.use(requestIdMiddleware);
