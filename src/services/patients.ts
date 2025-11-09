@@ -26,6 +26,30 @@ export interface PatientListResponse {
  * Patient API Service
  * Handles all patient-related API calls
  */
+const mapPatientPayloadForApi = (patient: Partial<Patient>): Record<string, unknown> => {
+  const payload: Record<string, unknown> = { ...patient };
+
+  if ('dob' in payload) {
+    payload.dateOfBirth = payload.dob;
+    delete payload.dob;
+  }
+
+  if ('bp' in payload) {
+    payload.bloodPressure = payload.bp;
+    delete payload.bp;
+  }
+
+  if ('risk' in payload) {
+    payload.riskScore = payload.risk;
+    delete payload.risk;
+  }
+
+  // Remove derived-only fields that the backend manages itself
+  delete payload.age;
+
+  return payload;
+};
+
 export const patientService = {
   /**
    * Get list of patients with filters and pagination
@@ -82,7 +106,10 @@ export const patientService = {
       throw new Error('Invalid patient data provided');
     }
 
-    const response = await apiClient.post<Patient>('/v1/patients', validated);
+    const response = await apiClient.post<Patient>(
+      '/v1/patients',
+      mapPatientPayloadForApi(validated)
+    );
     
     // Validate response
     if (isBackendPatient(response.data)) {
@@ -106,8 +133,11 @@ export const patientService = {
       throw new Error('Invalid patient data provided');
     }
 
-    const response = await apiClient.put<Patient>(`/v1/patients/${id}`, validated);
-    
+    const response = await apiClient.put<Patient>(
+      `/v1/patients/${id}`,
+      mapPatientPayloadForApi(validated)
+    );
+
     // Validate response
     if (isBackendPatient(response.data)) {
       const responseValidated = validatePatient(response.data);

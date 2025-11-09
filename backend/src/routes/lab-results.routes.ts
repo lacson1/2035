@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { labResultsController } from '../controllers/lab-results.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/auth.middleware';
+import { auditMiddleware } from '../middleware/audit.middleware';
 
 const router = Router({ mergeParams: true });
 
 // All routes require authentication
 router.use(authenticate);
+router.use(auditMiddleware);
 
 // GET /patients/:patientId/lab-results - Get all lab results for a patient
 router.get('/', labResultsController.getPatientLabResults.bind(labResultsController));

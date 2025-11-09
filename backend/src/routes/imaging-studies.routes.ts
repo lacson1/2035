@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { imagingStudiesController } from '../controllers/imaging-studies.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/auth.middleware';
+import { auditMiddleware } from '../middleware/audit.middleware';
 
 const router = Router({ mergeParams: true });
 
 // All routes require authentication
 router.use(authenticate);
+router.use(auditMiddleware);
 
 // GET /patients/:patientId/imaging - Get all imaging studies for a patient
 router.get('/', imagingStudiesController.getPatientImagingStudies.bind(imagingStudiesController));
