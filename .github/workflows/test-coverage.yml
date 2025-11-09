@@ -1,0 +1,104 @@
+name: Test Coverage Report
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    name: Generate Coverage Report
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: cd backend && npm ci
+
+      - name: Setup test database
+        run: |
+          cd backend
+          npx prisma generate
+          npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/test_db
+
+      - name: Run frontend tests with coverage
+        run: npm run test:coverage
+
+      - name: Run backend tests with coverage
+        run: cd backend && npm run test:coverage
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/test_db
+          NODE_ENV: test
+
+      - name: Upload frontend coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+
+      - name: Upload backend coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+
+      - name: Generate coverage summary
+        run: |
+          echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend Coverage" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage/lcov.info ]; then
+            echo "✅ Coverage report generated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No coverage report found" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend Coverage" >> $GITHUB_STEP_SUMMARY
+          if [ -f backend/coverage/lcov.info ]; then
+            echo "✅ Coverage report generated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No coverage report found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage/
+            backend/coverage/
+          retention-days: 30
+

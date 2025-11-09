@@ -130,8 +130,7 @@ const corsOptions = {
     }
 
     // Log for debugging
-    console.log(`[CORS] Origin not allowed: ${origin}`);
-    console.log(`[CORS] Allowed origins:`, allowedOrigins);
+    logger.warn(`[CORS] Origin not allowed: ${origin}`, { allowedOrigins });
     
     callback(new Error('Not allowed by CORS'));
   },

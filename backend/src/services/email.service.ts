@@ -33,17 +33,15 @@ export class EmailService {
         to,
         subject,
         preview: text || html.substring(0, 100) + '...',
+        body: text || html, // Full body in development logs
       });
-      console.log('\n=== EMAIL ===');
-      console.log(`To: ${to}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Body:\n${text || html}`);
-      console.log('=============\n');
       return;
     }
 
     // Production: Use actual email service
-    // TODO: Integrate with your email provider (SendGrid, AWS SES, etc.)
+    // NOTE: Email service integration required for production
+    // Options: SendGrid, AWS SES, Mailgun, or Nodemailer with SMTP
+    // Configure via SMTP_* environment variables or use a service SDK
     
     // Example with Nodemailer (if SMTP configured):
     if (process.env.SMTP_HOST) {

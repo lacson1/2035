@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { NotFoundError, ValidationError } from '../utils/errors';
 import { Vital } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 export interface CreateVitalData {
   date: string | Date;
@@ -88,7 +89,7 @@ export class VitalsService {
       date = data.date;
     }
 
-    console.log('Creating vital with data:', {
+    logger.debug('Creating vital with data:', {
       patientId,
       date: date.toISOString(),
       time: data.time,

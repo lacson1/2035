@@ -48,16 +48,47 @@ export class AuthService {
     tokens: AuthTokens;
     user: any;
   }> {
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Normalize email: trim whitespace and convert to lowercase for case-insensitive lookup
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Try case-insensitive email lookup using Prisma's case-insensitive mode
+    // First try exact match (case-sensitive) for performance
+    let user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
     });
 
+    // If not found, try case-insensitive search
     if (!user) {
+      user = await prisma.user.findFirst({
+        where: {
+          email: {
+            equals: normalizedEmail,
+            mode: 'insensitive',
+          },
+        },
+      });
+    }
+
+    // If still not found, check for similar emails (for better error message)
+    if (!user) {
+      const similarUser = await prisma.user.findFirst({
+        where: {
+          email: {
+            contains: normalizedEmail.split('@')[0],
+            mode: 'insensitive',
+          },
+        },
+        select: { email: true },
+      });
+      
+      if (similarUser) {
+        throw new UnauthorizedError(`Invalid email or password. Did you mean ${similarUser.email}?`);
+      }
       throw new UnauthorizedError('Invalid email or password');
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedError('Account is inactive');
+      throw new UnauthorizedError('Account is inactive. Please contact an administrator.');
     }
 
     const isPasswordValid = await this.comparePassword(
@@ -176,20 +207,42 @@ export class AuthService {
     tokens: AuthTokens;
     user: any;
   }> {
-    // Check if user already exists
-    const existingUser = await prisma.user.findFirst({
+    // Normalize email: trim whitespace and convert to lowercase
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Check if user already exists (case-insensitive email check)
+    // First try exact match for performance
+    let existingUser = await prisma.user.findFirst({
       where: {
         OR: [
-          { email },
-          { username: username || email.split('@')[0] },
+          { email: normalizedEmail },
+          { username: username || normalizedEmail.split('@')[0] },
         ],
       },
     });
 
+    // If not found, try case-insensitive email search
+    if (!existingUser) {
+      existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { 
+              email: {
+                equals: normalizedEmail,
+                mode: 'insensitive',
+              },
+            },
+            { username: username || normalizedEmail.split('@')[0] },
+          ],
+        },
+      });
+    }
+
     if (existingUser) {
+      const emailMatches = existingUser.email.toLowerCase() === normalizedEmail;
       throw new ValidationError('User already exists', {
-        email: existingUser.email === email ? ['Email already registered'] : [],
-        username: existingUser.username === (username || email.split('@')[0]) ? ['Username already taken'] : [],
+        email: emailMatches ? ['Email already registered'] : [],
+        username: existingUser.username === (username || normalizedEmail.split('@')[0]) ? ['Username already taken'] : [],
       });
     }
 
@@ -197,7 +250,7 @@ export class AuthService {
     const passwordHash = await this.hashPassword(password);
 
     // Generate username from email if not provided
-    const generatedUsername = username || email.split('@')[0];
+    const generatedUsername = username || normalizedEmail.split('@')[0];
 
     // Check if this is the first user - if so, make them an administrator
     const userCount = await prisma.user.count();
@@ -205,9 +258,10 @@ export class AuthService {
 
     // Create user with appropriate role
     // First user becomes administrator, others get read_only (can be changed by admin later)
+    // Store email in normalized (lowercase) format for consistency
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail, // Store normalized email
         username: generatedUsername,
         passwordHash,
         firstName,

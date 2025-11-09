@@ -4,6 +4,7 @@
  */
 
 import prisma from '../config/database';
+import { logger } from './logger';
 
 export async function cleanupExpiredSessions(): Promise<number> {
   try {
@@ -15,13 +16,10 @@ export async function cleanupExpiredSessions(): Promise<number> {
       },
     });
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`Cleaned up ${result.count} expired sessions`);
-    }
-
+    logger.info(`Cleaned up ${result.count} expired sessions`);
     return result.count;
   } catch (error) {
-    console.error('Error cleaning up expired sessions:', error);
+    logger.error('Error cleaning up expired sessions:', error);
     throw error;
   }
 }
@@ -40,9 +38,10 @@ export async function cleanupUserExpiredSessions(userId: string): Promise<number
       },
     });
 
+    logger.info(`Cleaned up ${result.count} expired sessions for user ${userId}`);
     return result.count;
   } catch (error) {
-    console.error('Error cleaning up user expired sessions:', error);
+    logger.error('Error cleaning up user expired sessions:', error);
     throw error;
   }
 }

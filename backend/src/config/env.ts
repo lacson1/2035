@@ -30,6 +30,7 @@ if (isProduction) {
   }
 } else {
   // In development, warn if using defaults
+  // Note: Using console.warn here because logger depends on config, creating circular dependency
   if (!jwtSecret || jwtSecret === 'change-me-in-production') {
     console.warn(
       '⚠️  WARNING: JWT_SECRET not set. Using default secret. This is insecure for production!'
@@ -77,9 +78,10 @@ export const config = {
 
 // Validate required environment variables (only in production)
 // Allow empty DATABASE_URL in development for local testing without DB
+// Note: Using console.error here because logger depends on config, creating circular dependency
 if (config.nodeEnv === 'production' && !config.database.url) {
   console.error('❌ ERROR: DATABASE_URL is required in production');
-  console.error('   Please set DATABASE_URL in your Render environment variables');
+  console.error('   Please set DATABASE_URL in your environment variables');
   console.error('   Format: postgresql://user:password@host:port/database');
   process.exit(1);
 }

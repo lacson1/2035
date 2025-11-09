@@ -57,14 +57,15 @@ export const errorHandler = (
     });
   }
 
-  // Unexpected error
-  logger.error('Unexpected error:', err);
-  console.error('=== ERROR DETAILS ===');
-  console.error('Error name:', err.name);
-  console.error('Error message:', err.message);
-  console.error('Error stack:', err.stack);
-  console.error('Full error:', err);
-  console.error('===================');
+  // Unexpected error - log with full context
+  logger.error('Unexpected error:', {
+    name: err.name,
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    userId: (req as any).user?.id,
+  });
   
   res.status(500).json({
     message: 'Internal server error',

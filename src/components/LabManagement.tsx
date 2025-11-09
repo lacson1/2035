@@ -160,7 +160,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
     },
   ];
   
-  // Test cost estimates (in USD)
+  // Test cost estimates (in NGN - Nigerian Naira)
   const testCosts: Record<string, number> = {
     "Complete Blood Count": 35,
     "Complete Metabolic Panel": 65,
@@ -1915,7 +1915,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                           <div className="text-xs text-gray-600 dark:text-gray-400">
                             {test.testCode && `${test.testCode} • `}
                             {test.category}
-                            {test.cost && test.cost > 0 && ` • $${test.cost}`}
+                            {test.cost && test.cost > 0 && ` • ₦${test.cost}`}
                           </div>
                         </div>
                         <button
@@ -1934,7 +1934,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                     <div className="mt-3 pt-3 border-t border-teal-200 dark:border-teal-700">
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-gray-900 dark:text-gray-100">Estimated Total Cost:</span>
-                        <span className="font-bold text-teal-600 dark:text-teal-400">${totalCartCost.toFixed(2)}</span>
+                        <span className="font-bold text-teal-600 dark:text-teal-400">₦{totalCartCost.toFixed(2)}</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">*Costs are estimates and may vary</p>
                     </div>
@@ -1970,7 +1970,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                             <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{test.reason}</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-xs font-medium text-blue-600 dark:text-blue-400">${test.cost}</div>
+                            <div className="text-xs font-medium text-blue-600 dark:text-blue-400">₦{test.cost}</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">{test.testCode}</div>
                           </div>
                         </div>
@@ -2005,7 +2005,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                         <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{orderSet.description}</div>
                         <div className="text-xs text-teal-600 dark:text-teal-400 mt-1">
                           {orderSet.tests.length} test{orderSet.tests.length > 1 ? 's' : ''} • 
-                          ${orderSet.tests.reduce((sum, t) => sum + (t.cost || 0), 0)}
+                          ₦{orderSet.tests.reduce((sum, t) => sum + (t.cost || 0), 0)}
                         </div>
                       </button>
                     ))}
@@ -2070,7 +2070,7 @@ export default function LabManagement({ patient }: LabManagementProps) {
                                     </div>
                                     {testCost > 0 && (
                                       <div className="text-xs font-medium text-teal-600 dark:text-teal-400 ml-2">
-                                        ${testCost}
+                                        ₦{testCost}
                                       </div>
                                     )}
                                   </div>

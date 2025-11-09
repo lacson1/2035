@@ -11,13 +11,13 @@ export class AuthController {
     const userAgent = req.headers['user-agent'];
 
     try {
-      const { email, password } = req.body;
+      let { email, password } = req.body;
 
       if (!email || !password) {
         // Log failed login attempt
         await auditService.logAuthEvent(
           undefined,
-          email,
+          email || 'unknown',
           'LOGIN',
           ipAddress,
           userAgent,
@@ -26,6 +26,9 @@ export class AuthController {
         );
         throw new UnauthorizedError('Email and password are required');
       }
+
+      // Normalize email: trim whitespace
+      email = email.trim();
 
       const result = await authService.login(email, password, ipAddress, userAgent);
 
@@ -157,12 +160,12 @@ export class AuthController {
     const userAgent = req.headers['user-agent'];
 
     try {
-      const { email, password, firstName, lastName, username } = req.body;
+      let { email, password, firstName, lastName, username } = req.body;
 
       if (!email || !password || !firstName || !lastName) {
         await auditService.logAuthEvent(
           undefined,
-          email,
+          email || 'unknown',
           'REGISTER',
           ipAddress,
           userAgent,
@@ -171,6 +174,12 @@ export class AuthController {
         );
         throw new UnauthorizedError('Email, password, first name, and last name are required');
       }
+
+      // Normalize email: trim whitespace
+      email = email.trim();
+      firstName = firstName.trim();
+      lastName = lastName.trim();
+      if (username) username = username.trim();
 
       const result = await authService.register(
         email,

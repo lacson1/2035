@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { auditService } from '../services/audit.service';
 import { AuditActionType } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 /**
  * Extract patient ID from request params or body
@@ -138,7 +139,7 @@ export const auditMiddleware = async (
       });
     } catch (error) {
       // Audit logging should never break the app
-      console.error('Audit logging error:', error);
+      logger.error('Audit logging error:', error);
     }
   });
 };

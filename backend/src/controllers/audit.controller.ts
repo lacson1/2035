@@ -20,8 +20,9 @@ export class AuditController {
       // Only admin can view audit logs for any patient
       // Other users can only view logs for patients they have access to
       if (req.user.role !== 'admin') {
-        // TODO: Add check for patient access permissions
-        // For now, allow all authenticated users
+        // NOTE: Patient access permission check should be implemented
+        // For now, all authenticated users can view audit logs
+        // Future: Add patient access control based on care team assignments
       }
 
       const logs = await auditService.getPatientAuditLogs(patientId, limit, offset);

@@ -16,6 +16,7 @@ import {
   Save,
   UserPlus,
   Key,
+  Clock,
 } from "lucide-react";
 import { User, UserRole } from "../types";
 import { useUsers } from "../hooks/useUsers";
@@ -65,6 +66,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [showPasswordStrength, setShowPasswordStrength] = useState(false);
 
   const canManageUsers = currentUser && hasPermission(currentUser.role, "manage_users");
 
@@ -131,6 +134,115 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Password strength calculator
+  const calculatePasswordStrength = (password: string): number => {
+    if (!password) return 0;
+    let strength = 0;
+    if (password.length >= 8) strength += 1;
+    if (password.length >= 12) strength += 1;
+    if (/[a-z]/.test(password)) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+    return Math.min(strength, 6);
+  };
+
+  // Update password strength when password changes
+  useEffect(() => {
+    if (formState.password) {
+      setPasswordStrength(calculatePasswordStrength(formState.password));
+      setShowPasswordStrength(true);
+    } else {
+      setPasswordStrength(0);
+      setShowPasswordStrength(false);
+    }
+  }, [formState.password]);
+
+  // Bulk operations
+  const handleBulkToggleActive = async (activate: boolean) => {
+    if (!canManageUsers || selectedUsers.size === 0) return;
+    
+    const userIds = Array.from(selectedUsers);
+    const filteredIds = userIds.filter(id => id !== currentUser?.id);
+    
+    if (filteredIds.length === 0) {
+      toast.warning("You cannot change your own account status");
+      return;
+    }
+    
+    try {
+      const promises = filteredIds.map(id => {
+        const user = users.find(u => u.id === id);
+        if (!user) return Promise.resolve();
+        return userService.updateUser(id, { isActive: activate });
+      });
+      
+      await Promise.all(promises);
+      
+      // Refresh users list
+      setUsers(prevUsers => 
+        prevUsers.map(u => {
+          const updated = filteredIds.find(id => id === u.id);
+          return updated ? { ...u, isActive: activate } : u;
+        })
+      );
+      setSelectedUsers(new Set());
+      toast.success(`${activate ? 'Activated' : 'Deactivated'} ${filteredIds.length} user(s) successfully`);
+    } catch (error: any) {
+      logger.error('Failed to bulk update users:', error);
+      toast.error(error?.message || 'Failed to update users');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!canManageUsers || selectedUsers.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedUsers.size} user(s)?`)) return;
+    
+    const userIds = Array.from(selectedUsers);
+    const filteredIds = userIds.filter(id => id !== currentUser?.id);
+    
+    if (filteredIds.length === 0) {
+      toast.warning("You cannot delete your own account");
+      return;
+    }
+    
+    try {
+      const promises = filteredIds.map(id => userService.deleteUser(id));
+      await Promise.all(promises);
+      
+      setUsers(users.filter(u => !filteredIds.includes(u.id)));
+      setSelectedUsers(new Set());
+      toast.success(`Deleted ${filteredIds.length} user(s) successfully`);
+    } catch (error: any) {
+      logger.error('Failed to bulk delete users:', error);
+      toast.error(error?.message || 'Failed to delete users');
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedUsers.size === paginatedUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(paginatedUsers.map(u => u.id)));
+    }
+  };
+
+  const handleSelectUser = (userId: string) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!canManageUsers) return;
@@ -147,6 +259,19 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         // Create new user - need password
         if (!formState.password || formState.password.length < 8) {
           toast.warning('Password is required and must be at least 8 characters');
+          return;
+        }
+        
+        // Enhanced password validation
+        const password = formState.password;
+        const errors: string[] = [];
+        if (!/[A-Z]/.test(password)) errors.push('uppercase letter');
+        if (!/[a-z]/.test(password)) errors.push('lowercase letter');
+        if (!/[0-9]/.test(password)) errors.push('number');
+        if (!/[^A-Za-z0-9]/.test(password)) errors.push('special character');
+        
+        if (errors.length > 0) {
+          toast.warning(`Password must contain at least one: ${errors.join(', ')}`);
           return;
         }
         
@@ -167,24 +292,41 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     }
   };
 
-  const handleDelete = (userId: string) => {
+  const handleDelete = async (userId: string) => {
     if (!canManageUsers || !confirm("Are you sure you want to delete this user?")) return;
     if (userId === currentUser?.id) {
       toast.warning("You cannot delete your own account");
       return;
     }
-    setUsers(users.filter((u) => u.id !== userId));
+    
+    try {
+      await userService.deleteUser(userId);
+      setUsers(users.filter((u) => u.id !== userId));
+      toast.success('User deleted successfully');
+    } catch (error: any) {
+      logger.error('Failed to delete user:', error);
+      toast.error(error?.message || 'Failed to delete user');
+    }
   };
 
-  const handleToggleActive = (userId: string) => {
+  const handleToggleActive = async (userId: string) => {
     if (!canManageUsers) return;
     if (userId === currentUser?.id) {
       toast.warning("You cannot deactivate your own account");
       return;
     }
-    setUsers(
-      users.map((u) => (u.id === userId ? { ...u, isActive: !u.isActive } : u))
-    );
+    
+    const user = users.find((u) => u.id === userId);
+    if (!user) return;
+    
+    try {
+      const updatedUser = await userService.updateUser(userId, { isActive: !user.isActive });
+      setUsers(users.map((u) => (u.id === userId ? updatedUser.data : u)));
+      toast.success(`User ${!user.isActive ? 'activated' : 'deactivated'} successfully`);
+    } catch (error: any) {
+      logger.error('Failed to toggle user status:', error);
+      toast.error(error?.message || 'Failed to update user status');
+    }
   };
 
   const handleResetPassword = async () => {
@@ -251,8 +393,55 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     );
   }
 
+  // User statistics
+  const activeUsers = users.filter(u => u.isActive).length;
+  const inactiveUsers = users.filter(u => !u.isActive).length;
+  const usersByRole = users.reduce((acc, user) => {
+    acc[user.role] = (acc[user.role] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="space-y-6">
+      {/* Statistics Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 border rounded-lg dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Users</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{users.length}</p>
+            </div>
+            <Users className="text-teal-600 dark:text-teal-400" size={24} />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 border rounded-lg dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Active Users</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{activeUsers}</p>
+            </div>
+            <CheckCircle className="text-green-600 dark:text-green-400" size={24} />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 border rounded-lg dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inactive Users</p>
+              <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{inactiveUsers}</p>
+            </div>
+            <XCircle className="text-gray-600 dark:text-gray-400" size={24} />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 border rounded-lg dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Roles</p>
+              <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">{Object.keys(usersByRole).length}</p>
+            </div>
+            <Shield className="text-teal-600 dark:text-teal-400" size={24} />
+          </div>
+        </div>
+      </div>
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -338,6 +527,15 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             <thead className="bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.size === paginatedUsers.length && paginatedUsers.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4"
+                    title="Select all"
+                  />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                   User
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
@@ -360,13 +558,13 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {isLoadingUsers ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     Loading users...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     {usersError ? (
                       <div>
                         <p className="text-red-600 dark:text-red-400 font-medium mb-1">Failed to load users</p>
@@ -380,12 +578,23 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => {
+                paginatedUsers.map((user) => {
                 return (
                   <tr
                     key={user.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors ${
+                      selectedUsers.has(user.id) ? 'bg-teal-50 dark:bg-teal-900/20' : ''
+                    }`}
                   >
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.has(user.id)}
+                        onChange={() => handleSelectUser(user.id)}
+                        className="w-4 h-4"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div>
                         <div className="font-medium text-gray-900 dark:text-gray-100">
@@ -432,21 +641,29 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {user.isActive ? (
-                          <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm">
-                            <CheckCircle size={14} />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500 text-sm">
-                            <XCircle size={14} />
-                            Inactive
-                          </span>
-                        )}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          {user.isActive ? (
+                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm">
+                              <CheckCircle size={14} />
+                              Active
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500 text-sm">
+                              <XCircle size={14} />
+                              Inactive
+                            </span>
+                          )}
+                        </div>
                         {user.lastLogin && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {new Date(user.lastLogin).toLocaleDateString()}
+                          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                            <Clock size={12} />
+                            <span>Last login: {new Date(user.lastLogin).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        {!user.lastLogin && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 italic">
+                            Never logged in
                           </span>
                         )}
                       </div>
@@ -505,6 +722,49 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t dark:border-gray-700">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="text-sm border rounded px-2 py-1 dark:bg-gray-700 dark:border-gray-600"
+              >
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm border rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Permissions Detail */}
         {showPermissions && (
@@ -718,9 +978,56 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     minLength={8}
                     className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:border-teal-400 transition-colors"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Password must be at least 8 characters long
-                  </p>
+                  {showPasswordStrength && formState.password && (
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${
+                              passwordStrength <= 2
+                                ? 'bg-red-500'
+                                : passwordStrength <= 4
+                                ? 'bg-yellow-500'
+                                : 'bg-green-500'
+                            }`}
+                            style={{ width: `${(passwordStrength / 6) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {passwordStrength <= 2
+                            ? 'Weak'
+                            : passwordStrength <= 4
+                            ? 'Medium'
+                            : 'Strong'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                        <p>Requirements:</p>
+                        <ul className="list-disc list-inside space-y-0.5 ml-2">
+                          <li className={formState.password.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
+                            At least 8 characters {formState.password.length >= 8 ? '✓' : ''}
+                          </li>
+                          <li className={/[A-Z]/.test(formState.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                            One uppercase letter {/[A-Z]/.test(formState.password) ? '✓' : ''}
+                          </li>
+                          <li className={/[a-z]/.test(formState.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                            One lowercase letter {/[a-z]/.test(formState.password) ? '✓' : ''}
+                          </li>
+                          <li className={/[0-9]/.test(formState.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                            One number {/[0-9]/.test(formState.password) ? '✓' : ''}
+                          </li>
+                          <li className={/[^A-Za-z0-9]/.test(formState.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                            One special character {/[^A-Za-z0-9]/.test(formState.password) ? '✓' : ''}
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                  {!showPasswordStrength && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Password must be at least 8 characters with uppercase, lowercase, number, and special character
+                    </p>
+                  )}
                 </div>
               )}
 
