@@ -14,6 +14,7 @@ import { sanitizeInput } from './middleware/sanitize.middleware';
 import { metricsMiddleware } from './middleware/metrics.middleware';
 import { requestIdMiddleware } from './middleware/requestId.middleware';
 import { securityHeaders } from './middleware/security.middleware';
+import { responseTimeMiddleware } from './middleware/responseTime.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
@@ -42,6 +43,9 @@ initSentry();
 
 // Request ID middleware (must be early for tracing)
 app.use(requestIdMiddleware);
+
+// Response time tracking middleware
+app.use(responseTimeMiddleware);
 
 // Security middleware
 app.use(helmet());

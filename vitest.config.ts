@@ -13,7 +13,7 @@ export default defineConfig({
     exclude: ['e2e/**', 'backend/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
         'src/test/',
@@ -23,6 +23,12 @@ export default defineConfig({
         '**/*.test.*',
         '**/*.spec.*',
       ],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 65,
+        statements: 70,
+      },
     },
   },
   resolve: {

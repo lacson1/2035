@@ -21,12 +21,25 @@ router.get('/', async (req: Request, res: Response) => {
  * Detailed health check with dependency status
  */
 router.get('/detailed', async (req: Request, res: Response) => {
+  const memoryUsage = process.memoryUsage();
+  
   const health = {
     status: 'ok' as 'ok' | 'degraded' | 'down',
     timestamp: new Date().toISOString(),
     environment: config.nodeEnv,
     version: process.env.npm_package_version || '1.0.0',
     uptime: process.uptime(),
+    system: {
+      memory: {
+        total: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
+        used: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
+        external: Math.round(memoryUsage.external / 1024 / 1024), // MB
+        rss: Math.round(memoryUsage.rss / 1024 / 1024), // MB
+      },
+      nodeVersion: process.version,
+      platform: process.platform,
+      pid: process.pid,
+    },
     dependencies: {
       database: {
         status: 'unknown' as 'ok' | 'error' | 'unknown',
