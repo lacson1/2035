@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Plus,
   Edit,
@@ -23,64 +23,98 @@ import {
   FileEdit,
   X,
 } from "lucide-react";
-import { getAllHubs, getHubById, HubId, getHubColorClass } from "../data/hubs";
 import { useDashboard } from "../context/DashboardContext";
 import { filterPatientsByHub, getHubStats, getHubQuickActions } from "../utils/hubIntegration";
-import { getQuestionnairesByHub, Questionnaire, Question } from "../data/questionnaires";
-import { CustomConsultationTemplate } from "../types";
+import { Questionnaire, Question } from "../data/questionnaires";
+import useHubs from "../hooks/useHubs";
+import { hubsService, HubFunctionPayload, HubResourcePayload, HubTemplatePayload } from "../services/hubs";
+import {
+  Hub,
+  HubFunction,
+  HubResource,
+  HubNote,
+  HubTemplate,
+  CustomConsultationTemplate,
+} from "../types";
 
-interface HubFunction {
-  id: string;
-  name: string;
-  description: string;
-  category?: string;
-}
+const HUB_COLOR_CLASSES: Record<string, string> = {
+  purple: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300",
+  blue: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300",
+  pink: "bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800 text-pink-700 dark:text-pink-300",
+  red: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300",
+  yellow: "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300",
+  orange: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300",
+  green: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300",
+  indigo: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300",
+  cyan: "bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300",
+  teal: "bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300",
+};
 
-interface HubNote {
-  id: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
-}
+const getHubColorClass = (color: string | null | undefined) =>
+  color ? HUB_COLOR_CLASSES[color] || HUB_COLOR_CLASSES.teal : HUB_COLOR_CLASSES.teal;
 
-interface HubResource {
-  id: string;
-  title: string;
-  type: "protocol" | "guideline" | "reference" | "tool" | "link";
-  url?: string;
-  description?: string;
-}
+const ensureStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
-interface HubTeamMember {
-  userId: string;
-  role?: string;
-}
+const ensureString = (value: unknown): string => (typeof value === "string" ? value : "");
 
-interface HubStats {
-  totalPatients: number;
-  activeAppointments: number;
-  recentActivities: number;
-}
+const EMPTY_TEMPLATE_CONTENT = {
+  chiefComplaint: "",
+  historyOfPresentIllness: "",
+  reviewOfSystems: [] as string[],
+  physicalExamination: [] as string[],
+  assessment: "",
+  plan: [] as string[],
+  commonDiagnoses: [] as string[],
+  commonTests: [] as string[],
+  commonMedications: [] as string[],
+};
 
-interface HubFunctions {
-  [hubId: string]: HubFunction[];
-}
+const mapTemplateFromApi = (template: HubTemplate): CustomConsultationTemplate => {
+  const content = (template.template || {}) as Record<string, unknown>;
 
-interface HubNotes {
-  [hubId: string]: HubNote[];
-}
+  return {
+    id: template.id,
+    name: template.name,
+    description: template.description ?? undefined,
+    hubId: template.hubId ?? undefined,
+    createdAt: template.createdAt,
+    updatedAt: template.updatedAt,
+    consultationTemplate: {
+      chiefComplaint: ensureString(content.chiefComplaint),
+      historyOfPresentIllness: ensureString(content.historyOfPresentIllness),
+      reviewOfSystems: ensureStringArray(content.reviewOfSystems),
+      physicalExamination: ensureStringArray(content.physicalExamination),
+      assessment: ensureString(content.assessment),
+      plan: ensureStringArray(content.plan),
+      commonDiagnoses: ensureStringArray(content.commonDiagnoses),
+      commonTests: ensureStringArray(content.commonTests),
+      commonMedications: ensureStringArray(content.commonMedications),
+    },
+  };
+};
 
-interface HubResources {
-  [hubId: string]: HubResource[];
-}
-
-interface HubTeamMembers {
-  [hubId: string]: HubTeamMember[];
-}
+const mapTemplateToPayload = (
+  template: CustomConsultationTemplate
+): HubTemplatePayload => ({
+  name: template.name,
+  description: template.description,
+  template: {
+    ...EMPTY_TEMPLATE_CONTENT,
+    ...template.consultationTemplate,
+    reviewOfSystems: template.consultationTemplate.reviewOfSystems ?? [],
+    physicalExamination: template.consultationTemplate.physicalExamination ?? [],
+    plan: template.consultationTemplate.plan ?? [],
+    commonDiagnoses: template.consultationTemplate.commonDiagnoses ?? [],
+    commonTests: template.consultationTemplate.commonTests ?? [],
+    commonMedications: template.consultationTemplate.commonMedications ?? [],
+  },
+});
 
 export default function Hubs() {
   const { patients, setSelectedPatient, setActiveTab } = useDashboard();
-  const [selectedHub, setSelectedHub] = useState<HubId | null>(null);
+  const { hubs, isLoading: isHubsLoading, error: hubsError } = useHubs();
+  const [selectedHub, setSelectedHub] = useState<Hub | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [hubActiveTab, setHubActiveTab] = useState<"overview" | "functions" | "notes" | "resources" | "team" | "stats" | "questionnaires" | "templates">("overview");
   const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<Questionnaire | null>(null);
@@ -94,52 +128,13 @@ export default function Hubs() {
       return {};
     }
   });
-  
-  const [hubFunctions, setHubFunctions] = useState<HubFunctions>(() => {
-    try {
-      const saved = localStorage.getItem("hubFunctions");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
 
-  const [hubNotes, setHubNotes] = useState<HubNotes>(() => {
-    try {
-      const saved = localStorage.getItem("hubNotes");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  const [hubResources, setHubResources] = useState<HubResources>(() => {
-    try {
-      const saved = localStorage.getItem("hubResources");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  const [hubTeamMembers] = useState<HubTeamMembers>(() => {
-    try {
-      const saved = localStorage.getItem("hubTeamMembers");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  const [customTemplates, setCustomTemplates] = useState<CustomConsultationTemplate[]>(() => {
-    try {
-      const saved = localStorage.getItem("customConsultationTemplates");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
+  const [hubFunctions, setHubFunctions] = useState<HubFunction[]>([]);
+  const [hubResources, setHubResources] = useState<HubResource[]>([]);
+  const [hubNote, setHubNote] = useState<HubNote | null>(null);
+  const [customTemplates, setCustomTemplates] = useState<CustomConsultationTemplate[]>([]);
+  const [isHubDetailsLoading, setIsHubDetailsLoading] = useState(false);
+  const [hubDetailsError, setHubDetailsError] = useState<string | null>(null);
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CustomConsultationTemplate | null>(null);
   const [templateForm, setTemplateForm] = useState({
@@ -173,33 +168,63 @@ export default function Hubs() {
   });
   const [noteContent, setNoteContent] = useState("");
 
-  const hubs = getAllHubs();
-
-  useEffect(() => {
-    localStorage.setItem("hubFunctions", JSON.stringify(hubFunctions));
-  }, [hubFunctions]);
-
-  useEffect(() => {
-    localStorage.setItem("hubNotes", JSON.stringify(hubNotes));
-  }, [hubNotes]);
-
-  useEffect(() => {
-    localStorage.setItem("hubResources", JSON.stringify(hubResources));
-  }, [hubResources]);
-
-  useEffect(() => {
-    localStorage.setItem("hubTeamMembers", JSON.stringify(hubTeamMembers));
-  }, [hubTeamMembers]);
-
   useEffect(() => {
     localStorage.setItem("completedQuestionnaires", JSON.stringify(completedQuestionnaires));
   }, [completedQuestionnaires]);
 
-  useEffect(() => {
-    localStorage.setItem("customConsultationTemplates", JSON.stringify(customTemplates));
-  }, [customTemplates]);
+  const loadHubDetails = useCallback(
+    async (hub: Hub) => {
+      setIsHubDetailsLoading(true);
+      setHubDetailsError(null);
 
-  const filteredHubs = useMemo(() => {
+      try {
+        const [functionsRes, resourcesRes, notesRes, templatesRes] = await Promise.all([
+          hubsService.getHubFunctions(hub.id),
+          hubsService.getHubResources(hub.id),
+          hubsService.getHubNotes(hub.id),
+          hubsService.getHubTemplates(hub.id),
+        ]);
+
+        setHubFunctions(functionsRes.data ?? []);
+        setHubResources(resourcesRes.data ?? []);
+        const notes = notesRes.data ?? [];
+        setHubNote(notes.length > 0 ? notes[0] : null);
+        const templates = templatesRes.data ?? [];
+        setCustomTemplates(templates.map(mapTemplateFromApi));
+      } catch (error) {
+        console.error("Failed to load hub details:", error);
+        setHubDetailsError(
+          error instanceof Error ? error.message : "Failed to load hub details"
+        );
+        setHubFunctions([]);
+        setHubResources([]);
+        setHubNote(null);
+        setCustomTemplates([]);
+      } finally {
+        setIsHubDetailsLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (selectedHub) {
+      loadHubDetails(selectedHub);
+    } else {
+      setHubFunctions([]);
+      setHubResources([]);
+      setHubNote(null);
+      setCustomTemplates([]);
+    }
+  }, [selectedHub, loadHubDetails]);
+
+  useEffect(() => {
+    if (selectedHub && !hubs.some((hub) => hub.id === selectedHub.id)) {
+      setSelectedHub(null);
+    }
+  }, [hubs, selectedHub]);
+
+  const filteredHubs = useMemo<Hub[]>(() => {
     if (!searchTerm) return hubs;
     const term = searchTerm.toLowerCase();
     return hubs.filter(
@@ -211,124 +236,161 @@ export default function Hubs() {
     );
   }, [searchTerm, hubs]);
 
-  const handleAddFunction = () => {
+  const handleAddFunction = async () => {
     if (!selectedHub || !newFunction.name.trim()) return;
 
-    const functionToAdd: HubFunction = {
-      id: `func-${Date.now()}`,
+    const payload: HubFunctionPayload = {
       name: newFunction.name.trim(),
-      description: newFunction.description.trim(),
+      description: newFunction.description.trim() || undefined,
       category: newFunction.category.trim() || undefined,
     };
 
-    setHubFunctions((prev) => ({
-      ...prev,
-      [selectedHub]: [...(prev[selectedHub] || []), functionToAdd],
-    }));
-
-    setNewFunction({ name: "", description: "", category: "" });
-    setIsAddingFunction(false);
+    setHubDetailsError(null);
+    try {
+      const response = await hubsService.createHubFunction(selectedHub.id, payload);
+      if (response.data) {
+        setHubFunctions((prev) => [response.data, ...prev]);
+      } else {
+        await loadHubDetails(selectedHub);
+      }
+      setNewFunction({ name: "", description: "", category: "" });
+      setIsAddingFunction(false);
+    } catch (error) {
+      console.error("Failed to create hub function:", error);
+      setHubDetailsError(
+        error instanceof Error ? error.message : "Failed to create hub function"
+      );
+    }
   };
 
   const handleEditFunction = (func: HubFunction) => {
     setEditingFunction(func);
     setNewFunction({
       name: func.name,
-      description: func.description,
+      description: func.description || "",
       category: func.category || "",
     });
     setIsAddingFunction(true);
   };
 
-  const handleUpdateFunction = () => {
+  const handleUpdateFunction = async () => {
     if (!selectedHub || !editingFunction || !newFunction.name.trim()) return;
 
-    setHubFunctions((prev) => ({
-      ...prev,
-      [selectedHub]: (prev[selectedHub] || []).map((f) =>
-        f.id === editingFunction.id
-          ? {
-              ...f,
-              name: newFunction.name.trim(),
-              description: newFunction.description.trim(),
-              category: newFunction.category.trim() || undefined,
-            }
-          : f
-      ),
-    }));
+    const payload: Partial<HubFunctionPayload> = {
+      name: newFunction.name.trim(),
+      description: newFunction.description.trim() || undefined,
+      category: newFunction.category.trim() || undefined,
+    };
 
-    setEditingFunction(null);
-    setNewFunction({ name: "", description: "", category: "" });
-    setIsAddingFunction(false);
+    setHubDetailsError(null);
+    try {
+      const response = await hubsService.updateHubFunction(
+        selectedHub.id,
+        editingFunction.id,
+        payload
+      );
+
+      if (response.data) {
+        setHubFunctions((prev) =>
+          prev.map((func) => (func.id === response.data!.id ? response.data! : func))
+        );
+      } else {
+        await loadHubDetails(selectedHub);
+      }
+
+      setEditingFunction(null);
+      setNewFunction({ name: "", description: "", category: "" });
+      setIsAddingFunction(false);
+    } catch (error) {
+      console.error("Failed to update hub function:", error);
+      setHubDetailsError(
+        error instanceof Error ? error.message : "Failed to update hub function"
+      );
+    }
   };
 
-  const handleDeleteFunction = (functionId: string) => {
+  const handleDeleteFunction = async (functionId: string) => {
     if (!selectedHub) return;
-    setHubFunctions((prev) => ({
-      ...prev,
-      [selectedHub]: (prev[selectedHub] || []).filter((f) => f.id !== functionId),
-    }));
+
+    setHubDetailsError(null);
+    try {
+      await hubsService.deleteHubFunction(selectedHub.id, functionId);
+      setHubFunctions((prev) => prev.filter((func) => func.id !== functionId));
+    } catch (error) {
+      console.error("Failed to delete hub function:", error);
+      setHubDetailsError(
+        error instanceof Error ? error.message : "Failed to delete hub function"
+      );
+    }
   };
 
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (!selectedHub || !noteContent.trim()) return;
 
-    const notes = hubNotes[selectedHub] || [];
-    const existingNote = notes[0]; // Single note per hub for simplicity
-
-    if (existingNote) {
-      setHubNotes((prev) => ({
-        ...prev,
-        [selectedHub]: [
-          {
-            ...existingNote,
-            content: noteContent.trim(),
-            updatedAt: new Date().toISOString(),
-          },
-        ],
-      }));
-    } else {
-      const newNote: HubNote = {
-        id: `note-${Date.now()}`,
+    setHubDetailsError(null);
+    try {
+      const response = await hubsService.createOrUpdateHubNote(selectedHub.id, {
         content: noteContent.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setHubNotes((prev) => ({
-        ...prev,
-        [selectedHub]: [newNote],
-      }));
-    }
+      });
 
-    setIsEditingNote(false);
+      if (response.data) {
+        setHubNote(response.data);
+      } else {
+        await loadHubDetails(selectedHub);
+      }
+
+      setIsEditingNote(false);
+      setNoteContent("");
+    } catch (error) {
+      console.error("Failed to save hub note:", error);
+      setHubDetailsError(
+        error instanceof Error ? error.message : "Failed to save hub note"
+      );
+    }
   };
 
-  const handleAddResource = () => {
+  const handleAddResource = async () => {
     if (!selectedHub || !newResource.title.trim()) return;
 
-    const resourceToAdd: HubResource = {
-      id: `resource-${Date.now()}`,
+    const payload: HubResourcePayload = {
       title: newResource.title.trim(),
       type: newResource.type,
       url: newResource.url.trim() || undefined,
       description: newResource.description.trim() || undefined,
     };
 
-    setHubResources((prev) => ({
-      ...prev,
-      [selectedHub]: [...(prev[selectedHub] || []), resourceToAdd],
-    }));
+    setHubDetailsError(null);
+    try {
+      const response = await hubsService.createHubResource(selectedHub.id, payload);
+      if (response.data) {
+        setHubResources((prev) => [response.data, ...prev]);
+      } else {
+        await loadHubDetails(selectedHub);
+      }
 
-    setNewResource({ title: "", type: "link", url: "", description: "" });
-    setIsAddingResource(false);
+      setNewResource({ title: "", type: "link", url: "", description: "" });
+      setIsAddingResource(false);
+    } catch (error) {
+      console.error("Failed to create hub resource:", error);
+      setHubDetailsError(
+        error instanceof Error ? error.message : "Failed to create hub resource"
+      );
+    }
   };
 
-  const handleDeleteResource = (resourceId: string) => {
+  const handleDeleteResource = async (resourceId: string) => {
     if (!selectedHub) return;
-    setHubResources((prev) => ({
-      ...prev,
-      [selectedHub]: (prev[selectedHub] || []).filter((r) => r.id !== resourceId),
-    }));
+
+    setHubDetailsError(null);
+    try {
+      await hubsService.deleteHubResource(selectedHub.id, resourceId);
+      setHubResources((prev) => prev.filter((resource) => resource.id !== resourceId));
+    } catch (error) {
+      console.error("Failed to delete hub resource:", error);
+      setHubDetailsError(
+        error instanceof Error ? error.message : "Failed to delete hub resource"
+      );
+    }
   };
 
   const handleCancelEdit = () => {
@@ -355,36 +417,63 @@ export default function Hubs() {
     });
   };
 
-  const handleSaveTemplate = () => {
-    if (!templateForm.name.trim()) return;
+  const handleSaveTemplate = async () => {
+    if (!selectedHub || !templateForm.name.trim()) return;
 
     const template: CustomConsultationTemplate = {
       id: editingTemplate?.id || `template-${Date.now()}`,
       name: templateForm.name.trim(),
       description: templateForm.description.trim() || undefined,
-      hubId: selectedHub || undefined,
+      hubId: selectedHub.id,
       createdAt: editingTemplate?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       consultationTemplate: {
         chiefComplaint: templateForm.chiefComplaint.trim(),
         historyOfPresentIllness: templateForm.historyOfPresentIllness.trim(),
-        reviewOfSystems: templateForm.reviewOfSystems.filter(s => s.trim()),
-        physicalExamination: templateForm.physicalExamination.filter(s => s.trim()),
+        reviewOfSystems: templateForm.reviewOfSystems.filter((s) => s.trim()),
+        physicalExamination: templateForm.physicalExamination.filter((s) => s.trim()),
         assessment: templateForm.assessment.trim(),
-        plan: templateForm.plan.filter(s => s.trim()),
-        commonDiagnoses: templateForm.commonDiagnoses.filter(s => s.trim()),
-        commonTests: templateForm.commonTests.filter(s => s.trim()),
-        commonMedications: templateForm.commonMedications.filter(s => s.trim()),
+        plan: templateForm.plan.filter((s) => s.trim()),
+        commonDiagnoses: templateForm.commonDiagnoses.filter((s) => s.trim()),
+        commonTests: templateForm.commonTests.filter((s) => s.trim()),
+        commonMedications: templateForm.commonMedications.filter((s) => s.trim()),
       },
     };
 
-    if (editingTemplate) {
-      setCustomTemplates(prev => prev.map(t => t.id === editingTemplate.id ? template : t));
-    } else {
-      setCustomTemplates(prev => [...prev, template]);
-    }
+    setHubDetailsError(null);
+    try {
+      if (editingTemplate) {
+        const response = await hubsService.updateHubTemplate(
+          editingTemplate.id,
+          mapTemplateToPayload(template)
+        );
+        if (response.data) {
+          const mapped = mapTemplateFromApi(response.data);
+          setCustomTemplates((prev) =>
+            prev.map((t) => (t.id === mapped.id ? mapped : t))
+          );
+        } else {
+          await loadHubDetails(selectedHub);
+        }
+      } else {
+        const response = await hubsService.createHubTemplate(
+          selectedHub.id,
+          mapTemplateToPayload(template)
+        );
+        if (response.data) {
+          setCustomTemplates((prev) => [mapTemplateFromApi(response.data), ...prev]);
+        } else {
+          await loadHubDetails(selectedHub);
+        }
+      }
 
-    handleCancelEdit();
+      handleCancelEdit();
+    } catch (error) {
+      console.error("Failed to save hub template:", error);
+      setHubDetailsError(
+        error instanceof Error ? error.message : "Failed to save hub template"
+      );
+    }
   };
 
   const handleEditTemplate = (template: CustomConsultationTemplate) => {
@@ -417,9 +506,20 @@ export default function Hubs() {
     setIsCreatingTemplate(true);
   };
 
-  const handleDeleteTemplate = (templateId: string) => {
-    if (window.confirm("Are you sure you want to delete this template?")) {
-      setCustomTemplates(prev => prev.filter(t => t.id !== templateId));
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!window.confirm("Are you sure you want to delete this template?")) {
+      return;
+    }
+
+    setHubDetailsError(null);
+    try {
+      await hubsService.deleteHubTemplate(templateId);
+      setCustomTemplates((prev) => prev.filter((t) => t.id !== templateId));
+    } catch (error) {
+      console.error("Failed to delete hub template:", error);
+      setHubDetailsError(
+        error instanceof Error ? error.message : "Failed to delete hub template"
+      );
     }
   };
 
@@ -639,37 +739,46 @@ export default function Hubs() {
       completedAt: new Date().toISOString(),
     };
 
-    setCompletedQuestionnaires((prev) => ({
-      ...prev,
-      [selectedHub]: [...(prev[selectedHub] || []), completed],
-    }));
+    setCompletedQuestionnaires((prev) => {
+      const hubId = selectedHub.id;
+      const existing = prev[hubId] || [];
+      return {
+        ...prev,
+        [hubId]: [...existing, completed],
+      };
+    });
 
     setSelectedQuestionnaire(null);
     setQuestionnaireAnswers({});
   };
 
-  const currentHub = selectedHub ? getHubById(selectedHub) : null;
-  const currentFunctions = selectedHub ? hubFunctions[selectedHub] || [] : [];
-  const currentNotes = selectedHub ? hubNotes[selectedHub] || [] : [];
-  const currentResources = selectedHub ? hubResources[selectedHub] || [] : [];
-  const currentNote = currentNotes[0];
-  const hubQuestionnaires = selectedHub ? getQuestionnairesByHub(String(selectedHub)) : [];
-  const hubCompletedQuestionnaires = selectedHub ? completedQuestionnaires[selectedHub] || [] : [];
+  const currentHub = selectedHub;
+  const currentFunctions = useMemo(() => hubFunctions, [hubFunctions]);
+  const currentResources = useMemo(() => hubResources, [hubResources]);
+  const currentNote = hubNote;
+  const hubQuestionnaires: Questionnaire[] = useMemo(() => {
+    return selectedHub ? [] : [];
+  }, [selectedHub]);
+  const hubCompletedQuestionnaires = selectedHub
+    ? completedQuestionnaires[selectedHub.id] || []
+    : [];
 
   // Get real stats from patient data
-  const realHubStats = selectedHub ? getHubStats(patients, selectedHub) : null;
-  const hubStats: HubStats = realHubStats ? {
-    totalPatients: realHubStats.totalPatients,
-    activeAppointments: realHubStats.activeAppointments,
-    recentActivities: realHubStats.recentNotes,
-  } : {
-    totalPatients: 0,
-    activeAppointments: 0,
-    recentActivities: 0,
-  };
+  const realHubStats = selectedHub ? getHubStats(patients, selectedHub.id) : null;
+  const hubStats = realHubStats
+    ? {
+        totalPatients: realHubStats.totalPatients,
+        activeAppointments: realHubStats.activeAppointments,
+        recentActivities: realHubStats.recentNotes,
+      }
+    : {
+        totalPatients: 0,
+        activeAppointments: 0,
+        recentActivities: 0,
+      };
 
-  const quickActions = selectedHub ? getHubQuickActions(selectedHub) : [];
-  const hubPatients = selectedHub ? filterPatientsByHub(patients, selectedHub) : [];
+    const quickActions = selectedHub ? getHubQuickActions(selectedHub.id) : [];
+    const hubPatients = selectedHub ? filterPatientsByHub(patients, selectedHub.id) : [];
 
   const handleQuickAction = (action: any) => {
     if (action.action === "schedule" && action.tab) {
@@ -694,6 +803,7 @@ export default function Hubs() {
             onClick={() => {
               setSelectedHub(null);
               setHubActiveTab("overview");
+              setHubDetailsError(null);
             }}
             className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
@@ -702,7 +812,19 @@ export default function Hubs() {
           </button>
         </div>
 
-        <div className={`rounded-lg border-2 p-6 ${getHubColorClass(selectedHub)}`}>
+          {hubDetailsError && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
+              {hubDetailsError}
+            </div>
+          )}
+
+          {isHubDetailsLoading && (
+            <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+              Loading hub data...
+            </div>
+          )}
+
+        <div className={`rounded-lg border-2 p-6 ${getHubColorClass(selectedHub?.color)}`}>
           <div className="flex items-start gap-4 mb-6">
             <div className="p-3 rounded-lg bg-white/50 dark:bg-gray-800/50">
               <div className="w-8 h-8 rounded bg-teal-500" />
@@ -1697,10 +1819,10 @@ export default function Hubs() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {customTemplates.filter(t => !selectedHub || t.hubId === selectedHub || !t.hubId).length > 0 ? (
+                  {customTemplates.filter((t) => !selectedHub || !t.hubId || t.hubId === selectedHub.id).length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {customTemplates
-                        .filter(t => !selectedHub || t.hubId === selectedHub || !t.hubId)
+                        .filter((t) => !selectedHub || !t.hubId || t.hubId === selectedHub.id)
                         .map((template) => (
                           <div
                             key={template.id}
@@ -1822,6 +1944,18 @@ export default function Hubs() {
         </p>
       </div>
 
+        {hubsError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
+            Failed to load hubs: {hubsError.message}
+          </div>
+        )}
+
+        {isHubsLoading && hubs.length === 0 && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300">
+            Loading hubs...
+          </div>
+        )}
+
       {/* Search and Filter */}
       <div className="flex gap-4">
         <div className="flex-1 relative">
@@ -1836,15 +1970,28 @@ export default function Hubs() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredHubs.map((hub) => {
-          const functions = hubFunctions[hub.id] || [];
-          const colorClass = getHubColorClass(hub.id);
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredHubs.map((hub: Hub) => {
+            const functionCount: number | null = null;
+            const colorClass = getHubColorClass(hub.color);
           
           return (
             <div
               key={hub.id}
-              onClick={() => setSelectedHub(hub.id)}
+              onClick={() => {
+                setSelectedHub(hub);
+                setHubActiveTab("overview");
+                setSelectedQuestionnaire(null);
+                setQuestionnaireAnswers({});
+                setViewingCompletedQuestionnaire(null);
+                setIsEditingNote(false);
+                setIsAddingFunction(false);
+                setIsAddingResource(false);
+                setEditingFunction(null);
+                setNewFunction({ name: "", description: "", category: "" });
+                setNewResource({ title: "", type: "link", url: "", description: "" });
+                setNoteContent("");
+              }}
               className={`p-6 rounded-lg border-2 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] ${colorClass}`}
             >
               <div className="flex items-start gap-4 mb-4">
@@ -1857,16 +2004,16 @@ export default function Hubs() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="opacity-70">Specialty hub</span>
-                  {functions.length > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="opacity-70">Specialty hub</span>
                     <span className="px-2 py-0.5 bg-white/60 dark:bg-gray-800/60 rounded">
-                      {functions.length} {functions.length === 1 ? "function" : "functions"}
+                      {functionCount === null
+                        ? "—"
+                        : `${functionCount} ${functionCount === 1 ? "function" : "functions"}`}
                     </span>
-                  )}
-                </div>
-                <ChevronRight size={16} className="opacity-50" />
+                  </div>
+                  <ChevronRight size={16} className="opacity-50" />
               </div>
             </div>
           );
