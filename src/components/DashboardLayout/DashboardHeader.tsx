@@ -185,18 +185,21 @@ export default function DashboardHeader() {
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Hospital No:</span>
                     <div className="flex items-center gap-1.5 group">
                       <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">
-                        {selectedPatient.id.slice(0, 8).toUpperCase()}
+                        {selectedPatient.id ? selectedPatient.id.slice(0, 8).toUpperCase() : 'N/A'}
                       </span>
                       <button
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          navigator.clipboard.writeText(selectedPatient.id).then(() => {
-                            setCopiedField('hospitalNumber');
-                            setTimeout(() => setCopiedField(null), 2000);
-                          });
+                          if (selectedPatient.id) {
+                            navigator.clipboard.writeText(selectedPatient.id).then(() => {
+                              setCopiedField('hospitalNumber');
+                              setTimeout(() => setCopiedField(null), 2000);
+                            });
+                          }
                         }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                        disabled={!selectedPatient.id}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Copy hospital number"
                       >
                         {copiedField === 'hospitalNumber' ? (

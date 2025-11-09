@@ -9,6 +9,7 @@ import { Patient, Appointment, Medication } from '../types';
  * Get active medications from a patient
  */
 export function getActiveMedications(patient: Patient): Medication[] {
+  if (!patient.medications) return [];
   return patient.medications.filter((med) => med.status === "Active");
 }
 
